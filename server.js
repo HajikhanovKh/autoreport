@@ -23,7 +23,7 @@ const pool = mysql.createPool({
 
 // Şirkətləri gətirən API endpointi
 app.get('/api/companies', (req, res) => {
-    const query = 'SELECT * FROM example'; // DBeaver-da cədvəl adın fərqlidirsə, "example"-ı dəyiş
+    const query = 'SELECT * FROM voen_info'; // DBeaver-da cədvəl adın fərqlidirsə, "example"-ı dəyiş
     
     pool.query(query, (err, results) => {
         if (err) {
