@@ -1,16 +1,15 @@
-const express = require('express');
-const mysql = require('mysql2');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import mysql from 'mysql2';
+import cors from 'cors';
+import 'dotenv/config';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Webflow-un bu API-a müraciət edə bilməsi üçün CORS-u aktiv edirik
 app.use(cors());
 app.use(express.json());
 
-// Railway MySQL bazasına qoşulma tənzimləmələri
+// Railway MySQL hovuzu (pool)
 const pool = mysql.createPool({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
@@ -22,10 +21,9 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// Məlumatları bazadan çəkən API endpointi
+// Şirkətləri gətirən API endpointi
 app.get('/api/companies', (req, res) => {
-    // dbeaver-da olan cədvəlinin adını "example" yerinə yaza bilərsən
-    const query = 'SELECT * FROM example'; 
+    const query = 'SELECT * FROM example'; // DBeaver-da cədvəl adın fərqlidirsə, "example"-ı dəyiş
     
     pool.query(query, (err, results) => {
         if (err) {
@@ -37,5 +35,5 @@ app.get('/api/companies', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server ${port} portunda işləyir...`);
+    console.log(`Server ${port} portunda aktivdir...`);
 });
