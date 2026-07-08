@@ -9,13 +9,13 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Railway-də tək-tək təyin etdiyimiz dəyişənləri birbaşa oxuyuruq
+// Birbaşa sənin Public MySQL məlumatlarınla hovuz yaradırıq
 const pool = mysql.createPool({
-    host: process.env.MYSQLHOST,
-    user: process.env.MYSQLUSER,
-    password: process.env.MYSQLPASSWORD,
-    database: process.env.MYSQLDATABASE,
-    port: process.env.MYSQLPORT,
+    host: 'shuttle.proxy.rlwy.net',
+    port: 47240,
+    user: 'root',
+    password: 'EkyWKEWfaarOVqBFEGPFhCQNVSnRrPtG',
+    database: 'railway',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
