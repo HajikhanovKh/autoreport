@@ -9,7 +9,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Railway MySQL hovuzu (pool)
+// Railway-də tək-tək təyin etdiyimiz dəyişənləri birbaşa oxuyuruq
 const pool = mysql.createPool({
     host: process.env.MYSQLHOST,
     user: process.env.MYSQLUSER,
