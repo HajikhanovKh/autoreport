@@ -18,7 +18,10 @@ const pool = mysql.createPool({
     database: 'railway',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    // Bağlantı itəndə avtomatik yenidən qoşulmağa çalışması üçün:
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
 });
 
 // Genişləndirilmiş xəta loqlama funksiyası
