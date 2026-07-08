@@ -25,7 +25,7 @@ app.get('/api/companies', async (req, res) => {
         connection = await mysql.createConnection(dbConfig);
         
         // Diqqət: Burada hələ də 'example' cədvəli çağırılır
-        const [rows] = await connection.execute('SELECT * FROM example');
+        const [rows] = await connection.execute('SELECT * FROM voen_info');
         
         // Məlumatları uğurla geri qaytarırıq
         res.json(rows);
