@@ -21,14 +21,26 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// Şirkətləri gətirən API endpointi
+// Genişləndirilmiş xəta loqlama funksiyası
 app.get('/api/companies', (req, res) => {
-    const query = 'SELECT * FROM voen_info'; // DBeaver-da cədvəl adın fərqlidirsə, "example"-ı dəyiş
+    // Diqqət: Burada hələ də 'example' cədvəli çağırılır
+    const query = 'SELECT * FROM example'; 
     
     pool.query(query, (err, results) => {
         if (err) {
+            // Bu sətr xətanın bütün detallarını Railway terminalına (Logs) yazdıracaq
+            console.error("--- DATABASE ERROR LOG START ---");
+            console.error("Xəta kodu:", err.code);
+            console.error("Xəta mesajı:", err.message);
             console.error(err);
-            return res.status(500).json({ error: 'Baza xətası baş verdi' });
+            console.error("--- DATABASE ERROR LOG END ---");
+            
+            // Xətanın mesajını birbaşa brauzerdə görmək üçün JSON olaraq qaytarırıq
+            return res.status(500).json({ 
+                error: 'Baza xətası baş verdi', 
+                details: err.message,
+                code: err.code 
+            });
         }
         res.json(results);
     });
