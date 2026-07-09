@@ -5,7 +5,6 @@ import cors from 'cors';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// CORS daxilində DELETE metoduna rəsmi icazə veririk
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE'] }));
 app.use(express.json());
 
@@ -31,42 +30,54 @@ app.get('/api/companies', async (req, res) => {
     }
 });
 
-// 2. POST - Yeni şirkət əlavə etmək
+// 2. POST - Yeni şirkət əlavə etmək VƏ YA Mövcud VÖEN-i yeniləmək (AĞILLI METOD)
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        const query = `
-            INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        await connection.execute(query, [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]);
-        res.json({ success: true, message: 'Məlumat yazıldı!' });
+        
+        // İlk öncə bazada bu VÖEN-in olub olmadığını yoxlayırıq
+        const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
+        
+        if (existing.length > 0) {
+            // Əgər eyni VÖEN artıq varsa -> Məlumatları ÜZƏRİNƏ YAZIRIQ (UPDATE)
+            const updateQuery = `
+                UPDATE voen_info 
+                SET comp_name = ?, comp_director_name = ?, comp_adress = ?, pstatus = ?, data_info_date = ? 
+                WHERE voen = ?
+            `;
+            await connection.execute(updateQuery, [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]);
+            return res.json({ success: true, updated: true, message: 'Məlumatlar mövcud VÖEN üzərinə yazıldı!' });
+        } else {
+            // Əgər bu VÖEN bazada yoxdursa -> YENİ SƏTİR YARADIRIQ (INSERT)
+            const insertQuery = `
+                INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            `;
+            await connection.execute(insertQuery, [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]);
+            return res.json({ success: true, updated: false, message: 'Yeni məlumat uğurla yazıldı!' });
+        }
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Baza əməliyyat xətası: ' + err.message });
     } finally {
         if (connection) await connection.end();
     }
 });
 
-// 🔴 3. DELETE - Şirkəti ID parametrinə görə bazadan tamamilə silmək
+// 3. DELETE - Şirkəti silmək
 app.delete('/api/companies/:id', async (req, res) => {
     const companyId = req.params.id;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        
-        // Gələn ID-yə əsasən cədvəldən rəsmi silmə sorğusu icra edirik
         const [result] = await connection.execute('DELETE FROM voen_info WHERE id = ?', [companyId]);
-        
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Xəta: Silinmək istənən məlumat bazada tapılmadı!' });
+            return res.status(404).json({ error: 'Məlumat tapılmadı!' });
         }
-        
-        res.json({ success: true, message: 'Məlumat bazadan uğurla silindi!' });
+        res.json({ success: true, message: 'Məlumat silindi!' });
     } catch (err) {
-        res.status(500).json({ error: 'Baza silinmə xətası: ' + err.message });
+        res.status(500).json({ error: err.message });
     } finally {
         if (connection) await connection.end();
     }
