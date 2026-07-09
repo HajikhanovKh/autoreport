@@ -1,16 +1,12 @@
 const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
 
-// Elementlərin və səhifənin tam hazır olmasını gözləyən zirehli funksiya
 function initAutoReportSystem() {
-    // Əsas konteynerlər
     const mainContainer = document.querySelector('.example');
     const templateCard = document.querySelector('.company-card');
     const consoleDiv = document.querySelector('.console-div');
     const dataCountDiv = document.querySelector('.data-count');
 
-    // Elementləri həm ID, həm klas kombinasiyası ilə tapırıq (Səhv riskini sıfırlamaq üçün)
     const popupDiv = document.querySelector('.popup_1') || document.getElementById('popup_1');
-    const closeBtn = document.getElementById('close-btn') || document.querySelector('.close-btn');
     const inputVoen = document.getElementById('add-voen') || document.querySelector('.add-voen');
     const inputCompany = document.getElementById('add-company') || document.querySelector('.add-company');
     const inputLeader = document.getElementById('add-leader') || document.querySelector('.add-leader');
@@ -28,12 +24,6 @@ function initAutoReportSystem() {
 
     let allCompaniesData = [];
 
-    // İlkin gizlətmə
-    if (popupDiv) {
-        popupDiv.style.display = 'none';
-    }
-
-    // Konsol log funksiyası
     function logToScreen(message, isError = false) {
         if (consoleDiv) {
             consoleDiv.innerText = message;
@@ -41,7 +31,6 @@ function initAutoReportSystem() {
         }
     }
 
-    // Status mesajı funksiyası
     function setStatus(message, isError = false) {
         if (statusMsg) {
             statusMsg.innerText = message;
@@ -50,7 +39,6 @@ function initAutoReportSystem() {
         }
     }
 
-    // Radio dəyişmə məntiqi
     function handleRadioChange() {
         if (radioPerson2 && radioPerson2.checked) {
             if (inputCompany) {
@@ -72,15 +60,6 @@ function initAutoReportSystem() {
     if (radioPerson2) radioPerson2.addEventListener('change', handleRadioChange);
     handleRadioChange();
 
-    // X düyməsi ilə bağlama
-    if (closeBtn) {
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (popupDiv) popupDiv.style.display = 'none';
-        });
-    }
-
     function clearFormFields() {
         if (inputCompany) inputCompany.value = '';
         if (inputLeader) inputLeader.value = '';
@@ -90,7 +69,6 @@ function initAutoReportSystem() {
     }
 
     function fillFormWithData(company) {
-        if (popupDiv) popupDiv.style.display = 'block';
         if (inputVoen) inputVoen.value = company.voen || '';
         if (inputLeader) inputLeader.value = company.comp_director_name || '';
         if (inputAddress) inputAddress.value = company.comp_adress || '';
@@ -159,7 +137,7 @@ function initAutoReportSystem() {
         }
     }
 
-    function loadCompanies() {
+    window.loadCompanies = function() {
         fetch(API_URL)
             .then(res => res.json())
             .then(data => {
@@ -170,9 +148,10 @@ function initAutoReportSystem() {
             .catch(err => logToScreen(`Xəta: ${err.message}`, true));
     }
 
-    loadCompanies();
+    if (popupDiv && (popupDiv.style.display === 'block' || popupDiv.style.visibility === 'visible')) {
+        window.loadCompanies();
+    }
 
-    // Lupa düyməsi
     if (voenSrcBtn) {
         voenSrcBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -182,12 +161,10 @@ function initAutoReportSystem() {
                 fillFormWithData(found);
             } else {
                 clearFormFields();
-                if (popupDiv) popupDiv.style.display = 'block';
             }
         });
     }
 
-    // Üst axtarış
     if (searchBtn) {
         searchBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -197,16 +174,14 @@ function initAutoReportSystem() {
         });
     }
 
-    // Refresh
     if (refreshBtn) {
         refreshBtn.addEventListener('click', (e) => {
             e.preventDefault();
             if (searchInput) searchInput.value = '';
-            loadCompanies();
+            window.loadCompanies();
         });
     }
 
-    // Yadda saxla (Save)
     if (saveBtn) {
         saveBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -239,15 +214,15 @@ function initAutoReportSystem() {
             .then(() => {
                 if (inputVoen) inputVoen.value = '';
                 clearFormFields();
-                if (popupDiv) popupDiv.style.display = 'none';
-                loadCompanies();
+                const closeBtnReal = document.getElementById('close-btn') || document.querySelector('.close-btn');
+                if (closeBtnReal) closeBtnReal.click();
+                window.loadCompanies();
             })
             .catch(err => setStatus(`Xəta: ${err.message}`, true));
         });
     }
 }
 
-// Bütün yüklənmə metodlarında zəmanətli işə düşmə
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoReportSystem);
 } else {
