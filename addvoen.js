@@ -16,11 +16,6 @@
                      document.querySelector('.close-btn') || 
                      document.querySelector('[data-close]');
 
-    // İlk açılışda popup_1-i gizlədirik
-    if (popupDiv) {
-      popupDiv.style.display = 'none';
-    }
-
     // Əsas Form elementləri (ID ilə)
     const statusMsg = document.getElementById('data-status-msg');
     const inputVoen = document.getElementById('add-voen');
