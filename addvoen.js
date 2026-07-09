@@ -214,8 +214,7 @@ function initAutoReportSystem() {
             .then(() => {
                 if (inputVoen) inputVoen.value = '';
                 clearFormFields();
-                const closeBtnReal = document.getElementById('close-btn') || document.querySelector('.close-btn');
-                if (closeBtnReal) closeBtnReal.click();
+                
                 window.loadCompanies();
             })
             .catch(err => setStatus(`Xəta: ${err.message}`, true));
