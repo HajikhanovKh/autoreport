@@ -346,7 +346,7 @@
           if (searchInput) searchInput.value = '';
 
           // Məlumat yazılandan sonra bağlayırıq
-          if (popupDiv) popupDiv.style.display = 'none';
+          
 
           loadCompanies();
         })
