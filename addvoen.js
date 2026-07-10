@@ -1,20 +1,12 @@
 <script>
   const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
-
+ 
   document.addEventListener('DOMContentLoaded', () => {
     // Əsas konteynerlər
     const mainContainer = document.querySelector('.example');
     const templateCard = document.querySelector('.company-card');
     const consoleDiv = document.querySelector('.console-div');
     const dataCountDiv = document.querySelector('.data-count');
-
-    // ❌ POPUP seçici (Həm klas, həm ID kombinasiyası ilə təhlükəsiz axtarış)
-    const popupDiv = document.querySelector('.popup_1') || document.getElementById('popup_1');
-    
-    // ❌ BAĞLAMA DÜYMƏSİ (Çoxşaxəli güclü seçici)
-    const closeBtn = document.getElementById('close-btn') || 
-                     document.querySelector('.close-btn') || 
-                     document.querySelector('[data-close]');
 
     // Əsas Form elementləri (ID ilə)
     const statusMsg = document.getElementById('data-status-msg');
@@ -30,27 +22,10 @@
     const searchInput = document.querySelector('.src-voen');
     const searchBtn = document.querySelector('.src-voen-btn');
     const refreshBtn = document.querySelector('.refresh-btn');
-    const voenSrcBtn = document.querySelector('.voen-src'); 
+    const voenSrcBtn = document.querySelector('.voen-src'); // Lupa düyməsi
 
     // Qlobal məlumat kəşi
     let allCompaniesData = [];
-
-    // ❌ X DÜYMƏSİNƏ BASTIQDA GİZLƏNMƏ MƏNTİQİ (GÜCLƏNDİRİLDİ)
-    if (closeBtn) {
-      closeBtn.style.cursor = 'pointer';
-      closeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // Kliklənmənin daxili şəkillərə ilişməsinin qarşısını alır
-        if (popupDiv) {
-          popupDiv.style.display = 'none';
-          logToScreen('Qeydiyyat paneli uğurla bağlandı.');
-        } else {
-          console.error("Xəta: .popup_1 elementi səhifədə tapılmadı!");
-        }
-      });
-    } else {
-      console.warn("Xəbərdarlıq: Bağlama (X) düyməsi tapılmadı! ID və ya klasını yoxlayın.");
-    }
 
     // Konsol ekranına yazma funksiyası
     function logToScreen(message, isError = false) {
@@ -70,7 +45,7 @@
       }
     }
 
-    // Radio dəyişdikdə şirkət inputunu kilidləyən funksiya
+    // Radio düyməsinə görə şirkət inputunu kilidləyən funksiya
     function handleRadioChange() {
       if (radioPerson2 && radioPerson2.checked) {
         if (inputCompany) {
@@ -91,11 +66,13 @@
     if (radioPerson1) radioPerson1.addEventListener('change', handleRadioChange);
     if (radioPerson2) radioPerson2.addEventListener('change', handleRadioChange);
 
+    // İlk açılışda radionun vəziyyətini tənzimlə
     handleRadioChange();
 
     logToScreen('Məlumatlar bazadan yüklənir...');
     if (dataCountDiv) dataCountDiv.innerText = '0 nəticə';
 
+    // Form xanalarını tam təmizləyən funksiya
     function clearFormFields() {
       if (inputCompany) inputCompany.value = '';
       if (inputLeader) inputLeader.value = '';
@@ -104,10 +81,8 @@
       handleRadioChange();
     }
 
+    // Form xanalarını məlumatla dolduran funksiya
     function fillFormWithData(company) {
-      // Düymələrə basdıqda popup-ı görünən edirik
-      if (popupDiv) popupDiv.style.display = 'block';
-
       if (inputVoen) inputVoen.value = company.voen || '';
       if (inputLeader) inputLeader.value = company.comp_director_name || '';
       if (inputAddress) inputAddress.value = company.comp_adress || '';
@@ -123,7 +98,7 @@
       if (inputCompany && company.pstatus != 2) {
         inputCompany.value = company.comp_name || '';
       }
-      logToScreen(`"${company.pstatus == 2 ? 'Fiziki Şəxs' : company.comp_name}" məlumatları forma dolduruldu.`);
+      logToScreen(`"${company.pstatus == 2 ? 'Fiziki Şəxs' : company.comp_name}" form xanalarına dolduruldu.`);
     }
 
     // Kartları ekrana render edən ana funksiya
@@ -204,6 +179,7 @@
       }
     }
 
+    // Bazadan məlumatları çəkən ana funksiya
     function loadCompanies() {
       fetch(API_URL)
         .then((response) => {
@@ -220,9 +196,10 @@
         });
     }
 
+    // İlk açılışda datanı yüklə
     if (mainContainer && templateCard) loadCompanies();
 
-    // 🔍 VÖEN YANINDAKI LUPA DÜYMƏSİ (`.voen-src`)
+    // 🔍 1. VÖEN YANINDAKI LUPA DÜYMƏSİ (`.voen-src`)
     if (voenSrcBtn) {
       voenSrcBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -241,13 +218,12 @@
           setStatus("Mövcud VÖEN məlumatları tapıldı və daxil edildi. 🔍", false);
         } else {
           clearFormFields();
-          if (popupDiv) popupDiv.style.display = 'block'; 
           setStatus("Bu VÖEN-ə uyğun məlumat tapılmadı. Yeni qeyd daxil edə bilərsiniz.", false);
         }
       });
     }
 
-    // 🔍 ÜST ÜMUMİ AXTARIŞ DÜYMƏSİ (`.src-voen-btn`)
+    // 🔍 2. ÜST ÜMUMİ AXTARIŞ DÜYMƏSİ (`.src-voen-btn`)
     if (searchBtn) {
       searchBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -261,6 +237,7 @@
       });
     }
 
+    // Enter sıxıldıqda üst axtarış işləsin
     if (searchInput) {
       searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && searchBtn) {
@@ -270,7 +247,7 @@
       });
     }
 
-    // 🔄 REFRESH (YENİLƏMƏ) DÜYMƏSİ (`.refresh-btn`)
+    // 🔄 3. REFRESH (YENİLƏMƏ) DÜYMƏSİ (`.refresh-btn`)
     if (refreshBtn) {
       refreshBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -280,7 +257,7 @@
       });
     }
 
-    // 💾 YADDA SAXLA VƏ YA MÖVCUDDURSA ÜZƏRİNƏ YAZ (POST)
+    // 💾 4. YADDA SAXLA VƏ YA MÖVCUDDURSA ÜZƏRİNƏ YAZ (POST)
     if (saveBtn) {
       saveBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -339,14 +316,12 @@
             setStatus("VÖEN üçün ünvan yadda saxlanıldı. ✅", false);
           }
           
+          // Formu tam təmizlə
           if (inputVoen) inputVoen.value = '';
           if (inputCompany) inputCompany.value = '';
           if (inputLeader) inputLeader.value = '';
           if (inputAddress) inputAddress.value = '';
           if (searchInput) searchInput.value = '';
-
-          // Məlumat yazılandan sonra bağlayırıq
-          
 
           loadCompanies();
         })
