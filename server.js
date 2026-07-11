@@ -24,7 +24,6 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-// Tarixlərin müqayisəsini tam stabil edən təkmilləşdirilmiş funksiya
 function parseExcelDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.toString().trim().split('.');
@@ -48,7 +47,7 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
-// 🔥 BÖYÜK-KİÇİK HƏRF HƏSSASLIĞI TAM ARADAN QALDIRILMIŞ ANALİZ ENDPOINT-İ
+// 🔥 FƏRDİ TEQ EŞLƏŞDİRMƏLİ MÜKƏMMƏL ANALİZ VƏ ZIP ENDİRMƏ ENDPOINT-İ
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -58,15 +57,12 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             return res.status(400).json({ error: 'Excel faylı qəbul edilmədi!' });
         }
 
-        // Süzgəc parametrlərini standart balaca hərflərə gətiririk
         filterType = filterType ? filterType.trim().toLowerCase() : "";
         targetPeriod = targetPeriod ? targetPeriod.trim().toLowerCase() : "";
         targetYear = targetYear ? targetYear.trim() : "";
 
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        
-        // Sətirləri təmiz grid massivi kimi oxuyuruq
         const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
@@ -78,7 +74,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         let generatedCount = 0;
         let targetPeriodText = `${req.body.targetPeriod} ${targetYear}`;
 
-        // i=1 edərək başlıq sətirini avtomatik ötürürük
         for (let i = 1; i < excelData.length; i++) {
             const row = excelData[i];
             if (!row || row.length < 7) continue;
@@ -117,14 +112,18 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 const docZip = new PizZip(templateBuffer);
                 const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
 
-                const inv = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
-                const brc = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
+                const invText = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
+                const brcText = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
                 
-                const singleReportText = `"${rayon}" (A sütunu) üzrə məlumat tapıldı. İnvoys üzrə ${inv} ${valyuta} məbləğdən ${brc} ${valyuta} borc var.`;
-
+                // 🔥 Sənin rəsmi Word şablonunda istifadə etdiyin teqləri birbaşa və dəqiq doldururuq
                 doc.setData({
                     period: targetPeriodText,
-                    report: singleReportText
+                    rayon: rayon,
+                    gb: gbNo,
+                    firma: firmaAdi,
+                    invoys: invText,
+                    valyuta: valyuta,
+                    borc: brcText
                 });
 
                 doc.render();
@@ -139,7 +138,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         }
 
         if (generatedCount === 0) {
-            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı! Seçdiyiniz Rüb/Ay və İlin Excel-dəki sətirlərlə tam eyni olduğundan (məsələn: 2026 və ya IV rüb) əmin olun.' });
+            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı!' });
         }
 
         let bodyText = "";
