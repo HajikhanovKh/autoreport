@@ -1,8 +1,6 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
 import cors from 'cors';
-import multer from 'multer';
-import XLSX from 'xlsx';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import JSZip from 'jszip';
@@ -11,10 +9,10 @@ import axios from 'axios';
 const app = express();
 const port = process.env.PORT || 3000;
 
-const upload = multer({ storage: multer.memoryStorage() });
-
+// 🔥 Sürətli JSON ötürülməsi üçün yaddaş limitini artırırıq
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE'] }));
-app.use(express.json());
 
 const dbConfig = process.env.MYSQL_URL || {
     host: 'ballast.proxy.rlwy.net',
@@ -24,43 +22,16 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-function parseExcelDate(dateStr) {
-    if (!dateStr) return null;
-    const parts = dateStr.toString().trim().split('.');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const year = parseInt(parts[2], 10);
-    if (isNaN(month) || isNaN(year)) return null;
-
-    let rub = "i rüb";
-    if (month >= 4 && month <= 6) rub = "ii rüb";
-    else if (month >= 7 && month <= 9) rub = "iii rüb";
-    else if (month >= 10 && month <= 12) rub = "iv rüb";
-
-    const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
-    return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
-}
-
-// 🔥 GİTHUB-DAN AVTOMATİK ŞABLON YÜKLƏYƏN EXCEL ZIP ANALİZ METODU
-app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
+// 🔥 OPTİMALLAŞDIRILMIŞ YÜNGÜL WORD SƏNƏD GENERASİYA ENDPOINT-İ
+app.post('/api/companies/analyze-and-zip', async (req, res) => {
     try {
-        let { filterType, targetPeriod, targetYear } = req.body;
-        const file = req.file;
+        const { filteredRows, targetPeriodText } = req.body;
 
-        if (!file) {
-            return res.status(400).json({ error: 'Excel faylı qəbul edilmədi!' });
+        if (!filteredRows || filteredRows.length === 0) {
+            return res.status(400).json({ error: 'Süzgəclənmiş sətir məlumatı serverə çatmadı!' });
         }
 
-        filterType = filterType ? filterType.trim().toLowerCase() : "";
-        targetPeriod = targetPeriod ? targetPeriod.trim().toLowerCase() : "";
-        targetYear = targetYear ? targetYear.trim() : "";
-
-        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-        // 🔥 Şablon birbaşa GitHub deposundan server səviyyəsində təhlükəsiz yüklənir
+        // Şablon birbaşa GitHub-dan server operativ yaddaşına çəkilir
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
         const templateResponse = await axios.get(template_url, { responseType: 'arraybuffer' });
         const templateBuffer = templateResponse.data;
@@ -68,90 +39,69 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         const zipOutput = new JSZip();
         let summary = {};
         let generatedCount = 0;
-        let targetPeriodText = `${req.body.targetPeriod} ${targetYear}`;
 
-        for (let i = 1; i < excelData.length; i++) {
-            const row = excelData[i];
-            if (!row || row.length < 7) continue;
+        // Server yalnız localda süzülmüş hazır sətirlər üzərində dövr edir (Sürət maksimumdur)
+        for (let i = 0; m < filteredRows.length; m++) {
+            const item = filteredRows[m];
+            
+            const rayon = item.rayon;
+            const gbNo = item.gbNo;
+            const firmaAdi = item.firmaAdi;
+            const invoysVal = item.invoysVal;
+            const valyuta = item.valyuta;
+            const borcVal = item.borcVal;
+            const idx = item.idx;
 
-            const rayon = row[0] ? row[0].toString().trim() : "";       
-            const gbNo = row[1] ? row[1].toString().trim() : "";         
-            const tarixStr = row[2] ? row[2].toString().trim() : "";     
-            const firmaAdi = row[3] ? row[3].toString().trim() : "";     
-            const invoysVal = parseFloat(row[4]);                             
-            const valyuta = row[5] ? row[5].toString().trim().toUpperCase() : "AZN"; 
-            const borcVal = parseFloat(row[6]);                               
+            if (!summary[rayon]) summary[rayon] = { count: 0, currencies: {} };
+            summary[rayon].count += 1;
 
-            if (!rayon || !tarixStr) continue;
-
-            const dateInfo = parseExcelDate(tarixStr);
-            if (!dateInfo) continue;
-
-            let isMatch = false;
-            if (filterType === "rub" && dateInfo.rub === targetPeriod && dateInfo.year === targetYear) isMatch = true;
-            if (filterType === "ay" && dateInfo.month === targetPeriod && dateInfo.year === targetYear) isMatch = true;
-            if (filterType === "tarix" && tarixStr.toLowerCase() === targetPeriod && dateInfo.year === targetYear) isMatch = true;
-
-            if (isMatch) {
-                if (!summary[rayon]) summary[rayon] = { count: 0, currencies: {} };
-                summary[rayon].count += 1;
-
-                if (!summary[rayon].currencies[valyuta]) {
-                    summary[rayon].currencies[valyuta] = { invoys: 0, borc: 0 };
-                }
-                summary[rayon].currencies[valyuta].invoys += isNaN(invoysVal) ? 0 : invoysVal;
-                summary[rayon].currencies[valyuta].borc += isNaN(borcVal) ? 0 : borcVal;
-
-                try {
-                    generatedCount++;
-                    const docZip = new PizZip(templateBuffer);
-                    const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
-
-                    const invText = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
-                    const brcText = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
-                    
-                    doc.setData({
-                        period: targetPeriodText,
-                        rayon: rayon,
-                        gb: gbNo,
-                        firma: firmaAdi,
-                        invoys: invText,
-                        valyuta: valyuta,
-                        borc: brcText
-                    });
-
-                    doc.render();
-                    const out = doc.getZip().generate({ type: "nodebuffer" });
-
-                    const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
-                    const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
-                    
-                    const fileName = `${cleanFirma}_${cleanGB}_idx_${i}.docx`;
-                    zipOutput.file(fileName, out);
-                } catch (cellErr) {
-                    continue;
-                }
+            if (!summary[rayon].currencies[valyuta]) {
+                summary[rayon].currencies[valyuta] = { invoys: 0, borc: 0 };
             }
-        }
+            summary[rayon].currencies[valyuta].invoys += invoysVal;
+            summary[rayon].currencies[valyuta].borc += borcVal;
 
-        if (generatedCount === 0) {
-            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı!' });
+            try {
+                generatedCount++;
+                const docZip = new PizZip(templateBuffer);
+                const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
+
+                doc.setData({
+                    period: targetPeriodText,
+                    rayon: rayon,
+                    gb: gbNo,
+                    firma: firmaAdi,
+                    invoys: invoysVal.toFixed(2),
+                    valyuta: valyuta,
+                    borc: borcVal.toFixed(2)
+                });
+
+                doc.render();
+                const out = doc.getZip().generate({ type: "nodebuffer" });
+
+                const cleanFirma = firmaAdi.replace(/[/\\?%*:|"<>\s]+/g, '_');
+                const cleanGB = gbNo.replace(/[/\\?%*:|"<>\s]+/g, '_');
+                
+                const fileName = `${cleanFirma}_${cleanGB}_idx_${idx}.docx`;
+                zipOutput.file(fileName, out);
+            } catch (cellErr) {
+                continue;
+            }
         }
 
         let bodyText = "";
-        for (const rayon in summary) {
+        for (const r in summary) {
             let currencyDetails = [];
-            for (const curr in summary[rayon].currencies) {
-                const inv = summary[rayon].currencies[curr].invoys.toFixed(2);
-                const brc = summary[rayon].currencies[curr].borc.toFixed(2);
+            for (const curr in summary[r].currencies) {
+                const inv = summary[r].currencies[curr].invoys.toFixed(2);
+                const brc = summary[r].currencies[curr].borc.toFixed(2);
                 currencyDetails.push(`İnvoys üzrə ${inv} ${curr} məbləğdən ${brc} ${curr} borc var`);
             }
-            bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
+            bodyText += `"${r}" (A sütunu) üzrə ${summary[r].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
         }
 
         zipOutput.file("______ANALIZ_NETICESI______.txt", bodyText);
 
-        // Arxivləmə sürətli və stabil STORE formatında tamamlanır
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
 
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
@@ -167,7 +117,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
     }
 });
 
-// GET, POST, DELETE bazası
+// GET, POST, DELETE Baza funksiyaları tam qorunur
 app.get('/api/companies', async (req, res) => {
     let connection;
     try {
@@ -203,5 +153,5 @@ app.delete('/api/companies/:id', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server active on port ${port}...`);
+    console.log(`Server running smoothly on port ${port}...`);
 });
