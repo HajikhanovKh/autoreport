@@ -4,14 +4,13 @@ import cors from 'cors';
 import multer from 'multer';
 import XLSX from 'xlsx';
 import PizZip from 'pizzip';
-import Docxtemplating from 'docxtemplating';
+import Docxtemplater from 'docxtemplater';
 import JSZip from 'jszip';
 import axios from 'axios';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Multer sazlaması: Faylları server diskində yox, operativ yaddasda (Buffer) müvəqqəti saxlayırıq
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE'] }));
@@ -25,7 +24,6 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-// Excel-dəki "12.04.2026" tipli tarixləri rüb və aylara parçalayan köməkçi funksiya
 function parseExcelDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.toString().trim().split('.');
@@ -47,14 +45,10 @@ function parseExcelDate(dateStr) {
         "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", 
         "İyul", "Avqust", "Sentyabr", "Oktabr", "Noyabr", "Dekabr"
     ];
-    const monthName = monthsAz[month - 1] || "";
-
-    return { day, month: monthName, year: year.toString(), rub };
+    return { day, month: monthsAz[month - 1] || "", year: year.toString(), rub };
 }
 
-// =========================================================================
-// 🔥 YENİ: SERVER SƏVİYYƏSİNDƏ EXCEL ANALİZ VƏ WORD ZIP ENDİRMƏ ENDPOINT-İ
-// =========================================================================
+// 🔥 SERVER SƏVİYYƏSİNDƏ EXCEL ANALİZ VƏ ZIP GENERASİYASI (UĞURLU STRUKTUR)
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         const { filterType, targetPeriod, targetYear } = req.body;
@@ -64,13 +58,11 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             return res.status(400).json({ error: 'Excel faylı server tərəfindən qəbul edilmədi!' });
         }
 
-        // 1. Gələn Excel faylının buffer datasını oxuyuruq
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        // 2. GitHub-dakı rəsmi Sablon.docx faylını asinxron olaraq serverə çəkirik
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
         const templateResponse = await axios.get(template_url, { responseType: 'arraybuffer' });
         const templateBuffer = templateResponse.data;
@@ -80,7 +72,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         let generatedCount = 0;
         let targetPeriodText = `${targetPeriod} ${targetYear}`;
 
-        // 3. Excel sətirlərini dövrə salıb süzgəcləyirik
         for (let i = 0; i < excelData.length; i++) {
             const row = excelData[i];
             if (!row || row.length < 7) continue;
@@ -104,7 +95,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             if (filterType === "tarix" && tarixStr === targetPeriod && dateInfo.year === targetYear) isMatch = true;
 
             if (isMatch) {
-                // Ekranda göstəriləcək cəmləmə (Summary) statistikası
                 if (!summary[rayon]) {
                     summary[rayon] = { count: 0, currencies: {} };
                 }
@@ -116,10 +106,9 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 summary[rayon].currencies[valyuta].invoys += isNaN(invoysVal) ? 0 : invoysVal;
                 summary[rayon].currencies[valyuta].borc += isNaN(borcVal) ? 0 : borcVal;
 
-                // Fərdi Word Sənədinin yaradılması
                 generatedCount++;
                 const docZip = new PizZip(templateBuffer);
-                const doc = new Docxtemplating(docZip, { paragraphLoop: true, linebreaks: true });
+                const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
 
                 const inv = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
                 const brc = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
@@ -138,16 +127,14 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 const cleanGB = (gbNo || "Sənədsiz").toString().trim();
                 const fileName = `${cleanFirma}${cleanGB}.docx`;
 
-                // Faylı ZIP arxivinin içinə əlavə edirik
                 zipOutput.file(fileName, out);
             }
         }
 
         if (generatedCount === 0) {
-            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı!' });
+            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uygun sətir tapılmadı!' });
         }
 
-        // 4. Analiz mətninin formatlanması
         let bodyText = "";
         for (const rayon in summary) {
             let currencyDetails = [];
@@ -156,16 +143,13 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 const brc = summary[rayon].currencies[curr].borc.toFixed(2);
                 currencyDetails.push(`İnvoys üzrə ${inv} ${curr} məbləğdən ${brc} ${curr} borc var`);
             }
-            const currencyStr = currencyDetails.join(", ");
-            bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyStr}.\n`;
+            bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
         }
 
-        // Bütün sənədləri yekun ZIP faylına arxivləyirik
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer" });
 
-        // Təhlükəsizlik və Azərbaycan şriftlərinin ötürülməsi üçün Response Başlıqları (Headers)
         res.setHeader('Access-Control-Expose-Headers', 'X-Analysis-Result, X-Generated-Count');
-        res.setHeader('X-Analysis-Result', Buffer.from(bodyText).toString('base64')); // Mətni Base64 edirik xəta verməsin
+        res.setHeader('X-Analysis-Result', Buffer.from(bodyText).toString('base64')); 
         res.setHeader('X-Generated-Count', generatedCount);
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', 'attachment; filename=Ferdi_Hesabatlar.zip');
@@ -173,8 +157,8 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         return res.send(zipBuffer);
 
     } catch (err) {
-        console.error("Server daxili hesabat xətası:", err);
-        return res.status(500).json({ error: 'Server daxili emal xətası: ' + err.message });
+        console.error(err);
+        return res.status(500).json({ error: 'Server daxili xətası: ' + err.message });
     }
 });
 
@@ -192,13 +176,12 @@ app.get('/api/companies', async (req, res) => {
     }
 });
 
-// 2. POST - Yeni şirkət əlavə etmək VƏ YA Mövcud VÖEN-i yeniləmək
+// 2. POST - Yeni şirket elave etmek VƏ YA Mövcud VÖEN-i yeniləmək
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        
         const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
         
         if (existing.length > 0) {
