@@ -24,6 +24,7 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
+// Tarixlərin müqayisəsini tam stabil edən təkmilləşdirilmiş funksiya
 function parseExcelDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.toString().trim().split('.');
@@ -35,33 +36,38 @@ function parseExcelDate(dateStr) {
     
     if (isNaN(month) || isNaN(year)) return null;
 
-    let rub = "";
-    if (month >= 1 && month <= 3) rub = "I rüb";
-    else if (month >= 4 && month <= 6) rub = "II rüb";
-    else if (month >= 7 && month <= 9) rub = "III rüb";
-    else if (month >= 10 && month <= 12) rub = "IV rüb";
+    let rub = "i rüb";
+    if (month >= 4 && month <= 6) rub = "ii rüb";
+    else if (month >= 7 && month <= 9) rub = "iii rüb";
+    else if (month >= 10 && month <= 12) rub = "iv rüb";
 
     const monthsAz = [
-        "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", 
-        "İyul", "Avqust", "Sentyabr", "Oktabr", "Noyabr", "Dekabr"
+        "yanvar", "fevral", "mart", "aprel", "may", "iyun", 
+        "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"
     ];
-    return { day, month: monthsAz[month - 1] || "", year: year.toString(), rub };
+    return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
+// 🔥 BÖYÜK-KİÇİK HƏRF HƏSSASLIĞI TAM ARADAN QALDIRILMIŞ ANALİZ ENDPOINT-İ
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
-        const { filterType, targetPeriod, targetYear } = req.body;
+        let { filterType, targetPeriod, targetYear } = req.body;
         const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: 'Excel faylı qəbul edilmədi!' });
         }
 
+        // Süzgəc parametrlərini standart balaca hərflərə gətiririk
+        filterType = filterType ? filterType.trim().toLowerCase() : "";
+        targetPeriod = targetPeriod ? targetPeriod.trim().toLowerCase() : "";
+        targetYear = targetYear ? targetYear.trim() : "";
+
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         
-        // Sətirləri obyekt json massivi olaraq təmiz sütun açarlarına görə oxuyuruq
-        const excelData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        // Sətirləri təmiz grid massivi kimi oxuyuruq
+        const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
         const templateResponse = await axios.get(template_url, { responseType: 'arraybuffer' });
@@ -70,22 +76,20 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         const zipOutput = new JSZip();
         let summary = {};
         let generatedCount = 0;
-        let targetPeriodText = `${targetPeriod} ${targetYear}`;
+        let targetPeriodText = `${req.body.targetPeriod} ${targetYear}`;
 
-        for (let i = 0; i < excelData.length; i++) {
+        // i=1 edərək başlıq sətirini avtomatik ötürürük
+        for (let i = 1; i < excelData.length; i++) {
             const row = excelData[i];
-            
-            // Excel dinamik obyekt açarlarını sətirbəsətir tuturuq (Hüceyrə indeks sürüşmələri tam bloklanır)
-            const keys = Object.keys(row);
-            if (keys.length < 7) continue;
+            if (!row || row.length < 7) continue;
 
-            const rayon = row[keys[0]] ? row[keys[0]].toString().trim() : "";       
-            const gbNo = row[keys[1]] ? row[keys[1]].toString().trim() : "";         
-            const tarixStr = row[keys[2]] ? row[keys[2]].toString().trim() : "";     
-            const firmaAdi = row[keys[3]] ? row[keys[3]].toString().trim() : "";     
-            const invoysVal = parseFloat(row[keys[4]]);                             
-            const valyuta = row[keys[5]] ? row[keys[5]].toString().trim().toUpperCase() : "AZN"; 
-            const borcVal = parseFloat(row[keys[6]]);                               
+            const rayon = row[0] ? row[0].toString().trim() : "";       
+            const gbNo = row[1] ? row[1].toString().trim() : "";         
+            const tarixStr = row[2] ? row[2].toString().trim() : "";     
+            const firmaAdi = row[3] ? row[3].toString().trim() : "";     
+            const invoysVal = parseFloat(row[4]);                             
+            const valyuta = row[5] ? row[5].toString().trim().toUpperCase() : "AZN"; 
+            const borcVal = parseFloat(row[6]);                               
 
             if (!rayon || !tarixStr) continue;
 
@@ -95,7 +99,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             let isMatch = false;
             if (filterType === "rub" && dateInfo.rub === targetPeriod && dateInfo.year === targetYear) isMatch = true;
             if (filterType === "ay" && dateInfo.month === targetPeriod && dateInfo.year === targetYear) isMatch = true;
-            if (filterType === "tarix" && tarixStr === targetPeriod && dateInfo.year === targetYear) isMatch = true;
+            if (filterType === "tarix" && tarixStr.toLowerCase() === targetPeriod && dateInfo.year === targetYear) isMatch = true;
 
             if (isMatch) {
                 if (!summary[rayon]) {
@@ -135,7 +139,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         }
 
         if (generatedCount === 0) {
-            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uygun sətir tapılmadı!' });
+            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı! Seçdiyiniz Rüb/Ay və İlin Excel-dəki sətirlərlə tam eyni olduğundan (məsələn: 2026 və ya IV rüb) əmin olun.' });
         }
 
         let bodyText = "";
