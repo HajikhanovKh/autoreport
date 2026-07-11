@@ -48,7 +48,6 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString(), rub };
 }
 
-// 🔥 SÜTUN ADLARINDAN ASILI OLMAYAN 100% ZƏMANƏTLİ EXCEL ANALİZ METODU
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         const { filterType, targetPeriod, targetYear } = req.body;
@@ -59,10 +58,9 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         }
 
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         
-        // Məlumatı 2 ölçülü massiv kimi oxuyuruq (Başlıq yazısından tam asılılığı kəsirik)
+        // Sürüşmənin qarşısını almaq üçün sətirləri təmiz grid massivi kimi oxuyuruq
         const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
@@ -74,20 +72,19 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         let generatedCount = 0;
         let targetPeriodText = `${targetPeriod} ${targetYear}`;
 
-        // Əgər ilk sətir başlıqdırsa, i = 1 edərək datadan başlayırıq. Əgər cədvəldə başlıq yoxdursa i = 0 edin.
-        // Sizin cədvəldə başlıq olduğu üçün i = 1 idealdır.
+        // i=1 (başlıq sətirini ötürürük, birbaşa datadan oxuyuruq)
         for (let i = 1; i < excelData.length; i++) {
             const row = excelData[i];
             if (!row || row.length < 7) continue;
 
-            // Sıra ilə A, B, C, D, E, F, G sütunlarını dəqiq mənimsədirik
-            const rayon = row[0] ? row[0].toString().trim() : "";       // A Sütunu
-            const gbNo = row[1] ? row[1].toString().trim() : "";         // B Sütunu
-            const tarixStr = row[2] ? row[2].toString().trim() : "";     // C Sütunu
-            const firmaAdi = row[3] ? row[3].toString().trim() : "";     // D Sütunu
-            const invoysVal = parseFloat(row[4]);                             // E Sütunu
-            const valyuta = row[5] ? row[5].toString().trim().toUpperCase() : "AZN"; // F Sütunu
-            const borcVal = parseFloat(row[6]);                               // G Sütunu
+            // Excel sətirlərini sıfır indeksli massiv nömrələrinə görə birmənalı mənimsədirik
+            const rayon = row[0] ? row[0].toString().trim() : "";       
+            const gbNo = row[1] ? row[1].toString().trim() : "";         
+            const tarixStr = row[2] ? row[2].toString().trim() : "";     
+            const firmaAdi = row[3] ? row[3].toString().trim() : "";     
+            const invoysVal = parseFloat(row[4]);                             
+            const valyuta = row[5] ? row[5].toString().trim().toUpperCase() : "AZN"; 
+            const borcVal = parseFloat(row[6]);                               
 
             if (!rayon || !tarixStr) continue;
 
@@ -120,7 +117,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 
                 const singleReportText = `"${rayon}" (A sütunu) üzrə məlumat tapıldı. İnvoys üzrə ${inv} ${valyuta} məbləğdən ${brc} ${valyuta} borc var.`;
 
-                // Word şablonundakı teqləri doldururuq
                 doc.setData({
                     period: targetPeriodText,
                     report: singleReportText
@@ -129,7 +125,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 doc.render();
                 const out = doc.getZip().generate({ type: "nodebuffer" });
 
-                // Fayl adındakı qadağan olunmuş simvolları təmizləyirik
                 const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                 const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                 const fileName = `${cleanFirma}_${cleanGB}.docx`;
@@ -139,10 +134,9 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         }
 
         if (generatedCount === 0) {
-            return res.status(400).json({ error: 'Seçilmiş dövrə uyğun heç bir sətir tapılmadı. Zəhmət olmasa seçdiyiniz Rüb/Ay və İlin Excel-dəki tarixlərlə eyni olduğundan əmin olun!' });
+            return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uygun sətir tapılmadı!' });
         }
 
-        // 4. Analiz mətninin formatlanması
         let bodyText = "";
         for (const rayon in summary) {
             let currencyDetails = [];
@@ -184,7 +178,7 @@ app.get('/api/companies', async (req, res) => {
     }
 });
 
-// 2. POST - Yeni şirket elave etmek VƏ YA Mövcud VÖEN-i yeniləmək
+// 2. POST - Yeni şirkət əlavə etmək VƏ YA Mövcud VÖEN-i yeniləmək
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
