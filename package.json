@@ -9,7 +9,7 @@
   "dependencies": {
     "axios": "^1.7.2",
     "cors": "^2.8.5",
-    "docxtemplating": "^3.37.11",
+    "docxtemplater": "^3.49.1",
     "express": "^4.19.2",
     "jszip": "^3.10.1",
     "multer": "^1.4.5-lts.1",
