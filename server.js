@@ -60,8 +60,8 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         
-        // Sürüşmənin qarşısını almaq üçün sətirləri təmiz grid massivi kimi oxuyuruq
-        const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+        // Sətirləri obyekt json massivi olaraq təmiz sütun açarlarına görə oxuyuruq
+        const excelData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
         const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
         const templateResponse = await axios.get(template_url, { responseType: 'arraybuffer' });
@@ -72,19 +72,20 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
         let generatedCount = 0;
         let targetPeriodText = `${targetPeriod} ${targetYear}`;
 
-        // i=1 (başlıq sətirini ötürürük, birbaşa datadan oxuyuruq)
-        for (let i = 1; i < excelData.length; i++) {
+        for (let i = 0; i < excelData.length; i++) {
             const row = excelData[i];
-            if (!row || row.length < 7) continue;
+            
+            // Excel dinamik obyekt açarlarını sətirbəsətir tuturuq (Hüceyrə indeks sürüşmələri tam bloklanır)
+            const keys = Object.keys(row);
+            if (keys.length < 7) continue;
 
-            // Excel sətirlərini sıfır indeksli massiv nömrələrinə görə birmənalı mənimsədirik
-            const rayon = row[0] ? row[0].toString().trim() : "";       
-            const gbNo = row[1] ? row[1].toString().trim() : "";         
-            const tarixStr = row[2] ? row[2].toString().trim() : "";     
-            const firmaAdi = row[3] ? row[3].toString().trim() : "";     
-            const invoysVal = parseFloat(row[4]);                             
-            const valyuta = row[5] ? row[5].toString().trim().toUpperCase() : "AZN"; 
-            const borcVal = parseFloat(row[6]);                               
+            const rayon = row[keys[0]] ? row[keys[0]].toString().trim() : "";       
+            const gbNo = row[keys[1]] ? row[keys[1]].toString().trim() : "";         
+            const tarixStr = row[keys[2]] ? row[keys[2]].toString().trim() : "";     
+            const firmaAdi = row[keys[3]] ? row[keys[3]].toString().trim() : "";     
+            const invoysVal = parseFloat(row[keys[4]]);                             
+            const valyuta = row[keys[5]] ? row[keys[5]].toString().trim().toUpperCase() : "AZN"; 
+            const borcVal = parseFloat(row[keys[6]]);                               
 
             if (!rayon || !tarixStr) continue;
 
@@ -178,7 +179,7 @@ app.get('/api/companies', async (req, res) => {
     }
 });
 
-// 2. POST - Yeni şirkət əlavə etmək VƏ YA Mövcud VÖEN-i yeniləmək
+// 2. POST - Yeni şirket elave etmek VƏ YA Mövcud VÖEN-i yeniləmək
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
