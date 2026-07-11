@@ -28,11 +28,9 @@ function parseExcelDate(dateStr) {
     if (!dateStr) return null;
     const parts = dateStr.toString().trim().split('.');
     if (parts.length !== 3) return null;
-    
     const day = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
     const year = parseInt(parts[2], 10);
-    
     if (isNaN(month) || isNaN(year)) return null;
 
     let rub = "i rüb";
@@ -40,14 +38,11 @@ function parseExcelDate(dateStr) {
     else if (month >= 7 && month <= 9) rub = "iii rüb";
     else if (month >= 10 && month <= 12) rub = "iv rüb";
 
-    const monthsAz = [
-        "yanvar", "fevral", "mart", "aprel", "may", "iyun", 
-        "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"
-    ];
+    const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
-// 🔥 TƏHLÜKƏSİZ SƏTİR AYIRMA VƏ GÜÇLÜ KORUMA SİSTEMLİ ENDPOINT
+// 🔥 DATA TOO LONG XƏTASINI KÖKÜNDƏN HƏLL EDƏN YEKUN ENDPOINT
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -97,9 +92,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             if (filterType === "tarix" && tarixStr.toLowerCase() === targetPeriod && dateInfo.year === targetYear) isMatch = true;
 
             if (isMatch) {
-                if (!summary[rayon]) {
-                    summary[rayon] = { count: 0, currencies: {} };
-                }
+                if (!summary[rayon]) summary[rayon] = { count: 0, currencies: {} };
                 summary[rayon].count += 1;
 
                 if (!summary[rayon].currencies[valyuta]) {
@@ -108,7 +101,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 summary[rayon].currencies[valyuta].invoys += isNaN(invoysVal) ? 0 : invoysVal;
                 summary[rayon].currencies[valyuta].borc += isNaN(borcVal) ? 0 : borcVal;
 
-                // Xətalı sətirlərin bütün sistemi çökdürməməsi üçün try-catch qoruma bloku
                 try {
                     generatedCount++;
                     const docZip = new PizZip(templateBuffer);
@@ -133,12 +125,10 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                     const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     
-                    // Unikal sətir indeksi əlavə edilərək arxivə ötürülür
                     const fileName = `${cleanFirma}_${cleanGB}_idx_${i}.docx`;
                     zipOutput.file(fileName, out);
                 } catch (cellErr) {
-                    console.error(`Sətir ${i} emal edilərkən ötürüldü:`, cellErr.message);
-                    continue; // Xətalı sətri ötür, növbəti sətirdən davam et
+                    continue;
                 }
             }
         }
@@ -147,6 +137,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı!' });
         }
 
+        // 4. Analiz mətni hazırlanır
         let bodyText = "";
         for (const rayon in summary) {
             let currencyDetails = [];
@@ -158,10 +149,13 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
         }
 
+        // 🔥 LIMITI QIRIRIQ: Analiz mətnini ayrıca fayl olaraq ZIP arxivinin daxilinə qoyuruq
+        zipOutput.file("______ANALIZ_NETICESI______.txt", bodyText);
+
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer" });
 
-        res.setHeader('Access-Control-Expose-Headers', 'X-Analysis-Result, X-Generated-Count');
-        res.setHeader('X-Analysis-Result', Buffer.from(bodyText).toString('base64')); 
+        // Headerdə artıq böyük mətn saxlamırıq, sadəcə say və təhlükəsizlik ötürürük
+        res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
         res.setHeader('X-Generated-Count', generatedCount);
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', 'attachment; filename=Ferdi_Hesabatlar.zip');
