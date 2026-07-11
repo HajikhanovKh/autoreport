@@ -47,7 +47,7 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
-// 🔥 FƏRDİ TEQ EŞLƏŞDİRMƏLİ MÜKƏMMƏL ANALİZ VƏ ZIP ENDİRMƏ ENDPOINT-İ
+// 🔥 UNİKAL ADLANDIRMA MEXANİZMLİ GÜCLÜ SERVER ENDPOINT-İ
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -115,7 +115,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 const invText = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
                 const brcText = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
                 
-                // 🔥 Sənin rəsmi Word şablonunda istifadə etdiyin teqləri birbaşa və dəqiq doldururuq
                 doc.setData({
                     period: targetPeriodText,
                     rayon: rayon,
@@ -131,7 +130,9 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
 
                 const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                 const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
-                const fileName = `${cleanFirma}_${cleanGB}.docx`;
+                
+                // 🔥 SƏNƏDLƏRİN ÜZƏRİNƏ YAZILMAMASI ÜÇÜN i (SIRA NÖMRƏSİ) ƏLAVƏ EDİLDİ (12800 FAYLIN HAMISI GƏLƏCƏK)
+                const fileName = `${cleanFirma}_${cleanGB}_sira_${i}.docx`;
 
                 zipOutput.file(fileName, out);
             }
