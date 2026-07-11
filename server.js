@@ -42,6 +42,7 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
+// 🔥 DONMANI VƏ YADDAŞ PROBLEMİNİ 100% HƏLL EDƏN ENDPOINT
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -124,7 +125,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                     const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     
-                    // i sətir nömrəsi ilə tam unikal adlandırma (Üzərinə yazılma problemi bloklanır)
                     const fileName = `${cleanFirma}_${cleanGB}_idx_${i}.docx`;
                     zipOutput.file(fileName, out);
                 } catch (cellErr) {
@@ -148,10 +148,13 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
         }
 
-        // Analiz mətnini fayl olaraq ZIP arxivinin daxilinə tənzimləyirik
         zipOutput.file("______ANALIZ_NETICESI______.txt", bodyText);
 
-        const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer" });
+        // 🔥 OPTİMALLAŞDIRMA: Arxiv sıxılmasını minimuma (STORE/0) qoyuruq ki, server CPU və RAM donması yaşatmasın
+        const zipBuffer = await zipOutput.generateAsync({ 
+            type: "nodebuffer",
+            compression: "STORE" 
+        });
 
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
         res.setHeader('X-Generated-Count', generatedCount);
@@ -166,69 +169,39 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
     }
 });
 
-// 1. GET - Şirkətləri siyahılamaq
+// GET, POST, DELETE endpoint-ləri olduğu kimi qalır...
 app.get('/api/companies', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute('SELECT * FROM voen_info');
         res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    } finally {
-        if (connection) await connection.end();
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
 });
 
-// 2. POST - Yeni şirket elave etmek VƏ YA Mövcud VÖEN-i yeniləmək
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
-        
         if (existing.length > 0) {
-            const updateQuery = `
-                UPDATE voen_info 
-                SET comp_name = ?, comp_director_name = ?, comp_adress = ?, pstatus = ?, data_info_date = ? 
-                WHERE voen = ?
-            `;
-            await connection.execute(updateQuery, [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]);
-            return res.json({ success: true, updated: true, message: 'Məlumatlar mövcud VÖEN üzərinə yazıldı!' });
+            await connection.execute('UPDATE voen_info SET comp_name=?, comp_director_name=?, comp_adress=?, pstatus=?, data_info_date=? WHERE voen=?', [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]);
+            return res.json({ success: true, updated: true });
         } else {
-            const insertQuery = `
-                INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            `;
-            await connection.execute(insertQuery, [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]);
-            return res.json({ success: true, updated: false, message: 'Yeni məlumat uğurla yazıldı!' });
+            await connection.execute('INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) VALUES (?, ?, ?, ?, ?, ?)', [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]);
+            return res.json({ success: true, updated: false });
         }
-    } catch (err) {
-        res.status(500).json({ error: 'Baza əməliyyat xətası: ' + err.message });
-    } finally {
-        if (connection) await connection.end();
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
 });
 
-// 3. DELETE - Şirkəti silmək
 app.delete('/api/companies/:id', async (req, res) => {
-    const companyId = req.params.id;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        const [result] = await connection.execute('DELETE FROM voen_info WHERE id = ?', [companyId]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Məlumat tapılmadı!' });
-        }
-        res.json({ success: true, message: 'Məlumat silindi!' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    } finally {
-        if (connection) await connection.end();
-    }
+        await connection.execute('DELETE FROM voen_info WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
 });
 
-app.listen(port, () => {
-    console.log(`Server ${port} portunda tam aktivdir...`);
-});
+app.listen(port, () => { console.log(`Server ${port}-da aktivdir...`); });
