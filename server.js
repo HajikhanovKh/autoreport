@@ -47,7 +47,7 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
-// 🔥 UNİKAL ADLANDIRMA MEXANİZMLİ GÜCLÜ SERVER ENDPOINT-İ
+// 🔥 TƏHLÜKƏSİZ SƏTİR AYIRMA VƏ GÜÇLÜ KORUMA SİSTEMLİ ENDPOINT
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -108,33 +108,38 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                 summary[rayon].currencies[valyuta].invoys += isNaN(invoysVal) ? 0 : invoysVal;
                 summary[rayon].currencies[valyuta].borc += isNaN(borcVal) ? 0 : borcVal;
 
-                generatedCount++;
-                const docZip = new PizZip(templateBuffer);
-                const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
+                // Xətalı sətirlərin bütün sistemi çökdürməməsi üçün try-catch qoruma bloku
+                try {
+                    generatedCount++;
+                    const docZip = new PizZip(templateBuffer);
+                    const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
 
-                const invText = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
-                const brcText = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
-                
-                doc.setData({
-                    period: targetPeriodText,
-                    rayon: rayon,
-                    gb: gbNo,
-                    firma: firmaAdi,
-                    invoys: invText,
-                    valyuta: valyuta,
-                    borc: brcText
-                });
+                    const invText = isNaN(invoysVal) ? "0.00" : invoysVal.toFixed(2);
+                    const brcText = isNaN(borcVal) ? "0.00" : borcVal.toFixed(2);
+                    
+                    doc.setData({
+                        period: targetPeriodText,
+                        rayon: rayon,
+                        gb: gbNo,
+                        firma: firmaAdi,
+                        invoys: invText,
+                        valyuta: valyuta,
+                        borc: brcText
+                    });
 
-                doc.render();
-                const out = doc.getZip().generate({ type: "nodebuffer" });
+                    doc.render();
+                    const out = doc.getZip().generate({ type: "nodebuffer" });
 
-                const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
-                const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
-                
-                // 🔥 SƏNƏDLƏRİN ÜZƏRİNƏ YAZILMAMASI ÜÇÜN i (SIRA NÖMRƏSİ) ƏLAVƏ EDİLDİ (12800 FAYLIN HAMISI GƏLƏCƏK)
-                const fileName = `${cleanFirma}_${cleanGB}_sira_${i}.docx`;
-
-                zipOutput.file(fileName, out);
+                    const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
+                    const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
+                    
+                    // Unikal sətir indeksi əlavə edilərək arxivə ötürülür
+                    const fileName = `${cleanFirma}_${cleanGB}_idx_${i}.docx`;
+                    zipOutput.file(fileName, out);
+                } catch (cellErr) {
+                    console.error(`Sətir ${i} emal edilərkən ötürüldü:`, cellErr.message);
+                    continue; // Xətalı sətri ötür, növbəti sətirdən davam et
+                }
             }
         }
 
@@ -165,7 +170,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
 
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: 'Server daxili xətası: ' + err.message });
+        return res.status(500).json({ error: 'Server emal xətası: ' + err.message });
     }
 });
 
