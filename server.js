@@ -42,7 +42,6 @@ function parseExcelDate(dateStr) {
     return { day, month: monthsAz[month - 1] || "", year: year.toString().trim(), rub };
 }
 
-// 🔥 DATA TOO LONG XƏTASINI KÖKÜNDƏN HƏLL EDƏN YEKUN ENDPOINT
 app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (req, res) => {
     try {
         let { filterType, targetPeriod, targetYear } = req.body;
@@ -125,6 +124,7 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
                     const cleanFirma = (firmaAdi || "Anonim_Firma").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     const cleanGB = (gbNo || "Sənədsiz").toString().trim().replace(/[/\\?%*:|"<>\s]+/g, '_');
                     
+                    // i sətir nömrəsi ilə tam unikal adlandırma (Üzərinə yazılma problemi bloklanır)
                     const fileName = `${cleanFirma}_${cleanGB}_idx_${i}.docx`;
                     zipOutput.file(fileName, out);
                 } catch (cellErr) {
@@ -137,7 +137,6 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             return res.status(400).json({ error: 'Seçilmiş tarix dövrünə uyğun sətir tapılmadı!' });
         }
 
-        // 4. Analiz mətni hazırlanır
         let bodyText = "";
         for (const rayon in summary) {
             let currencyDetails = [];
@@ -149,12 +148,11 @@ app.post('/api/companies/analyze-and-zip', upload.single('excelFile'), async (re
             bodyText += `"${rayon}" (A sütunu) üzrə ${summary[rayon].count} sətir tapıldı. ${currencyDetails.join(", ")}.\n`;
         }
 
-        // 🔥 LIMITI QIRIRIQ: Analiz mətnini ayrıca fayl olaraq ZIP arxivinin daxilinə qoyuruq
+        // Analiz mətnini fayl olaraq ZIP arxivinin daxilinə tənzimləyirik
         zipOutput.file("______ANALIZ_NETICESI______.txt", bodyText);
 
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer" });
 
-        // Headerdə artıq böyük mətn saxlamırıq, sadəcə say və təhlükəsizlik ötürürük
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
         res.setHeader('X-Generated-Count', generatedCount);
         res.setHeader('Content-Type', 'application/zip');
