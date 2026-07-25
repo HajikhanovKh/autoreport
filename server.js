@@ -21,108 +21,130 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-// 🔥 SÜTÜN DƏYİŞƏNLƏRİNİ QÜSURSUZ DÖVR EDƏN YENİLƏNMİŞ ENDPOINT
-app.post('/api/companies/analyze-and-zip', async (req, res) => {
+// --- YENİ: BİLDİRİŞ VƏ QOŞMALARIN SERVERDƏ HAZIRLANMASI VƏ ZİPLƏNMƏSİ ---
+app.post('/api/companies/generate-docs', async (req, res) => {
     try {
-        const { filteredRows, targetPeriodText } = req.body;
+        const { selectedFirms } = req.body;
 
-        if (!filteredRows || !Array.isArray(filteredRows)) {
-            return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
+        if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
+            return res.status(400).json({ error: 'İcra etmək üçün heç bir firma seçilməyib!' });
         }
 
-        const template_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/Sablon.docx";
-        const templateResponse = await axios.get(template_url, { responseType: 'arraybuffer' });
-        const templateBuffer = templateResponse.data;
+        // Şablonların GitHub-dan serverə yüklənməsi
+        const SABLON_URL = "https://raw.githubusercontent.com/HacixanovR/Automated-Consignment-Document-Generation/main/sablon.docx";
+        const SABLON_QOSMA_URL = "https://raw.githubusercontent.com/HacixanovR/Automated-Consignment-Document-Generation/main/sablonqosma.docx";
+
+        const [sablonRes, qosmaRes] = await Promise.all([
+            axios.get(SABLON_URL, { responseType: 'arraybuffer' }),
+            axios.get(SABLON_QOSMA_URL, { responseType: 'arraybuffer' })
+        ]);
+
+        const sablonBuffer = sablonRes.data;
+        const qosmaBuffer = qosmaRes.data;
 
         const zipOutput = new JSZip();
-        let summary = {};
         let generatedCount = 0;
 
-        // 🔥 DÖVR DƏYİŞƏNİ 'm' OLARAQ DÜZƏLDİLDİ
-        for (let m = 0; m < filteredRows.length; m++) {
-            const item = filteredRows[m];
-            
-            const rayon = item.rayon;
-            if (!summary[rayon]) summary[rayon] = { count: 0, currencies: {} };
-            summary[rayon].count += 1;
-
-            if (!summary[rayon].currencies[item.valyuta]) {
-                summary[rayon].currencies[item.valyuta] = { invoys: 0, borc: 0 };
-            }
-            summary[rayon].currencies[item.valyuta].invoys += item.invoysVal;
-            summary[rayon].currencies[item.valyuta].borc += item.borcVal;
-
+        // Firmalar üzrə dövr
+        for (const firm of selectedFirms) {
             try {
-                generatedCount++;
-                const docZip = new PizZip(templateBuffer);
-                const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true });
-
-                doc.setData({
-                    period: targetPeriodText,
-                    rayon: item.rayon,
-                    gb: item.gbNo,
-                    firma: item.firmaAdi,
-                    invoys: item.invoysVal.toFixed(2),
-                    valyuta: item.valyuta,
-                    borc: item.borcVal.toFixed(2)
+                // 1. Əsas Şablon (sablon.docx) doldurulması
+                const zipSablon = new PizZip(sablonBuffer);
+                const docSablon = new Docxtemplater(zipSablon, { paragraphLoop: true, linebreaks: true });
+                
+                docSablon.render({
+                    unvan: firm.unvan,
+                    firma: firm.firma,
+                    voen: firm.voen,
+                    tarix: firm.tarixEsas
                 });
+                
+                const bufSablon = docSablon.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`${firm.safeFirmaAdi}_esas.docx`, bufSablon);
 
-                doc.render();
-                const out = doc.getZip().generate({ type: "nodebuffer" });
+                // 2. Qoşma Şablon (sablonqosma.docx) doldurulması
+                const zipQosma = new PizZip(qosmaBuffer);
+                const docQosma = new Docxtemplater(zipQosma, { paragraphLoop: true, linebreaks: true });
                 
-                const cleanFirma = item.firmaAdi.replace(/[/\\?%*:|"<>\s]+/g, '_');
-                const cleanGB = item.gbNo.replace(/[/\\?%*:|"<>\s]+/g, '_');
+                docQosma.render({
+                    soyadiadi: firm.soyadiadi,
+                    voen: firm.voen,
+                    gb: firm.gb,
+                    borc: firm.borc,
+                    tarix: firm.tarixQosma
+                });
                 
-                zipOutput.file(`${cleanFirma}_${cleanGB}_idx_${item.idx}.docx`, out);
-            } catch (cellErr) {
+                const bufQosma = docQosma.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`${firm.safeFirmaAdi}_qosma.docx`, bufQosma);
+
+                generatedCount += 2;
+            } catch (docErr) {
+                console.error(`Xəta (${firm.firma}):`, docErr);
                 continue;
             }
         }
 
-        let bodyText = "";
-        for (const r in summary) {
-            let cDetails = [];
-            for (const curr in summary[r].currencies) {
-                cDetails.push(`İnvoys: ${summary[r].currencies[curr].invoys.toFixed(2)} ${curr}, Borc: ${summary[r].currencies[curr].borc.toFixed(2)} ${curr}`);
-            }
-            bodyText += `"${r}" üzrə ${summary[r].count} sətir tapıldı. ${cDetails.join(", ")}.\n`;
-        }
-
-        zipOutput.file("______ANALIZ_NETICESI______.txt", bodyText);
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
 
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
         res.setHeader('X-Generated-Count', generatedCount);
         res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', 'attachment; filename=Ferdi_Hesabatlar.zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=Senedler.zip');
         
         return res.send(zipBuffer);
+
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: 'Server emal xətası: ' + err.message });
+        return res.status(500).json({ error: 'Sənəd yaradılmasında xəta: ' + err.message });
     }
 });
 
-// ... GET, POST, DELETE metodları olduğu kimi qalır
+
+// MÖVCUD GET, POST, DELETE METODLARI
 app.get('/api/companies', async (req, res) => {
     let connection;
-    try { connection = await mysql.createConnection(dbConfig); const [rows] = await connection.execute('SELECT * FROM voen_info'); res.json(rows); } 
-    catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
+    try { 
+        connection = await mysql.createConnection(dbConfig); 
+        const [rows] = await connection.execute('SELECT * FROM voen_info'); 
+        res.json(rows); 
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    } finally { 
+        if (connection) await connection.end(); 
+    }
 });
 
 app.post('/api/companies', async (req, res) => {
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
     let connection;
-    try { connection = await mysql.createConnection(dbConfig); const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
-        if (existing.length > 0) { await connection.execute('UPDATE voen_info SET comp_name=?, comp_director_name=?, comp_adress=?, pstatus=?, data_info_date=? WHERE voen=?', [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]); return res.json({ success: true }); } 
-        else { await connection.execute('INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) VALUES (?, ?, ?, ?, ?, ?)', [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]); return res.json({ success: true }); }
-    } catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
+    try { 
+        connection = await mysql.createConnection(dbConfig); 
+        const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
+        if (existing.length > 0) { 
+            await connection.execute('UPDATE voen_info SET comp_name=?, comp_director_name=?, comp_adress=?, pstatus=?, data_info_date=? WHERE voen=?', [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]); 
+            return res.json({ success: true }); 
+        } else { 
+            await connection.execute('INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) VALUES (?, ?, ?, ?, ?, ?)', [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]); 
+            return res.json({ success: true }); 
+        }
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    } finally { 
+        if (connection) await connection.end(); 
+    }
 });
 
 app.delete('/api/companies/:id', async (req, res) => {
     let connection;
-    try { connection = await mysql.createConnection(dbConfig); await connection.execute('DELETE FROM voen_info WHERE id = ?', [req.params.id]); res.json({ success: true }); } 
-    catch (err) { res.status(500).json({ error: err.message }); } finally { if (connection) await connection.end(); }
+    try { 
+        connection = await mysql.createConnection(dbConfig); 
+        await connection.execute('DELETE FROM voen_info WHERE id = ?', [req.params.id]); 
+        res.json({ success: true }); 
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    } finally { 
+        if (connection) await connection.end(); 
+    }
 });
 
-app.listen(port, () => console.log(`Server aktivdir...`));
+app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
