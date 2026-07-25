@@ -21,22 +21,22 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-// --- YENİ: BİLDİRİŞ VƏ QOŞMALARIN SERVERDƏ HAZIRLANMASI VƏ ZİPLƏNMƏSİ ---
+// 🔥 YENİ: BİLDİRİŞ VƏ QOŞMALARI SERVERDƏ YARADIB ZİP EDƏN ENDPOINT
 app.post('/api/companies/generate-docs', async (req, res) => {
     try {
         const { selectedFirms } = req.body;
 
         if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
-            return res.status(400).json({ error: 'İcra etmək üçün heç bir firma seçilməyib!' });
+            return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
         }
 
-        // Şablonların GitHub-dan serverə yüklənməsi
-        const SABLON_URL = "https://raw.githubusercontent.com/HacixanovR/Automated-Consignment-Document-Generation/main/sablon.docx";
-        const SABLON_QOSMA_URL = "https://raw.githubusercontent.com/HacixanovR/Automated-Consignment-Document-Generation/main/sablonqosma.docx";
-
+        // Şablon fayllarının GitHub-dan çəkilməsi
+        const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablon.docx";
+        const qosma_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablonqosma.docx";
+        
         const [sablonRes, qosmaRes] = await Promise.all([
-            axios.get(SABLON_URL, { responseType: 'arraybuffer' }),
-            axios.get(SABLON_QOSMA_URL, { responseType: 'arraybuffer' })
+            axios.get(sablon_url, { responseType: 'arraybuffer' }),
+            axios.get(qosma_url, { responseType: 'arraybuffer' })
         ]);
 
         const sablonBuffer = sablonRes.data;
@@ -45,41 +45,41 @@ app.post('/api/companies/generate-docs', async (req, res) => {
         const zipOutput = new JSZip();
         let generatedCount = 0;
 
-        // Firmalar üzrə dövr
-        for (const firm of selectedFirms) {
+        for (let i = 0; i < selectedFirms.length; i++) {
+            const firm = selectedFirms[i];
+            
+            // Fayl adında problem yaratmayacaq təmiz firma adı
+            const safeName = firm.firma.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 40);
+
             try {
-                // 1. Əsas Şablon (sablon.docx) doldurulması
-                const zipSablon = new PizZip(sablonBuffer);
-                const docSablon = new Docxtemplater(zipSablon, { paragraphLoop: true, linebreaks: true });
-                
+                // 1. ƏSAS ŞABLON (sablon.docx)
+                const docSablonZip = new PizZip(sablonBuffer);
+                const docSablon = new Docxtemplater(docSablonZip, { paragraphLoop: true, linebreaks: true });
                 docSablon.render({
                     unvan: firm.unvan,
                     firma: firm.firma,
                     voen: firm.voen,
-                    tarix: firm.tarixEsas
+                    tarix: firm.tarix
                 });
-                
-                const bufSablon = docSablon.getZip().generate({ type: "nodebuffer" });
-                zipOutput.file(`${firm.safeFirmaAdi}_esas.docx`, bufSablon);
+                const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`${safeName}_esas.docx`, outSablon);
 
-                // 2. Qoşma Şablon (sablonqosma.docx) doldurulması
-                const zipQosma = new PizZip(qosmaBuffer);
-                const docQosma = new Docxtemplater(zipQosma, { paragraphLoop: true, linebreaks: true });
-                
+                // 2. QOŞMA ŞABLON (sablonqosma.docx)
+                const docQosmaZip = new PizZip(qosmaBuffer);
+                const docQosma = new Docxtemplater(docQosmaZip, { paragraphLoop: true, linebreaks: true });
                 docQosma.render({
                     soyadiadi: firm.soyadiadi,
                     voen: firm.voen,
                     gb: firm.gb,
                     borc: firm.borc,
-                    tarix: firm.tarixQosma
+                    tarix: firm.bugun
                 });
-                
-                const bufQosma = docQosma.getZip().generate({ type: "nodebuffer" });
-                zipOutput.file(`${firm.safeFirmaAdi}_qosma.docx`, bufQosma);
+                const outQosma = docQosma.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`${safeName}_qosma.docx`, outQosma);
 
                 generatedCount += 2;
             } catch (docErr) {
-                console.error(`Xəta (${firm.firma}):`, docErr);
+                console.error(`Sənəd yaratma xətası (${firm.firma}):`, docErr);
                 continue;
             }
         }
@@ -89,29 +89,25 @@ app.post('/api/companies/generate-docs', async (req, res) => {
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
         res.setHeader('X-Generated-Count', generatedCount);
         res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', 'attachment; filename=Senedler.zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=Senedler_Hesabati.zip');
         
         return res.send(zipBuffer);
-
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: 'Sənəd yaradılmasında xəta: ' + err.message });
+        return res.status(500).json({ error: 'Server emal xətası: ' + err.message });
     }
 });
 
 
-// MÖVCUD GET, POST, DELETE METODLARI
+// MÖVCUD GET, POST VƏ DELETE METODLARI
 app.get('/api/companies', async (req, res) => {
     let connection;
     try { 
         connection = await mysql.createConnection(dbConfig); 
         const [rows] = await connection.execute('SELECT * FROM voen_info'); 
         res.json(rows); 
-    } catch (err) { 
-        res.status(500).json({ error: err.message }); 
-    } finally { 
-        if (connection) await connection.end(); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
 });
 
 app.post('/api/companies', async (req, res) => {
@@ -127,11 +123,8 @@ app.post('/api/companies', async (req, res) => {
             await connection.execute('INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) VALUES (?, ?, ?, ?, ?, ?)', [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]); 
             return res.json({ success: true }); 
         }
-    } catch (err) { 
-        res.status(500).json({ error: err.message }); 
-    } finally { 
-        if (connection) await connection.end(); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
 });
 
 app.delete('/api/companies/:id', async (req, res) => {
@@ -140,11 +133,8 @@ app.delete('/api/companies/:id', async (req, res) => {
         connection = await mysql.createConnection(dbConfig); 
         await connection.execute('DELETE FROM voen_info WHERE id = ?', [req.params.id]); 
         res.json({ success: true }); 
-    } catch (err) { 
-        res.status(500).json({ error: err.message }); 
-    } finally { 
-        if (connection) await connection.end(); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
 });
 
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
