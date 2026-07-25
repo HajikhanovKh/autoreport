@@ -21,7 +21,6 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
-// 🔥 YENİ: BİLDİRİŞ VƏ QOŞMALARI SERVERDƏ YARADIB ZİP EDƏN ENDPOINT
 app.post('/api/companies/generate-docs', async (req, res) => {
     try {
         const { selectedFirms } = req.body;
@@ -30,7 +29,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
             return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
         }
 
-        // Şablon fayllarının GitHub-dan çəkilməsi
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablon.docx";
         const qosma_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablonqosma.docx";
         
@@ -47,9 +45,7 @@ app.post('/api/companies/generate-docs', async (req, res) => {
 
         for (let i = 0; i < selectedFirms.length; i++) {
             const firm = selectedFirms[i];
-            
-            // Fayl adında problem yaratmayacaq təmiz firma adı
-            const safeName = firm.firma.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 40);
+            const safeName = firm.safeFirmaAdi || firm.firma.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
             try {
                 // 1. ƏSAS ŞABLON (sablon.docx)
@@ -59,7 +55,7 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     unvan: firm.unvan,
                     firma: firm.firma,
                     voen: firm.voen,
-                    tarix: firm.tarix
+                    tarix: firm.tarixEsas // 🔥 DÜZƏLİŞ BURADA (Başlanğıc - Son tarix)
                 });
                 const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_esas.docx`, outSablon);
@@ -72,7 +68,7 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     voen: firm.voen,
                     gb: firm.gb,
                     borc: firm.borc,
-                    tarix: firm.bugun
+                    tarix: firm.tarixQosma // 🔥 DÜZƏLİŞ BURADA (Bugünkü tarix)
                 });
                 const outQosma = docQosma.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_qosma.docx`, outQosma);
@@ -99,7 +95,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
 });
 
 
-// MÖVCUD GET, POST VƏ DELETE METODLARI
 app.get('/api/companies', async (req, res) => {
     let connection;
     try { 
