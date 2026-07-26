@@ -234,7 +234,7 @@ app.put('/api/mesulsexs/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🔥 BİLDİRİŞLƏR (bildirisler) API-ləri
+// 🔥 YENİ: BİLDİRİŞLƏR (bildirisler) API-ləri
 // ==========================================
 
 // ZIP yaranarkən toplu əlavə etmək üçün
@@ -267,7 +267,21 @@ app.post('/api/bildirisler/bulk', async (req, res) => {
     }
 });
 
-// Nömrəsi olmayanları (boş olanları) gətir
+// 🔥 YENİ: Bütün bildirişləri gətirmək (Analiz bölməsində yoxlamaq üçün)
+app.get('/api/bildirisler', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute("SELECT * FROM bildirisler");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// Nömrəsi olmayanları (boş olanları) gətir (Modal cədvəl üçün)
 app.get('/api/bildirisler/missing', async (req, res) => {
     let connection;
     try {
@@ -296,7 +310,7 @@ app.put('/api/bildirisler/:id', async (req, res) => {
     }
 });
 
-// 🔥 YENİ: Bildiriş qeydini silmək
+// Bildiriş qeydini silmək
 app.delete('/api/bildirisler/:id', async (req, res) => {
     let connection;
     try {
