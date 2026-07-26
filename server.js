@@ -21,6 +21,46 @@ const dbConfig = process.env.MYSQL_URL || {
     database: 'railway'
 };
 
+// ==========================================
+// CƏDVƏLLƏRİN AVTOMATİK YARADILMASI (UĞURLU QURAŞDIRMA ÜÇÜN)
+// ==========================================
+async function initializeTables() {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS mesulsexs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                leaderperson VARCHAR(255),
+                leadername VARCHAR(255),
+                secondperson VARCHAR(255),
+                phone VARCHAR(50)
+            )
+        `);
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS bildirisler (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                gomruk_orqani VARCHAR(255),
+                firma VARCHAR(255),
+                voen VARCHAR(50),
+                tarix_yazilma VARCHAR(50),
+                tarix_borcdovru VARCHAR(100),
+                melumat TEXT,
+                bildiris_nomresi VARCHAR(100) DEFAULT ''
+            )
+        `);
+        console.log("Cədvəllər uğurla yoxlanıldı/yaradıldı.");
+    } catch (err) {
+        console.error("Cədvəl yaratma xətası:", err);
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+initializeTables();
+
+// ==========================================
+// ƏSAS API-LƏR
+// ==========================================
 app.post('/api/companies/generate-docs', async (req, res) => {
     let connection;
     try {
@@ -30,7 +70,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
             return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
         }
 
-        // 🔥 İMZALAYAN ŞƏXSLƏRİ BAZADAN ÇƏKİRİK 🔥
         let signers = { leaderperson: "", leadername: "", secondperson: "", phone: "" };
         try {
             connection = await mysql.createConnection(dbConfig);
@@ -63,7 +102,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
             const safeName = firm.safeFirmaAdi || firm.firma.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
             try {
-                // 1. ƏSAS ŞABLON (sablon.docx)
                 const docSablonZip = new PizZip(sablonBuffer);
                 const docSablon = new Docxtemplater(docSablonZip, { paragraphLoop: true, linebreaks: true });
                 docSablon.render({
@@ -71,7 +109,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     firma: firm.firma,
                     voen: firm.voen,
                     tarix: firm.tarixEsas,
-                    // Şablonda istifadə etmək üçün imzalayanları da göndəririk
                     leaderperson: signers.leaderperson,
                     leadername: signers.leadername,
                     secondperson: signers.secondperson,
@@ -80,7 +117,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                 const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_esas.docx`, outSablon);
 
-                // 2. QOŞMA ŞABLON (sablonqosma.docx)
                 const docQosmaZip = new PizZip(qosmaBuffer);
                 const docQosma = new Docxtemplater(docQosmaZip, { paragraphLoop: true, linebreaks: true });
                 docQosma.render({
@@ -89,7 +125,6 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     gb: firm.gb,
                     borc: firm.borc,
                     tarix: firm.tarixQosma,
-                    // Qosmada da istifadə edilərsə deyə
                     leaderperson: signers.leaderperson,
                     leadername: signers.leadername,
                     secondperson: signers.secondperson,
@@ -158,25 +193,18 @@ app.delete('/api/companies/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🔥 YENİ: İMZALAYAN ŞƏXSLƏR (mesulsexs) MySQL API-ləri
+// İMZALAYAN ŞƏXSLƏR (mesulsexs) API-ləri
 // ==========================================
-
-// 1. Məlumatları Gətirmək (GET)
 app.get('/api/mesulsexs', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
         res.json(rows);
-    } catch (err) {
-        console.error('Mesulsexs GET xətası:', err);
-        res.status(500).json({ error: 'Server xətası baş verdi' });
-    } finally {
-        if (connection) await connection.end();
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
 });
 
-// 2. İlk Dəfə Məlumat Yaratmaq (POST)
 app.post('/api/mesulsexs', async (req, res) => {
     const { leaderperson, leadername, secondperson, phone } = req.body;
     let connection;
@@ -187,29 +215,75 @@ app.post('/api/mesulsexs', async (req, res) => {
             [leaderperson, leadername, secondperson, phone]
         );
         res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
-    } catch (err) {
-        console.error('Mesulsexs POST xətası:', err);
-        res.status(500).json({ error: 'Məlumatı yadda saxlamaq mümkün olmadı' });
-    } finally {
-        if (connection) await connection.end();
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
 });
 
-// 3. Mövcud Məlumatı Yeniləmək (PUT)
 app.put('/api/mesulsexs/:id', async (req, res) => {
     const { id } = req.params;
     const { leaderperson, leadername, secondperson, phone } = req.body;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        await connection.execute(
-            'UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
+        await connection.execute('UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
             [leaderperson, leadername, secondperson, phone, id]
         );
         res.json({ id, leaderperson, leadername, secondperson, phone });
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
+});
+
+// ==========================================
+// 🔥 YENİ: BİLDİRİŞLƏR (bildirisler) API-ləri
+// ==========================================
+
+// ZIP yaranarkən toplu əlavə etmək üçün
+app.post('/api/bildirisler/bulk', async (req, res) => {
+    const { bildirisler } = req.body;
+    if (!bildirisler || bildirisler.length === 0) return res.json({ success: true });
+    
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        for (const b of bildirisler) {
+            await connection.execute(
+                'INSERT INTO bildirisler (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat, bildiris_nomresi) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [b.gomruk_orqani, b.firma, b.voen, b.tarix_yazilma, b.tarix_borcdovru, b.melumat, '']
+            );
+        }
+        res.json({ success: true });
     } catch (err) {
-        console.error('Mesulsexs PUT xətası:', err);
-        res.status(500).json({ error: 'Məlumatı yeniləmək mümkün olmadı' });
+        console.error('Bildirisler bulk xətası:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// Nömrəsi olmayanları (boş olanları) gətir
+app.get('/api/bildirisler/missing', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute("SELECT * FROM bildirisler WHERE bildiris_nomresi = '' OR bildiris_nomresi IS NULL");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// Bildiriş nömrəsini yeniləyib yadda saxlamaq
+app.put('/api/bildirisler/:id', async (req, res) => {
+    const { bildiris_nomresi } = req.body;
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ? WHERE id = ?', [bildiris_nomresi, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     } finally {
         if (connection) await connection.end();
     }
