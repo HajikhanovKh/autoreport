@@ -234,7 +234,7 @@ app.put('/api/mesulsexs/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🔥 YENİ: BİLDİRİŞLƏR (bildirisler) API-ləri
+// 🔥 BİLDİRİŞLƏR (bildirisler) API-ləri
 // ==========================================
 
 // ZIP yaranarkən toplu əlavə etmək üçün
@@ -246,7 +246,6 @@ app.post('/api/bildirisler/bulk', async (req, res) => {
     try {
         connection = await mysql.createConnection(dbConfig);
         for (const b of bildirisler) {
-            // Boş dataların undefined olmasına qarşı sığorta:
             const val1 = b.gomruk_orqani || "";
             const val2 = b.firma || "";
             const val3 = b.voen || "";
@@ -289,6 +288,20 @@ app.put('/api/bildirisler/:id', async (req, res) => {
     try {
         connection = await mysql.createConnection(dbConfig);
         await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ? WHERE id = ?', [bildiris_nomresi, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// 🔥 YENİ: Bildiriş qeydini silmək
+app.delete('/api/bildirisler/:id', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute('DELETE FROM bildirisler WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
