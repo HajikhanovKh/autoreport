@@ -11,7 +11,7 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE'] }));
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'PUT'] }));
 
 const dbConfig = process.env.MYSQL_URL || {
     host: 'ballast.proxy.rlwy.net',
@@ -22,11 +22,26 @@ const dbConfig = process.env.MYSQL_URL || {
 };
 
 app.post('/api/companies/generate-docs', async (req, res) => {
+    let connection;
     try {
         const { selectedFirms } = req.body;
 
         if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
             return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
+        }
+
+        // 🔥 İMZALAYAN ŞƏXSLƏRİ BAZADAN ÇƏKİRİK 🔥
+        let signers = { leaderperson: "", leadername: "", secondperson: "", phone: "" };
+        try {
+            connection = await mysql.createConnection(dbConfig);
+            const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
+            if (rows.length > 0) {
+                signers = rows[0];
+            }
+        } catch (dbErr) {
+            console.error("Mesulsexs çəkilərkən xəta:", dbErr);
+        } finally {
+            if (connection) await connection.end();
         }
 
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablon.docx";
@@ -55,7 +70,12 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     unvan: firm.unvan,
                     firma: firm.firma,
                     voen: firm.voen,
-                    tarix: firm.tarixEsas // 🔥 DÜZƏLİŞ BURADA (Başlanğıc - Son tarix)
+                    tarix: firm.tarixEsas,
+                    // Şablonda istifadə etmək üçün imzalayanları da göndəririk
+                    leaderperson: signers.leaderperson,
+                    leadername: signers.leadername,
+                    secondperson: signers.secondperson,
+                    phone: signers.phone
                 });
                 const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_esas.docx`, outSablon);
@@ -68,7 +88,12 @@ app.post('/api/companies/generate-docs', async (req, res) => {
                     voen: firm.voen,
                     gb: firm.gb,
                     borc: firm.borc,
-                    tarix: firm.tarixQosma // 🔥 DÜZƏLİŞ BURADA (Bugünkü tarix)
+                    tarix: firm.tarixQosma,
+                    // Qosmada da istifadə edilərsə deyə
+                    leaderperson: signers.leaderperson,
+                    leadername: signers.leadername,
+                    secondperson: signers.secondperson,
+                    phone: signers.phone
                 });
                 const outQosma = docQosma.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_qosma.docx`, outQosma);
@@ -131,34 +156,42 @@ app.delete('/api/companies/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); } 
     finally { if (connection) await connection.end(); }
 });
+
 // ==========================================
-// İMZALAYAN ŞƏXSLƏR (mesulsexs) API-ləri
+// 🔥 YENİ: İMZALAYAN ŞƏXSLƏR (mesulsexs) MySQL API-ləri
 // ==========================================
 
 // 1. Məlumatları Gətirmək (GET)
 app.get('/api/mesulsexs', async (req, res) => {
+    let connection;
     try {
-        // Həmişə yalnız tək bir qeyd olacağını fərz edərək ilk qeydi çəkirik
-        const result = await pool.query('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
-        res.json(result.rows);
+        connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
+        res.json(rows);
     } catch (err) {
         console.error('Mesulsexs GET xətası:', err);
         res.status(500).json({ error: 'Server xətası baş verdi' });
+    } finally {
+        if (connection) await connection.end();
     }
 });
 
 // 2. İlk Dəfə Məlumat Yaratmaq (POST)
 app.post('/api/mesulsexs', async (req, res) => {
     const { leaderperson, leadername, secondperson, phone } = req.body;
+    let connection;
     try {
-        const result = await pool.query(
-            'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES ($1, $2, $3, $4) RETURNING *',
+        connection = await mysql.createConnection(dbConfig);
+        const [result] = await connection.execute(
+            'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
             [leaderperson, leadername, secondperson, phone]
         );
-        res.status(201).json(result.rows[0]);
+        res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
     } catch (err) {
         console.error('Mesulsexs POST xətası:', err);
         res.status(500).json({ error: 'Məlumatı yadda saxlamaq mümkün olmadı' });
+    } finally {
+        if (connection) await connection.end();
     }
 });
 
@@ -166,19 +199,19 @@ app.post('/api/mesulsexs', async (req, res) => {
 app.put('/api/mesulsexs/:id', async (req, res) => {
     const { id } = req.params;
     const { leaderperson, leadername, secondperson, phone } = req.body;
+    let connection;
     try {
-        const result = await pool.query(
-            'UPDATE mesulsexs SET leaderperson = $1, leadername = $2, secondperson = $3, phone = $4 WHERE id = $5 RETURNING *',
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute(
+            'UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
             [leaderperson, leadername, secondperson, phone, id]
         );
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Məlumat tapılmadı' });
-        }
-        res.json(result.rows[0]);
+        res.json({ id, leaderperson, leadername, secondperson, phone });
     } catch (err) {
         console.error('Mesulsexs PUT xətası:', err);
         res.status(500).json({ error: 'Məlumatı yeniləmək mümkün olmadı' });
+    } finally {
+        if (connection) await connection.end();
     }
 });
 
