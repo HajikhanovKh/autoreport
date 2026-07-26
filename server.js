@@ -131,5 +131,55 @@ app.delete('/api/companies/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); } 
     finally { if (connection) await connection.end(); }
 });
+// ==========================================
+// İMZALAYAN ŞƏXSLƏR (mesulsexs) API-ləri
+// ==========================================
+
+// 1. Məlumatları Gətirmək (GET)
+app.get('/api/mesulsexs', async (req, res) => {
+    try {
+        // Həmişə yalnız tək bir qeyd olacağını fərz edərək ilk qeydi çəkirik
+        const result = await pool.query('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Mesulsexs GET xətası:', err);
+        res.status(500).json({ error: 'Server xətası baş verdi' });
+    }
+});
+
+// 2. İlk Dəfə Məlumat Yaratmaq (POST)
+app.post('/api/mesulsexs', async (req, res) => {
+    const { leaderperson, leadername, secondperson, phone } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES ($1, $2, $3, $4) RETURNING *',
+            [leaderperson, leadername, secondperson, phone]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Mesulsexs POST xətası:', err);
+        res.status(500).json({ error: 'Məlumatı yadda saxlamaq mümkün olmadı' });
+    }
+});
+
+// 3. Mövcud Məlumatı Yeniləmək (PUT)
+app.put('/api/mesulsexs/:id', async (req, res) => {
+    const { id } = req.params;
+    const { leaderperson, leadername, secondperson, phone } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE mesulsexs SET leaderperson = $1, leadername = $2, secondperson = $3, phone = $4 WHERE id = $5 RETURNING *',
+            [leaderperson, leadername, secondperson, phone, id]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Məlumat tapılmadı' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Mesulsexs PUT xətası:', err);
+        res.status(500).json({ error: 'Məlumatı yeniləmək mümkün olmadı' });
+    }
+});
 
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
