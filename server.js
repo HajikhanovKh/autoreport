@@ -59,7 +59,7 @@ async function initializeTables() {
 initializeTables();
 
 // ==========================================
-// ƏSAS API-LƏR
+// ƏSAS API-LƏR (ZİP GENERATION)
 // ==========================================
 app.post('/api/companies/generate-docs', async (req, res) => {
     let connection;
@@ -246,9 +246,17 @@ app.post('/api/bildirisler/bulk', async (req, res) => {
     try {
         connection = await mysql.createConnection(dbConfig);
         for (const b of bildirisler) {
+            // Boş dataların undefined olmasına qarşı sığorta:
+            const val1 = b.gomruk_orqani || "";
+            const val2 = b.firma || "";
+            const val3 = b.voen || "";
+            const val4 = b.tarix_yazilma || "";
+            const val5 = b.tarix_borcdovru || "";
+            const val6 = b.melumat || "";
+
             await connection.execute(
                 'INSERT INTO bildirisler (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat, bildiris_nomresi) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [b.gomruk_orqani, b.firma, b.voen, b.tarix_yazilma, b.tarix_borcdovru, b.melumat, '']
+                [val1, val2, val3, val4, val5, val6, '']
             );
         }
         res.json({ success: true });
