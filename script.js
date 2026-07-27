@@ -1,7 +1,4 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     // Sizin funksiyalarınız və kodlarınız bura yazılmalıdır:
         if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
@@ -789,4 +786,4 @@ document.addEventListener("DOMContentLoaded", function() {
 
     console.log("Webflow səhifəsi hazır!");
 });
-</script>
+
