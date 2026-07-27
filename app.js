@@ -1,4 +1,3 @@
-
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -105,7 +104,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const zipSelectAll = document.getElementById('zip-select-all');
 
     let pendingDbSavePayload = [];
-
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
@@ -424,7 +422,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 groupedResults[idareAdi][groupKey] = { firma: tamFirmaAdi, voen: voen || "", isFiziki: isFiziki, decls: {}, toplamBorc: 0, qeydSayi: 0 }; 
                             }
                             
-                            // YENİ: Hər bəyannamənin xüsusi borcunu və tarixini tuturuq
                             let firmObj = groupedResults[idareAdi][groupKey];
                             if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set() };
                             
@@ -459,7 +456,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             let checkboxAttr = isVoenInDb ? "checked" : "disabled";
                             let opacityStyle = isVoenInDb ? "1" : "0.5"; 
 
-                            // 🔥 YENİ: RƏNG, YENİ/KÖHNƏ AYIRIMI
                             let newDecls = [];
                             let oldDecls = [];
                             let newBorc = 0;
@@ -508,7 +504,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 }
                             }
 
-                            // RƏNG VƏ STATUS
                             let bgStyle = "#ffffff";
                             let cardBorder = "1px solid #e2e8f0";
                             let statusBadge = "";
@@ -528,7 +523,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             let newTarixStr = Array.from(newTarixler).join(", ");
                             let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
 
-                            // Data attribute-larda Yeni/Köhnə dəyərləri saxlayırıq!
                             htmlContent += `
                             <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};">
                                 <div class="firm-main-row">
@@ -638,7 +632,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 let newBorc = checkbox.getAttribute("data-new-borc");
                 let firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                if (!newGb || newGb.trim() === "") { continue; } // Əgər yeni yazılacaq məlumat sıfırdırsa, bu firmanı tamamilə çıxar
+                if (!newGb || newGb.trim() === "") { continue; }
 
                 if (oldGb && oldGb.trim() !== "") hasOverlap = true;
 
@@ -660,7 +654,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (firmsToProcess.length === 0) { alert("Seçdiyiniz firmaların bütün bəyannamələri artıq bazadadır. Yeni bildiriş yazılası məlumat yoxdur!"); return; }
 
-            // Davam etmək üçün globala mənimsədirik
             window.pendingFirmsToZip = firmsToProcess;
 
             if (hasOverlap) {
