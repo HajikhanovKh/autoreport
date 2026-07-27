@@ -42,7 +42,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
     const BİL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
 
-    
     let allCompaniesData = [];
     let currentFilteredData = [];
     let currentFilterType = "";
