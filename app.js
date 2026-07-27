@@ -1,5 +1,4 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
+
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -782,4 +781,3 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
 });
-</script>
