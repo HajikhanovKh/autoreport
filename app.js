@@ -46,6 +46,10 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let currentPage = 1;
     const rowsPerPage = 20;
+
+    let currentBilPage = 1;
+    const bilRowsPerPage = 30;
+
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
@@ -89,7 +93,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
 
-    /* ZIP və Pre-ZIP Modalları */
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
@@ -106,6 +109,11 @@ document.addEventListener("DOMContentLoaded", function() {
     let pendingDbSavePayload = [];
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
+
+    function normStr(str) {
+        if(!str) return "";
+        return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
+    }
 
     function getTodayFormatted() { const today = new Date(); return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; }
     function setStatus(message, isError = false) { if (statusMsg) { statusMsg.innerText = message; statusMsg.style.color = isError ? '#ef4444' : '#10b981'; statusMsg.style.display = 'block'; } }
@@ -151,63 +159,150 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
     
-    function loadAllBildirisler() {
+    // Bütün bildirişləri yükləyən funksiya (Callback dəstəyi ilə)
+    function loadAllBildirisler(callback) {
         fetch(BİL_API_URL).then(r => r.json()).then(data => {
             allBildirislerData = data || [];
             const missingCount = allBildirislerData.filter(b => !b.bildiris_nomresi || b.bildiris_nomresi.trim() === "").length;
             if(missingBadge) missingBadge.innerText = missingCount;
             refreshAnalysisIfPossible();
+            if(callback) callback();
         }).catch(err => console.error(err));
     }
 
+    // Bütün Bildirişləri (və Paginasiyanı) Ekrana Çıxaran Funksiya
     function renderBildirisTable() {
         if (!bildirisTbody) return;
-        bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> Yüklənir...</td></tr>`;
         
-        fetch(`${BİL_API_URL}/missing`).then(r => r.json()).then(data => {
-            bildirisTbody.innerHTML = '';
-            if (!data || data.length === 0) {
-                bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Bütün bildiriş nömrələri qeyd edilib və ya siyahı boşdur.</td></tr>`;
-                return;
-            }
-            
-            data.forEach(b => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight: 600; color: #475569;">${b.gomruk_orqani}</td>
-                    <td><div style="font-weight: 700; color: #0f172a;">${b.firma}</div><div style="font-size: 11px; color: #64748b;">VÖEN: ${b.voen}</div></td>
-                    <td><div style="font-weight: 600; color: #3b82f6;">${b.tarix_yazilma}</div><div style="font-size: 11px; color: #64748b;">Dövr: ${b.tarix_borcdovru}</div></td>
-                    <td style="font-size: 12px; font-weight: 600; color: #ef4444;">${b.melumat}</td>
-                    <td>
-                        <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                            <input type="text" class="modal-input" placeholder="Nömrə daxil edin" id="b-num-${b.id}" style="padding: 6px 10px; font-size: 12px; width: 140px; margin:0;">
-                            <button class="btn-primary" style="padding: 6px 12px; border-radius: 6px; border:none; cursor:pointer;" title="Təsdiqlə" onclick="saveBildirisNum(${b.id})"><i class="fa-solid fa-check"></i></button>
-                            <button style="padding: 6px 12px; border-radius: 6px; border:none; cursor:pointer; background:#ef4444; color:white;" title="Sil" onclick="deleteBildiris(${b.id})"><i class="fa-solid fa-trash"></i></button>
+        let sortedData = [...allBildirislerData].sort((a, b) => {
+            const aEmpty = (!a.bildiris_nomresi || a.bildiris_nomresi.trim() === '');
+            const bEmpty = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
+            if (aEmpty && !bEmpty) return -1;
+            if (!aEmpty && bEmpty) return 1;
+            return b.id - a.id; 
+        });
+
+        const totalPages = Math.ceil(sortedData.length / bilRowsPerPage) || 1;
+        if (currentBilPage > totalPages) currentBilPage = totalPages;
+
+        const startIndex = (currentBilPage - 1) * bilRowsPerPage;
+        const pageData = sortedData.slice(startIndex, startIndex + bilRowsPerPage);
+
+        bildirisTbody.innerHTML = '';
+        if (pageData.length === 0) {
+            bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Sistemdə heç bir bildiriş məlumatı tapılmadı.</td></tr>`;
+            renderBilPagination(totalPages);
+            return;
+        }
+        
+        pageData.forEach(b => {
+            const tr = document.createElement('tr');
+            let isMissing = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
+            let shadowStyle = isMissing ? 'border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);' : 'border-color:#10b981; color:#166534; font-weight:700;';
+
+            tr.innerHTML = `
+                <td>
+                    <input type="text" class="modal-input" id="b-orqan-${b.id}" value="${b.gomruk_orqani || ''}" style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" title="Gömrük Orqanı">
+                </td>
+                <td>
+                    <input type="text" class="modal-input" id="b-firma-${b.id}" value='${(b.firma || '').replace(/'/g, "&#39;")}' style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" placeholder="Firma adı">
+                    <input type="text" class="modal-input" id="b-voen-${b.id}" value="${b.voen || ''}" style="width: 100%; font-size:11px; padding:6px;" placeholder="VÖEN">
+                </td>
+                <td>
+                    <input type="text" class="modal-input" id="b-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" title="Tarix">
+                    <input type="text" class="modal-input" id="b-dovr-${b.id}" value="${b.tarix_borcdovru || ''}" style="width: 100%; font-size:11px; padding:6px;" title="Dövr">
+                </td>
+                <td>
+                    <textarea class="modal-input" id="b-melumat-${b.id}" style="width: 100%; font-size:11px; padding:6px; color:#2563eb; font-weight:600; min-height:45px;">${b.melumat || ''}</textarea>
+                </td>
+                <td>
+                    <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
+                        <input type="text" class="modal-input" placeholder="Bildiriş Nömrəsi" id="b-num-${b.id}" value="${b.bildiris_nomresi || ''}" style="padding: 6px; font-size: 13px; width: 100%; text-align:center; transition:0.2s; ${shadowStyle}">
+                        <div style="display:flex; gap:6px; width:100%;">
+                            <button class="btn-primary" style="flex:1; padding: 6px; border-radius: 6px; border:none; cursor:pointer; font-size:12px;" title="Yadda Saxla / Yenilə" onclick="updateBildirisData(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
+                            <button style="padding: 6px 12px; border-radius: 6px; border:none; cursor:pointer; background:#ef4444; color:white; font-size:12px;" title="Sil" onclick="deleteBildiris(${b.id})"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    </td>
-                `;
-                bildirisTbody.appendChild(tr);
-            });
-        }).catch(err => { bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Xəta baş verdi.</td></tr>`; });
+                    </div>
+                </td>
+            `;
+            bildirisTbody.appendChild(tr);
+        });
+
+        renderBilPagination(totalPages);
     }
 
-    window.saveBildirisNum = function(id) {
-        const input = document.getElementById(`b-num-${id}`);
-        const val = input.value.trim();
-        if(!val) { alert("Zəhmət olmasa nömrəni daxil edin!"); return; }
-        
+    function renderBilPagination(totalPages) {
+        let container = document.getElementById('bildiris-pagination-controls');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'bildiris-pagination-controls';
+            container.className = 'pagination-container';
+            const wrapper = document.querySelector('#popup_bildirisler .table-wrapper');
+            if(wrapper) wrapper.appendChild(container);
+        }
+        container.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        const prevBtn = document.createElement('button'); prevBtn.className = 'page-btn'; prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+        prevBtn.disabled = currentBilPage === 1; prevBtn.onclick = (e) => { e.preventDefault(); currentBilPage--; renderBildirisTable(); };
+        container.appendChild(prevBtn);
+
+        let startPage = Math.max(1, currentBilPage - 2); let endPage = Math.min(totalPages, currentBilPage + 2);
+        for (let i = startPage; i <= endPage; i++) {
+            const pBtn = document.createElement('button'); pBtn.className = `page-btn ${i === currentBilPage ? 'active' : ''}`; pBtn.innerText = i;
+            pBtn.onclick = (e) => { e.preventDefault(); currentBilPage = i; renderBildirisTable(); }; container.appendChild(pBtn);
+        }
+
+        const nextBtn = document.createElement('button'); nextBtn.className = 'page-btn'; nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        nextBtn.disabled = currentBilPage === totalPages; nextBtn.onclick = (e) => { e.preventDefault(); currentBilPage++; renderBildirisTable(); };
+        container.appendChild(nextBtn);
+    }
+
+    window.updateBildirisData = function(id) {
+        const payload = {
+            gomruk_orqani: document.getElementById(`b-orqan-${id}`).value.trim(),
+            firma: document.getElementById(`b-firma-${id}`).value.trim(),
+            voen: document.getElementById(`b-voen-${id}`).value.trim(),
+            tarix_yazilma: document.getElementById(`b-tarix-${id}`).value.trim(),
+            tarix_borcdovru: document.getElementById(`b-dovr-${id}`).value.trim(),
+            melumat: document.getElementById(`b-melumat-${id}`).value.trim(),
+            bildiris_nomresi: document.getElementById(`b-num-${id}`).value.trim()
+        };
+
+        const btn = document.querySelector(`#b-num-${id}`).nextElementSibling.querySelector('button');
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
         fetch(`${BİL_API_URL}/${id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bildiris_nomresi: val })
-        }).then(() => { renderBildirisTable(); loadAllBildirisler(); }).catch(err => alert("Xəta: " + err.message));
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        }).then(() => { 
+            loadAllBildirisler(() => renderBildirisTable());
+        }).catch(err => {
+            alert("Xəta baş verdi: " + err.message);
+            btn.innerHTML = oldHtml;
+        });
     }
 
     window.deleteBildiris = function(id) {
         if(!confirm("Bu bildiriş qeydini silmək istədiyinizə əminsiniz?")) return;
-        fetch(`${BİL_API_URL}/${id}`, { method: 'DELETE' }).then(() => { renderBildirisTable(); loadAllBildirisler(); }).catch(err => alert("Silinərkən xəta: " + err.message));
+        fetch(`${BİL_API_URL}/${id}`, { method: 'DELETE' }).then(() => { loadAllBildirisler(() => renderBildirisTable()); }).catch(err => alert("Silinərkən xəta: " + err.message));
     }
 
-    if (bildirisBtn && bildirisPopup) { bildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'flex'; renderBildirisTable(); }); }
-    if (closeBildirisBtn && bildirisPopup) { closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); }
+    if (bildirisBtn && bildirisPopup) { 
+        bildirisBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            bildirisPopup.style.display = 'flex'; 
+            currentBilPage = 1; 
+            renderBildirisTable(); 
+        }); 
+    }
+    
+    if (closeBildirisBtn && bildirisPopup) { 
+        closeBildirisBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            bildirisPopup.style.display = 'none'; 
+        }); 
+    }
 
     loadSigners(); loadAllBildirisler();
 
@@ -464,12 +559,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let tarixleri = Array.from(item.decls[nomre].tarixler);
                                 tarixleri.forEach(t => allTarixler.add(t));
                                 
-                                // 🔥 YENİ DƏQİQ AXTARIŞ: Artıq dövrə/aya baxmır. Yalnız bəyannamə nömrəsini bazada axtarır!
                                 let foundBil = allBildirislerData.find(b => {
                                     let isFirmMatch = (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma);
                                     if (!isFirmMatch || !b.melumat) return false;
-                                    
-                                    // 123-ün 12345 içində tapılmaması üçün məlumatı vergüllə ayırıb dəqiq yoxlayırıq
                                     let savedNomreler = b.melumat.replace('Bəyannamələr:', '').split(',').map(s => s.trim());
                                     return savedNomreler.includes(nomre);
                                 });
@@ -492,7 +584,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     `;
                                 } else {
                                     newDecls.push(nomre);
-                                    newBorc += borcu; // Yalniz yeni bəyannamələrin borcu toplanır!
+                                    newBorc += borcu; 
                                     tarixleri.forEach(t => newTarixler.add(t));
                                     accordionListHtml += `
                                         <li>
@@ -588,7 +680,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
                         btn.addEventListener('click', function(e) {
                             e.preventDefault();
-                            if (bildirisPopup) { bildirisPopup.style.display = 'flex'; renderBildirisTable(); }
+                            if (bildirisPopup) { 
+                                bildirisPopup.style.display = 'flex'; 
+                                currentBilPage = 1; 
+                                renderBildirisTable(); 
+                            }
                         });
                     });
 
@@ -607,7 +703,6 @@ document.addEventListener("DOMContentLoaded", function() {
         return `${format(minDate)} - ${format(maxDate)}`;
     }
 
-    // MODAL BAĞLAMA EVENTLƏRİ
     if(closePrezipBtn) { closePrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(cancelPrezipBtn) { cancelPrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(closeZipPopupBtn) { closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
@@ -631,7 +726,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 let newBorc = checkbox.getAttribute("data-new-borc");
                 let firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                if (!newGb || newGb.trim() === "") { continue; } // Sırf yeni bəyannaməsi olanlar sənədə daxil edilir
+                if (!newGb || newGb.trim() === "") { continue; } 
 
                 if (oldGb && oldGb.trim() !== "") hasOverlap = true;
 
@@ -765,7 +860,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     const err = await bRes.json(); alert("Xəta baş verdi: " + (err.error || "Bilinməyən xəta"));
                 } else {
                     alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
-                    zipPopup.style.display = 'none'; loadAllBildirisler(); 
+                    zipPopup.style.display = 'none'; loadAllBildirisler(() => renderBildirisTable()); 
                 }
             } catch(err) { alert("Şəbəkə xətası: " + err.message);
             } finally { saveZipSelectionsBtn.innerHTML = oldText; saveZipSelectionsBtn.disabled = false; }
