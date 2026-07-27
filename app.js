@@ -2,7 +2,7 @@
 <script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        const DOGRU_SIFRE = "Analog*+2026+*"; 
+        const DOGRU_SIFRE = "A*+2026+*"; 
         document.body.style.overflow = 'hidden';
         const overlay = document.createElement('div');
         overlay.id = "security-overlay";
