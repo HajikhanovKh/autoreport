@@ -159,7 +159,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
     
-    // Bütün bildirişləri yükləyən funksiya (Callback dəstəyi ilə)
     function loadAllBildirisler(callback) {
         fetch(BİL_API_URL).then(r => r.json()).then(data => {
             allBildirislerData = data || [];
@@ -170,7 +169,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
 
-    // Bütün Bildirişləri (və Paginasiyanı) Ekrana Çıxaran Funksiya
     function renderBildirisTable() {
         if (!bildirisTbody) return;
         
@@ -198,33 +196,62 @@ document.addEventListener("DOMContentLoaded", function() {
         pageData.forEach(b => {
             const tr = document.createElement('tr');
             let isMissing = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
-            let shadowStyle = isMissing ? 'border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);' : 'border-color:#10b981; color:#166534; font-weight:700;';
+            
+            // Xam Dəyərləri ehtiyat üçün data-attribute kimi saxlayırıq (Update üçün lazımdır)
+            tr.setAttribute('data-id', b.id);
+            tr.setAttribute('data-orqan', b.gomruk_orqani || '');
+            tr.setAttribute('data-firma', b.firma || '');
+            tr.setAttribute('data-voen', b.voen || '');
+            tr.setAttribute('data-tarix', b.tarix_yazilma || '');
+            tr.setAttribute('data-dovr', b.tarix_borcdovru || '');
+            tr.setAttribute('data-melumat', b.melumat || '');
+            tr.setAttribute('data-nomre', b.bildiris_nomresi || '');
 
-            tr.innerHTML = `
-                <td>
-                    <input type="text" class="modal-input" id="b-orqan-${b.id}" value="${b.gomruk_orqani || ''}" style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" title="Gömrük Orqanı">
-                </td>
-                <td>
-                    <input type="text" class="modal-input" id="b-firma-${b.id}" value='${(b.firma || '').replace(/'/g, "&#39;")}' style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" placeholder="Firma adı">
-                    <input type="text" class="modal-input" id="b-voen-${b.id}" value="${b.voen || ''}" style="width: 100%; font-size:11px; padding:6px;" placeholder="VÖEN">
-                </td>
-                <td>
-                    <input type="text" class="modal-input" id="b-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width: 100%; font-size:11px; padding:6px; margin-bottom:4px;" title="Tarix">
-                    <input type="text" class="modal-input" id="b-dovr-${b.id}" value="${b.tarix_borcdovru || ''}" style="width: 100%; font-size:11px; padding:6px;" title="Dövr">
-                </td>
-                <td>
-                    <textarea class="modal-input" id="b-melumat-${b.id}" style="width: 100%; font-size:11px; padding:6px; color:#2563eb; font-weight:600; min-height:45px;">${b.melumat || ''}</textarea>
-                </td>
-                <td>
-                    <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
-                        <input type="text" class="modal-input" placeholder="Bildiriş Nömrəsi" id="b-num-${b.id}" value="${b.bildiris_nomresi || ''}" style="padding: 6px; font-size: 13px; width: 100%; text-align:center; transition:0.2s; ${shadowStyle}">
-                        <div style="display:flex; gap:6px; width:100%;">
-                            <button class="btn-primary" style="flex:1; padding: 6px; border-radius: 6px; border:none; cursor:pointer; font-size:12px;" title="Yadda Saxla / Yenilə" onclick="updateBildirisData(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
-                            <button style="padding: 6px 12px; border-radius: 6px; border:none; cursor:pointer; background:#ef4444; color:white; font-size:12px;" title="Sil" onclick="deleteBildiris(${b.id})"><i class="fa-solid fa-trash"></i></button>
+            if (isMissing) {
+                // EKSİK OLANLAR: Açıq Input-larla görünür
+                tr.innerHTML = `
+                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
+                    <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
+                    <td>
+                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
+                    </td>
+                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td>
+                    <td>
+                        <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
+                            <input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
+                            <button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
                         </div>
-                    </div>
-                </td>
-            `;
+                    </td>
+                `;
+            } else {
+                // TAMAMLANMIŞLAR: Mətn kimi görünür, Action iconları var
+                tr.innerHTML = `
+                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
+                    <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
+                    <td>
+                        <div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div>
+                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
+                    </td>
+                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td>
+                    <td>
+                        <div class="view-panel-${b.id}" style="display:flex; gap:8px; align-items:center; justify-content:center;">
+                            <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
+                            <button onclick="enableEditMode(${b.id})" style="background:none; border:none; cursor:pointer; color:#f59e0b;" title="Dəyişdir"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteBildiris(${b.id})" style="background:none; border:none; cursor:pointer; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        
+                        <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px;">
+                            <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px;" onclick="updateBildirisFromTable(${b.id})">Saxla</button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">Ləğv</button>
+                            </div>
+                        </div>
+                    </td>
+                `;
+            }
             bildirisTbody.appendChild(tr);
         });
 
@@ -258,20 +285,51 @@ document.addEventListener("DOMContentLoaded", function() {
         container.appendChild(nextBtn);
     }
 
-    window.updateBildirisData = function(id) {
-        const payload = {
-            gomruk_orqani: document.getElementById(`b-orqan-${id}`).value.trim(),
-            firma: document.getElementById(`b-firma-${id}`).value.trim(),
-            voen: document.getElementById(`b-voen-${id}`).value.trim(),
-            tarix_yazilma: document.getElementById(`b-tarix-${id}`).value.trim(),
-            tarix_borcdovru: document.getElementById(`b-dovr-${id}`).value.trim(),
-            melumat: document.getElementById(`b-melumat-${id}`).value.trim(),
-            bildiris_nomresi: document.getElementById(`b-num-${id}`).value.trim()
-        };
+    window.enableEditMode = function(id) {
+        const viewTarix = document.querySelector(`.view-tarix-${id}`);
+        const editTarix = document.querySelector(`.edit-tarix-${id}`);
+        const viewPanel = document.querySelector(`.view-panel-${id}`);
+        const editPanel = document.querySelector(`.edit-panel-${id}`);
 
-        const btn = document.querySelector(`#b-num-${id}`).nextElementSibling.querySelector('button');
-        const oldHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        if(viewTarix) viewTarix.style.display = 'none';
+        if(editTarix) editTarix.style.display = 'block';
+        if(viewPanel) viewPanel.style.display = 'none';
+        if(editPanel) editPanel.style.display = 'flex';
+    }
+
+    window.cancelEditMode = function(id) {
+        const viewTarix = document.querySelector(`.view-tarix-${id}`);
+        const editTarix = document.querySelector(`.edit-tarix-${id}`);
+        const viewPanel = document.querySelector(`.view-panel-${id}`);
+        const editPanel = document.querySelector(`.edit-panel-${id}`);
+
+        if(viewTarix) viewTarix.style.display = 'block';
+        if(editTarix) editTarix.style.display = 'none';
+        if(viewPanel) viewPanel.style.display = 'flex';
+        if(editPanel) editPanel.style.display = 'none';
+    }
+
+    window.updateBildirisFromTable = function(id) {
+        const tr = document.querySelector(`tr[data-id="${id}"]`);
+        if(!tr) return;
+
+        const newTarix = document.querySelector(`.edit-tarix-${id}`).value.trim();
+        const newNomre = document.querySelector(`.edit-nomre-${id}`).value.trim();
+
+        if(!newNomre) {
+            alert("Bəyannamə/Bildiriş nömrəsini daxil edin!");
+            return;
+        }
+
+        const payload = {
+            gomruk_orqani: tr.getAttribute('data-orqan'),
+            firma: tr.getAttribute('data-firma'),
+            voen: tr.getAttribute('data-voen'),
+            tarix_yazilma: newTarix,
+            tarix_borcdovru: tr.getAttribute('data-dovr'),
+            melumat: tr.getAttribute('data-melumat'),
+            bildiris_nomresi: newNomre
+        };
 
         fetch(`${BİL_API_URL}/${id}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
@@ -279,13 +337,14 @@ document.addEventListener("DOMContentLoaded", function() {
             loadAllBildirisler(() => renderBildirisTable());
         }).catch(err => {
             alert("Xəta baş verdi: " + err.message);
-            btn.innerHTML = oldHtml;
         });
     }
 
     window.deleteBildiris = function(id) {
-        if(!confirm("Bu bildiriş qeydini silmək istədiyinizə əminsiniz?")) return;
-        fetch(`${BİL_API_URL}/${id}`, { method: 'DELETE' }).then(() => { loadAllBildirisler(() => renderBildirisTable()); }).catch(err => alert("Silinərkən xəta: " + err.message));
+        if(!confirm("Diqqət: Bu bildiriş qeydini bazadan tamamilə silmək istədiyinizə əminsiniz?")) return;
+        fetch(`${BİL_API_URL}/${id}`, { method: 'DELETE' })
+        .then(() => { loadAllBildirisler(() => renderBildirisTable()); })
+        .catch(err => alert("Silinərkən xəta: " + err.message));
     }
 
     if (bildirisBtn && bildirisPopup) { 
