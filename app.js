@@ -169,6 +169,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
 
+// Bütün Bildirişləri (və Paginasiyanı) Ekrana Çıxaran Funksiya
     function renderBildirisTable() {
         if (!bildirisTbody) return;
         
@@ -220,12 +221,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     <td>
                         <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
                             <input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
-                            <button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
+                            <button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
+                                <i class="fa-solid fa-save"></i> Saxla
+                            </button>
                         </div>
                     </td>
                 `;
             } else {
-                // TAMAMLANMIŞLAR: Mətn kimi görünür, Action iconları var
+                // TAMAMLANMIŞLAR: Mətn kimi görünür, modern Action iconları var
                 tr.innerHTML = `
                     <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
                     <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
@@ -236,17 +239,35 @@ document.addEventListener("DOMContentLoaded", function() {
                     </td>
                     <td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td>
                     <td>
-                        <div class="view-panel-${b.id}" style="display:flex; gap:8px; align-items:center; justify-content:center;">
+                        <div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
                             <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
-                            <button onclick="enableEditMode(${b.id})" style="background:none; border:none; cursor:pointer; color:#f59e0b;" title="Dəyişdir"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteBildiris(${b.id})" style="background:none; border:none; cursor:pointer; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                            <div style="display:flex; gap:6px;">
+                                <button onclick="enableEditMode(${b.id})" 
+                                    style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" 
+                                    title="Dəyişdir"
+                                    onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" 
+                                    onmouseout="this.style.backgroundColor='transparent'">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="deleteBildiris(${b.id})" 
+                                    style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" 
+                                    title="Sil"
+                                    onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" 
+                                    onmouseout="this.style.backgroundColor='transparent'">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                         
-                        <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px;">
+                        <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
                             <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
-                            <div style="display:flex; gap:4px;">
-                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px;" onclick="updateBildirisFromTable(${b.id})">Saxla</button>
-                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">Ləğv</button>
+                            <div style="display:flex; gap:6px; width:100%;">
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
+                                    <i class="fa-solid fa-save"></i> Saxla
+                                </button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">
+                                    <i class="fa-solid fa-xmark"></i> Ləğv
+                                </button>
                             </div>
                         </div>
                     </td>
