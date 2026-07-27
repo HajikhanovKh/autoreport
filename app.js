@@ -1,4 +1,3 @@
-
 <script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
