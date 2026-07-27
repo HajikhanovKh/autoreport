@@ -107,11 +107,6 @@ document.addEventListener("DOMContentLoaded", function() {
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
-    function normStr(str) {
-        if(!str) return "";
-        return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
-    }
-
     function getTodayFormatted() { const today = new Date(); return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; }
     function setStatus(message, isError = false) { if (statusMsg) { statusMsg.innerText = message; statusMsg.style.color = isError ? '#ef4444' : '#10b981'; statusMsg.style.display = 'block'; } }
     function refreshAnalysisIfPossible() { if (selectedFile && analizBtn) analizBtn.click(); }
@@ -469,11 +464,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let tarixleri = Array.from(item.decls[nomre].tarixler);
                                 tarixleri.forEach(t => allTarixler.add(t));
                                 
-                                let foundBil = allBildirislerData.find(b => 
-                                    normStr(b.tarix_borcdovru) === normStr(displayPeriod) && 
-                                    ((item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)) &&
-                                    b.melumat && b.melumat.includes(nomre)
-                                );
+                                // 🔥 YENİ DƏQİQ AXTARIŞ: Artıq dövrə/aya baxmır. Yalnız bəyannamə nömrəsini bazada axtarır!
+                                let foundBil = allBildirislerData.find(b => {
+                                    let isFirmMatch = (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma);
+                                    if (!isFirmMatch || !b.melumat) return false;
+                                    
+                                    // 123-ün 12345 içində tapılmaması üçün məlumatı vergüllə ayırıb dəqiq yoxlayırıq
+                                    let savedNomreler = b.melumat.replace('Bəyannamələr:', '').split(',').map(s => s.trim());
+                                    return savedNomreler.includes(nomre);
+                                });
 
                                 if (foundBil) {
                                     hasBildiris = true;
@@ -493,7 +492,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     `;
                                 } else {
                                     newDecls.push(nomre);
-                                    newBorc += borcu;
+                                    newBorc += borcu; // Yalniz yeni bəyannamələrin borcu toplanır!
                                     tarixleri.forEach(t => newTarixler.add(t));
                                     accordionListHtml += `
                                         <li>
@@ -632,7 +631,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 let newBorc = checkbox.getAttribute("data-new-borc");
                 let firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                if (!newGb || newGb.trim() === "") { continue; }
+                if (!newGb || newGb.trim() === "") { continue; } // Sırf yeni bəyannaməsi olanlar sənədə daxil edilir
 
                 if (oldGb && oldGb.trim() !== "") hasOverlap = true;
 
