@@ -1,4 +1,3 @@
-<script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "A*+2026+*"; 
@@ -346,4 +345,4 @@ document.addEventListener("DOMContentLoaded", function() {
         return { month: monthsAz[month - 1] || "", year, rub };
     }
 });
-</script>
+
