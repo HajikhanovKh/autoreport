@@ -1,6 +1,7 @@
+
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        const DOGRU_SIFRE = "A*+2026+*"; 
+        const DOGRU_SIFRE = "Analog*+2026+*"; 
         document.body.style.overflow = 'hidden';
         const overlay = document.createElement('div');
         overlay.id = "security-overlay";
@@ -11,7 +12,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     <i class="fa-solid fa-lock"></i>
                 </div>
                 <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">Giriş Təsdiqi</h2>
-                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.2026</p>
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.</p>
                 <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;">
                 <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p>
                 <button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button>
@@ -36,7 +37,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    console.log("Webflow səhifəsi hazır!");
     const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
     const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
     const BİL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
@@ -90,8 +90,29 @@ document.addEventListener("DOMContentLoaded", function() {
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
 
+    /* ZIP və Pre-ZIP Modalları */
+    const preZipPopup = document.getElementById('popup_pre_zip_warning');
+    const closePrezipBtn = document.getElementById('close-prezip-popup');
+    const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
+    const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
+    const prezipTbody = document.getElementById('prezip-tbody');
+
+    const zipPopup = document.getElementById('popup_zip_selection');
+    const closeZipPopupBtn = document.getElementById('close-zip-popup');
+    const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
+    const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
+    const zipTbody = document.getElementById('zip-selection-tbody');
+    const zipSelectAll = document.getElementById('zip-select-all');
+
+    let pendingDbSavePayload = [];
+
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
+
+    function normStr(str) {
+        if(!str) return "";
+        return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
+    }
 
     function getTodayFormatted() { const today = new Date(); return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; }
     function setStatus(message, isError = false) { if (statusMsg) { statusMsg.innerText = message; statusMsg.style.color = isError ? '#ef4444' : '#10b981'; statusMsg.style.display = 'block'; } }
@@ -156,6 +177,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Bütün bildiriş nömrələri qeyd edilib və ya siyahı boşdur.</td></tr>`;
                 return;
             }
+            
             data.forEach(b => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -180,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const input = document.getElementById(`b-num-${id}`);
         const val = input.value.trim();
         if(!val) { alert("Zəhmət olmasa nömrəni daxil edin!"); return; }
+        
         fetch(`${BİL_API_URL}/${id}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bildiris_nomresi: val })
         }).then(() => { renderBildirisTable(); loadAllBildirisler(); }).catch(err => alert("Xəta: " + err.message));
@@ -344,5 +367,417 @@ document.addEventListener("DOMContentLoaded", function() {
         const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
         return { month: monthsAz[month - 1] || "", year, rub };
     }
-});
+    
+    const analizBox = document.getElementById('analiz-box');
+    const neticeDovrElement = document.querySelector('.netice-dovr');
+    
+    if (analizBtn) {
+        analizBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!selectedFile || !currentFilterType) { alert("Zəhmət olmasa əvvəlcə faylı və dövrü (Rüb və ya Ay) seçin!"); return; }
 
+            let rawPeriod = (currentFilterType === "rub" ? document.getElementById('slc-rub-select')?.value : document.getElementById('slc-ay-select')?.value) || "";
+            let rawYear = (currentFilterType === "rub" ? document.getElementById('slc-rub-year')?.value : document.getElementById('slc-ay-year')?.value) || "";
+            
+            let displayPeriod = `${rawPeriod.toUpperCase()} ${rawYear}`.trim();
+            if (neticeDovrElement) neticeDovrElement.innerText = displayPeriod;
+            
+            let filterPeriod = rawPeriod.trim().toLowerCase(); 
+            let filterYear = rawYear.trim();
+
+            analizBox.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:30px; color:#3b82f6;"></i><p style="margin-top:10px;">Analiz edilir, gözləyin...</p></div>`;
+
+            const fileReader = new FileReader(); fileReader.readAsArrayBuffer(selectedFile);
+            fileReader.onload = function(evt) {
+                setTimeout(() => {
+                    const workbook = XLSX.read(evt.target.result, { type: 'buffer' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+                    let groupedResults = {}; 
+
+                    for (let i = 1; i < excelData.length; i++) {
+                        const row = excelData[i]; if (!row || row.length < 18) continue; 
+                        const tarixStr = row[2] ? row[2].toString().trim() : ""; const dateInfo = parseExcelDate(tarixStr); if (!dateInfo) continue;
+                        let qaliqBorc = parseFloat(row[17]) || 0; let isMatch = false;
+
+                        if (currentFilterType === "rub" && dateInfo.rub === filterPeriod && dateInfo.year === filterYear) isMatch = true;
+                        if (currentFilterType === "ay" && dateInfo.month === filterPeriod && dateInfo.year === filterYear) isMatch = true;
+
+                        if (isMatch && qaliqBorc > minAmountFilter) {
+                            let idareAdi = row[0] ? row[0].toString().trim() : "Qeydsiz İdarə";
+                            let bNo = row[1] ? row[1].toString().trim() : "Nömrəsiz";
+                            let voen = row[3] ? row[3].toString().trim() : ""; 
+                            let firmaAdiRaw = row[5] ? row[5].toString().trim() : "Bilinməyən Firma"; 
+
+                            let isFiziki = false;
+                            let mmcStatus = row[4] ? row[4].toString().trim().toUpperCase() : "";
+                            let hasMMC = /mmc|məhdud məsuliyyətli cəmiyyət(i)?/i.test(firmaAdiRaw);
+                            if (mmcStatus === "" && !hasMMC && !/asc|qsc|şirkət|firması/i.test(firmaAdiRaw)) isFiziki = true;
+                            if (voen && voen.toString().endsWith('2')) isFiziki = true; else if (voen && voen.toString().endsWith('1')) isFiziki = false;
+
+                            let tamFirmaAdi = firmaAdiRaw; 
+
+                            if (!groupedResults[idareAdi]) groupedResults[idareAdi] = {};
+                            let groupKey = voen ? voen : tamFirmaAdi;
+                            if (!groupedResults[idareAdi][groupKey]) { 
+                                groupedResults[idareAdi][groupKey] = { firma: tamFirmaAdi, voen: voen || "", isFiziki: isFiziki, decls: {}, toplamBorc: 0, qeydSayi: 0 }; 
+                            }
+                            
+                            // YENİ: Hər bəyannamənin xüsusi borcunu və tarixini tuturuq
+                            let firmObj = groupedResults[idareAdi][groupKey];
+                            if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set() };
+                            
+                            firmObj.decls[bNo].borc += qaliqBorc;
+                            firmObj.decls[bNo].tarixler.add(tarixStr);
+                            firmObj.toplamBorc += qaliqBorc; 
+                            firmObj.qeydSayi += 1;
+                        }
+                    }
+
+                    if (Object.keys(groupedResults).length === 0) { analizBox.innerHTML = `<div style="text-align:center; padding: 40px; color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="font-size: 30px; margin-bottom: 10px;"></i><p>Uyğun borc tapılmadı!</p></div>`; return; }
+
+                    let htmlContent = ``; let idareIdx = 1; let firmaIdx = 1;
+                    
+                    for (const idare in groupedResults) {
+                        let idaredəkiFirmalar = Object.values(groupedResults[idare]);
+                        let idareUmumiBorc = 0; let idareUmumiQeydSayi = 0;
+                        idaredəkiFirmalar.forEach(item => { idareUmumiBorc += item.toplamBorc; idareUmumiQeydSayi += item.qeydSayi; });
+
+                        let safeIdare = idare.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+                        htmlContent += `<div class="result-group"><div class="group-header"><div class="group-title-main"><h4><input type="checkbox" class="custom-checkbox idare-check1" id="idare-check1-${idareIdx}" checked style="margin-right:12px; display:inline-grid;">${idare}</h4><span class="group-meta">(${idaredəkiFirmalar.length} firma, ${idareUmumiQeydSayi} bəyannamə)</span></div><div class="group-debt">Ümumi Borc: ${idareUmumiBorc.toFixed(2)} ABŞ</div></div>`;
+
+                        idaredəkiFirmalar.forEach(item => {
+                            let isVoenInDb = true; let missingAlertHtml = ""; let safeFirmaAdi = item.firma ? item.firma.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+
+                            if (item.voen) {
+                                isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
+                                if (!isVoenInDb) { missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; }
+                            } else { isVoenInDb = false; }
+
+                            let checkboxAttr = isVoenInDb ? "checked" : "disabled";
+                            let opacityStyle = isVoenInDb ? "1" : "0.5"; 
+
+                            // 🔥 YENİ: RƏNG, YENİ/KÖHNƏ AYIRIMI
+                            let newDecls = [];
+                            let oldDecls = [];
+                            let newBorc = 0;
+                            let newTarixler = new Set();
+                            let allTarixler = new Set();
+                            let accordionListHtml = ``;
+                            let hasBildiris = false;
+
+                            for(const nomre in item.decls) {
+                                let borcu = item.decls[nomre].borc;
+                                let tarixleri = Array.from(item.decls[nomre].tarixler);
+                                tarixleri.forEach(t => allTarixler.add(t));
+                                
+                                let foundBil = allBildirislerData.find(b => 
+                                    normStr(b.tarix_borcdovru) === normStr(displayPeriod) && 
+                                    ((item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)) &&
+                                    b.melumat && b.melumat.includes(nomre)
+                                );
+
+                                if (foundBil) {
+                                    hasBildiris = true;
+                                    oldDecls.push(nomre);
+                                    let mainBildirisNo = foundBil.bildiris_nomresi && foundBil.bildiris_nomresi.trim() !== "" ? foundBil.bildiris_nomresi : null;
+
+                                    accordionListHtml += `
+                                        <li>
+                                            <span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> Bəyannamə: <strong>${nomre}</strong></span>
+                                            <span>
+                                                ${mainBildirisNo 
+                                                    ? `<span style="color: #10b981; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` 
+                                                    : `<button class="btn-sec add-bildiris-panel-btn" style="padding: 4px 10px; font-size:11px; color:#2563eb; border-color:#2563eb; background:#eff6ff; cursor:pointer;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Panelə keç</button>`
+                                                }
+                                            </span>
+                                        </li>
+                                    `;
+                                } else {
+                                    newDecls.push(nomre);
+                                    newBorc += borcu;
+                                    tarixleri.forEach(t => newTarixler.add(t));
+                                    accordionListHtml += `
+                                        <li>
+                                            <span style="color: #64748b;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> Bəyannamə: <strong>${nomre}</strong></span>
+                                            <span style="font-size: 11px; color: #94a3b8;"><i class="fa-solid fa-circle-info"></i> Hələ bazaya yazılmayıb</span>
+                                        </li>
+                                    `;
+                                }
+                            }
+
+                            // RƏNG VƏ STATUS
+                            let bgStyle = "#ffffff";
+                            let cardBorder = "1px solid #e2e8f0";
+                            let statusBadge = "";
+                            
+                            if (oldDecls.length > 0 && newDecls.length > 0) {
+                                bgStyle = "#fffbeb"; 
+                                cardBorder = "1px solid #fde68a";
+                                statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-triangle-exclamation"></i> Qismən Yazılıb</div>`;
+                            } else if (oldDecls.length > 0 && newDecls.length === 0) {
+                                bgStyle = "#f0fdf4";
+                                cardBorder = "1px solid #bbf7d0";
+                                statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Tam Yazılıb</div>`;
+                            }
+
+                            let byNoStr = Object.keys(item.decls).join(", ");
+                            let tarixStr = Array.from(allTarixler).join(", ");
+                            let newTarixStr = Array.from(newTarixler).join(", ");
+                            let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
+
+                            // Data attribute-larda Yeni/Köhnə dəyərləri saxlayırıq!
+                            htmlContent += `
+                            <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};">
+                                <div class="firm-main-row">
+                                    <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} 
+                                        data-idare="${safeIdare}" 
+                                        data-voen="${item.voen}" 
+                                        data-firma="${safeFirmaAdi}" 
+                                        data-isfiziki="${item.isFiziki}"
+                                        data-gb="${byNoStr}" 
+                                        data-new-gb="${newDecls.join(', ')}"
+                                        data-old-gb="${oldDecls.join(', ')}"
+                                        data-borc="${item.toplamBorc.toFixed(2)}"
+                                        data-new-borc="${newBorc.toFixed(2)}"
+                                        data-new-tarixler="${newTarixStr}">
+                                    <div class="firm-info">
+                                        <div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
+                                        <div class="firm-badges">
+                                            <div class="badge-pill"><strong>Bəyannamələr:</strong> ${byNoStr}</div>
+                                            <div class="badge-pill"><strong>Tarixlər:</strong> ${tarixStr}</div>
+                                            <div class="badge-pill badge-danger-pill">Yekun Borc: ${item.toplamBorc.toFixed(2)} ABŞ</div>
+                                            ${statusBadge}
+                                        </div>
+                                        ${missingAlertHtml}
+                                    </div>
+                                    ${accordionToggleBtn}
+                                </div>
+                                ${hasBildiris ? `
+                                <div class="details-panel">
+                                    <ul>${accordionListHtml}</ul>
+                                </div>
+                                ` : ''}
+                            </div>`;
+                            
+                            firmaIdx++;
+                        });
+                        htmlContent += `</div>`; idareIdx++;
+                    }
+                    analizBox.innerHTML = htmlContent;
+
+                    document.querySelectorAll('.add-missing-voen-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const voen = this.getAttribute('data-voen'); const firmaName = this.getAttribute('data-firma'); const isFiziki = this.getAttribute('data-isfiziki') === 'true';
+
+                            popupDiv.style.display = "flex"; clearFormFields();
+                            if (inputVoen) { inputVoen.value = voen; inputVoen.dispatchEvent(new Event('input')); }
+                            if (isFiziki) { if (radioPerson2) radioPerson2.checked = true; if (inputLeader) inputLeader.value = firmaName; } 
+                            else { if (radioPerson1) radioPerson1.checked = true; if (inputCompany) inputCompany.value = firmaName; }
+                            handleRadioChange();
+                        });
+                    });
+
+                    document.querySelectorAll('.toggle-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const parentItem = this.closest('.firm-item');
+                            const panel = parentItem.querySelector('.details-panel');
+                            const icon = this.querySelector('i');
+                            if (panel.style.display === 'block') { panel.style.display = 'none'; icon.className = 'fa-solid fa-chevron-down';
+                            } else { panel.style.display = 'block'; icon.className = 'fa-solid fa-chevron-up'; }
+                        });
+                    });
+
+                    document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            if (bildirisPopup) { bildirisPopup.style.display = 'flex'; renderBildirisTable(); }
+                        });
+                    });
+
+                    document.querySelectorAll('.idare-check1').forEach(idareCheck => { idareCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); parentDiv.querySelectorAll('.firma-check2:not([disabled])').forEach(child => child.checked = this.checked); }); });
+                    document.querySelectorAll('.firma-check2:not([disabled])').forEach(firmaCheck => { firmaCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); const parentCheck = parentDiv.querySelector('.idare-check1'); const allChildren = parentDiv.querySelectorAll('.firma-check2:not([disabled])'); if(allChildren.length > 0) { parentCheck.checked = Array.from(allChildren).every(c => c.checked); parentCheck.indeterminate = !parentCheck.checked && Array.from(allChildren).some(c => c.checked); } }); });
+                }, 500); 
+            };
+        });
+    }
+
+    function getMinMaxDate(datesStr) {
+        if (!datesStr) return ""; const parts = datesStr.split(", "); if (parts.length === 1) return parts[0];
+        const dates = parts.map(d => { const [day, month, year] = d.split("."); return new Date(`${year}-${month}-${day}`); });
+        const minDate = new Date(Math.min(...dates)); const maxDate = new Date(Math.max(...dates));
+        const format = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
+        return `${format(minDate)} - ${format(maxDate)}`;
+    }
+
+    // MODAL BAĞLAMA EVENTLƏRİ
+    if(closePrezipBtn) { closePrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
+    if(cancelPrezipBtn) { cancelPrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
+    if(closeZipPopupBtn) { closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
+    if(cancelZipSaveBtn) { cancelZipSaveBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
+    if(zipSelectAll) { zipSelectAll.addEventListener('change', (e) => { const cbs = document.querySelectorAll('.zip-row-check'); cbs.forEach(cb => cb.checked = e.target.checked); }); }
+
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Yalnız VÖEN-i bazada olanlar seçilə bilər)!"); return; }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+            let hasOverlap = false;
+
+            for (const checkbox of checkedFirms) {
+                let oldGb = checkbox.getAttribute("data-old-gb");
+                let newGb = checkbox.getAttribute("data-new-gb");
+                let newBorc = checkbox.getAttribute("data-new-borc");
+                let firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (!newGb || newGb.trim() === "") { continue; } // Əgər yeni yazılacaq məlumat sıfırdırsa, bu firmanı tamamilə çıxar
+
+                if (oldGb && oldGb.trim() !== "") hasOverlap = true;
+
+                firmsToProcess.push({
+                    checkbox: checkbox,
+                    newGb: newGb,
+                    newBorc: newBorc
+                });
+
+                if(oldGb && oldGb.trim() !== "") {
+                    warningHtml += `<tr>
+                        <td><strong>${firmaAdi}</strong></td>
+                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
+                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td>
+                        <td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td>
+                    </tr>`;
+                }
+            }
+
+            if (firmsToProcess.length === 0) { alert("Seçdiyiniz firmaların bütün bəyannamələri artıq bazadadır. Yeni bildiriş yazılası məlumat yoxdur!"); return; }
+
+            // Davam etmək üçün globala mənimsədirik
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (hasOverlap) {
+                prezipTbody.innerHTML = warningHtml;
+                preZipPopup.style.display = "flex";
+            } else {
+                executeZipProcess();
+            }
+        });
+    }
+
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
+
+    async function executeZipProcess() {
+        const payload = [];
+        pendingDbSavePayload = []; 
+        const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
+
+        for (const item of window.pendingFirmsToZip) {
+            const checkbox = item.checkbox;
+            const voen = checkbox.getAttribute("data-voen"); 
+            const firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+            const isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
+            const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {}; 
+            const rehberAdi = dbData.comp_director_name || "Qeyd edilməyib";
+            
+            payload.push({ 
+                unvan: dbData.comp_adress || "Qeyd edilməyib", 
+                firma: isFiziki ? rehberAdi : firmaAdi, 
+                voen: voen, 
+                tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")), 
+                soyadiadi: rehberAdi, 
+                gb: item.newGb, 
+                borc: item.newBorc, 
+                tarixQosma: getTodayFormatted(), 
+                safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) 
+            });
+
+            pendingDbSavePayload.push({
+                gomruk_orqani: checkbox.getAttribute("data-idare") || "",
+                firma: isFiziki ? rehberAdi : firmaAdi,
+                voen: voen || "",
+                tarix_yazilma: getTodayFormatted(),
+                tarix_borcdovru: targetPeriod || "",
+                melumat: `Bəyannamələr: ${item.newGb}`
+            });
+        }
+
+        const oldBtnText = bildirisQosmaBtn.innerHTML; 
+        bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`; 
+        bildirisQosmaBtn.disabled = true;
+
+        try {
+            const response = await fetch(`${API_URL}/generate-docs`, { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload }) 
+            });
+            
+            if (!response.ok) {
+                let errMsg = 'Server xətası baş verdi.';
+                try { const errData = await response.json(); errMsg = errData.error || errMsg; } catch(ex) { errMsg = `Server xətası (Status: ${response.status})`; }
+                throw new Error(errMsg);
+            }
+            
+            const blob = await response.blob(); const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `Senedler_${getTodayFormatted()}.zip`;
+            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+            
+            zipTbody.innerHTML = '';
+            pendingDbSavePayload.forEach((obj, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td>
+                    <td>${obj.gomruk_orqani}</td>
+                    <td>${obj.firma}</td>
+                    <td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td>
+                    <td>Borc məlumatı Exceldə</td>
+                `;
+                zipTbody.appendChild(tr);
+            });
+            zipPopup.style.display = 'flex';
+            
+        } catch (error) { 
+            alert("XƏTA: " + error.message); 
+        } finally { 
+            bildirisQosmaBtn.innerHTML = oldBtnText; bildirisQosmaBtn.disabled = false; 
+        }
+    }
+
+    if(saveZipSelectionsBtn) {
+        saveZipSelectionsBtn.addEventListener('click', async () => {
+            const checkedBoxes = document.querySelectorAll('.zip-row-check:checked');
+            if(checkedBoxes.length === 0) { alert("Heç bir məlumat seçilməyib!"); return; }
+
+            const finalPayload = [];
+            checkedBoxes.forEach(cb => { const idx = cb.getAttribute('data-idx'); finalPayload.push(pendingDbSavePayload[idx]); });
+
+            const oldText = saveZipSelectionsBtn.innerHTML;
+            saveZipSelectionsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yazılır...`; saveZipSelectionsBtn.disabled = true;
+
+            try {
+                const bRes = await fetch(`${BİL_API_URL}/bulk`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bildirisler: finalPayload })
+                });
+                if(!bRes.ok) {
+                    const err = await bRes.json(); alert("Xəta baş verdi: " + (err.error || "Bilinməyən xəta"));
+                } else {
+                    alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
+                    zipPopup.style.display = 'none'; loadAllBildirisler(); 
+                }
+            } catch(err) { alert("Şəbəkə xətası: " + err.message);
+            } finally { saveZipSelectionsBtn.innerHTML = oldText; saveZipSelectionsBtn.disabled = false; }
+        });
+    }
+
+});
