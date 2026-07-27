@@ -1,6 +1,6 @@
-document.addEventListener("DOMContentLoaded", function () {
-    // Sizin funksiyalarınız və kodlarınız bura yazılmalıdır:
-        if (!document.documentElement.classList.contains('w-editor')) {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
         document.body.style.overflow = 'hidden';
@@ -782,6 +782,4 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
 });
-
-    console.log("Webflow səhifəsi hazır!");
-});
+</script>
