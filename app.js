@@ -1,5 +1,3 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -34,20 +32,18 @@ if (!document.documentElement.classList.contains('w-editor')) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    
-    // Xüsusi Animasiya Stili əlavə edilir
+
     const style = document.createElement('style');
     style.innerHTML = `
         @keyframes flashHighlight {
-            0% { background-color: #fef08a; }
-            50% { background-color: #fde047; }
+            0% { background-color: #fde047; }
+            50% { background-color: #fef08a; }
             100% { background-color: transparent; }
         }
         .highlight-row { animation: flashHighlight 3s ease-out; }
     `;
     document.head.appendChild(style);
 
-    // İlk açılışda Action (əməliyyat) düymələrini deaktiv edirik
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
         btn.disabled = true;
@@ -65,16 +61,14 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let currentPage = 1;
     const rowsPerPage = 20;
+
     let currentBilPage = 1;
     const bilRowsPerPage = 30;
 
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
-    let pendingDbSavePayload = [];
-    let selectedFile = null; 
 
-    // DOM Elementlər
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
     const popupDiv = document.getElementById("popup_1");
@@ -91,11 +85,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const voenTbody = document.getElementById('voen-tbody');
     const dataCountBadge = document.getElementById('data-count-badge');
     const refreshDbBtn = document.getElementById('refresh-db-btn');
+    
     const meblegBtn = document.getElementById('mebleg-axtarisi');
     const popupMebleg = document.getElementById('popup_mebleg');
     const closeMeblegBtn = document.getElementById('close-mebleg-popup');
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
+
     const signerBtn = document.getElementById('signer-btn');
     const popupSigners = document.getElementById('popup_signers');
     const closeSignerBtn = document.getElementById('close-signer-popup');
@@ -105,22 +101,28 @@ document.addEventListener("DOMContentLoaded", function() {
     const iSecondPerson = document.getElementById('sign-second-person');
     const iPhone = document.getElementById('sign-phone');
     const signerStatusMsg = document.getElementById('signer-status-msg');
+
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
+
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
     const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
     const prezipTbody = document.getElementById('prezip-tbody');
+
     const zipPopup = document.getElementById('popup_zip_selection');
     const closeZipPopupBtn = document.getElementById('close-zip-popup');
     const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
     const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
     const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
+
+    let pendingDbSavePayload = [];
+    let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
     function normStr(str) {
@@ -155,15 +157,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (meblegBtn && popupMebleg) { 
         meblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            minAmountInput.value = minAmountFilter; 
-            popupMebleg.style.display = 'flex'; 
+            e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; 
         }); 
     }
     if (closeMeblegBtn && popupMebleg) { 
         closeMeblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            popupMebleg.style.display = 'none'; 
+            e.preventDefault(); popupMebleg.style.display = 'none'; 
         }); 
     }
     if (applyMeblegBtn && popupMebleg) {
@@ -190,51 +189,24 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
     
-    if (signerBtn && popupSigners) { 
-        signerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'flex'; 
-            signerStatusMsg.style.display = 'none'; 
-        }); 
-    }
-    if (closeSignerBtn && popupSigners) { 
-        closeSignerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'none'; 
-        }); 
-    }
+    if (signerBtn && popupSigners) { signerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'flex'; signerStatusMsg.style.display = 'none'; }); }
+    if (closeSignerBtn && popupSigners) { closeSignerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'none'; }); }
+    
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
-            const payload = { 
-                leaderperson: iLeaderPerson.value.trim(), 
-                leadername: iLeaderName.value.trim(), 
-                secondperson: iSecondPerson.value.trim(), 
-                phone: iPhone.value.trim() 
-            };
-            let method = currentSignerId ? 'PUT' : 'POST'; 
-            let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; 
-            saveSignersBtn.disabled = true;
+            const payload = { leaderperson: iLeaderPerson.value.trim(), leadername: iLeaderName.value.trim(), secondperson: iSecondPerson.value.trim(), phone: iPhone.value.trim() };
+            let method = currentSignerId ? 'PUT' : 'POST'; let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
+            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; saveSignersBtn.disabled = true;
 
-            fetch(url, { 
-                method: method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(payload)
+            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
-                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; 
-                signerStatusMsg.style.color = "#10b981"; 
-                signerStatusMsg.style.display = "block";
+                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; signerStatusMsg.style.color = "#10b981"; signerStatusMsg.style.display = "block";
                 if (!currentSignerId && data && data.id) currentSignerId = data.id;
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
-                signerStatusMsg.innerText = "Xəta baş verdi!"; 
-                signerStatusMsg.style.color = "#ef4444"; 
-                signerStatusMsg.style.display = "block";
-            }).finally(() => { 
-                saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; 
-                saveSignersBtn.disabled = false; 
-            });
+                signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
+            }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
         });
     }
     
@@ -447,6 +419,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // ----------------------------------------------------
+    // 5. VÖEN İDARƏETMƏ PANELI
+    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
@@ -722,15 +697,9 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     function parseExcelDate(dateStr) {
-        if (!dateStr) return null; 
-        const parts = dateStr.toString().trim().split('.'); 
-        if (parts.length !== 3) return null;
-        const month = parseInt(parts[1], 10); 
-        const year = parts[2].toString().trim();
-        let rub = "i rüb"; 
-        if (month >= 4 && month <= 6) rub = "ii rüb"; 
-        else if (month >= 7 && month <= 9) rub = "iii rüb"; 
-        else if (month >= 10 && month <= 12) rub = "iv rüb";
+        if (!dateStr) return null; const parts = dateStr.toString().trim().split('.'); if (parts.length !== 3) return null;
+        const month = parseInt(parts[1], 10); const year = parts[2].toString().trim();
+        let rub = "i rüb"; if (month >= 4 && month <= 6) rub = "ii rüb"; else if (month >= 7 && month <= 9) rub = "iii rüb"; else if (month >= 10 && month <= 12) rub = "iv rüb";
         const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
         return { month: monthsAz[month - 1] || "", year, rub };
     }
@@ -741,6 +710,13 @@ document.addEventListener("DOMContentLoaded", function() {
     if (analizBtn) {
         analizBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            
+            // XƏTA TUTUCU - XLSX YÜKLƏNİBMİ?
+            if (typeof XLSX === 'undefined') {
+                alert("SİSTEM XƏTASI: Excel analiz kitabxanası (XLSX) tapılmadı! Zəhmət olmasa Webflow-da '<script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\"></script>' teqinin olduğuna əmin olun.");
+                return;
+            }
+            
             if (!selectedFile || !currentFilterType) { 
                 alert("Zəhmət olmasa əvvəlcə faylı və dövrü (Rüb, Ay və ya Tarix) seçin!"); 
                 return; 
@@ -780,247 +756,263 @@ document.addEventListener("DOMContentLoaded", function() {
             
             fileReader.onload = function(evt) {
                 setTimeout(() => {
-                    const workbook = XLSX.read(evt.target.result, { type: 'buffer' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    try {
+                        const workbook = XLSX.read(evt.target.result, { type: 'buffer' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
-                    let groupedResults = {}; 
+                        let groupedResults = {}; 
 
-                    for (let i = 1; i < excelData.length; i++) {
-                        const row = excelData[i]; 
-                        if (!row || row.length < 18) continue; 
-                        
-                        const tarixStr = row[2] ? row[2].toString().trim() : ""; 
-                        const dateInfo = parseExcelDate(tarixStr); 
-                        if (!dateInfo) continue;
-                        
-                        let qaliqBorc = parseFloat(row[17]) || 0; 
-                        let isMatch = false;
+                        for (let i = 1; i < excelData.length; i++) {
+                            const row = excelData[i]; 
+                            if (!row || row.length < 18) continue; 
+                            
+                            const tarixStr = row[2] ? row[2].toString().trim() : ""; 
+                            const dateInfo = parseExcelDate(tarixStr); 
+                            if (!dateInfo) continue;
+                            
+                            let qaliqBorc = parseFloat(row[17]) || 0; 
+                            let isMatch = false;
 
-                        if (currentFilterType === "rub" && dateInfo.rub === filterPeriod && dateInfo.year === filterYear) isMatch = true;
-                        if (currentFilterType === "ay" && dateInfo.month === filterPeriod && dateInfo.year === filterYear) isMatch = true;
-                        if (currentFilterType === "tarix") {
-                            let baslangic = document.getElementById('tarix-baslangic').value;
-                            let son = document.getElementById('tarix-son').value;
-                            let excelD = excelDateToJSDate(tarixStr);
-                            let startD = new Date(baslangic + "T00:00:00");
-                            let endD = new Date(son + "T23:59:59");
-                            if (excelD && excelD >= startD && excelD <= endD) {
-                                isMatch = true;
+                            if (currentFilterType === "rub" && dateInfo.rub === filterPeriod && dateInfo.year === filterYear) isMatch = true;
+                            if (currentFilterType === "ay" && dateInfo.month === filterPeriod && dateInfo.year === filterYear) isMatch = true;
+                            if (currentFilterType === "tarix") {
+                                let baslangic = document.getElementById('tarix-baslangic').value;
+                                let son = document.getElementById('tarix-son').value;
+                                let excelD = excelDateToJSDate(tarixStr);
+                                let startD = new Date(baslangic + "T00:00:00");
+                                let endD = new Date(son + "T23:59:59");
+                                if (excelD && excelD >= startD && excelD <= endD) {
+                                    isMatch = true;
+                                }
+                            }
+
+                            if (isMatch && qaliqBorc > minAmountFilter) {
+                                let idareAdi = row[0] ? row[0].toString().trim() : "Qeydsiz İdarə";
+                                let bNo = row[1] ? row[1].toString().trim() : "Nömrəsiz";
+                                let voen = row[3] ? row[3].toString().trim() : ""; 
+                                let firmaAdiRaw = row[5] ? row[5].toString().trim() : "Bilinməyən Firma"; 
+
+                                let isFiziki = false;
+                                let mmcStatus = row[4] ? row[4].toString().trim().toUpperCase() : "";
+                                let hasMMC = /mmc|məhdud məsuliyyətli cəmiyyət(i)?/i.test(firmaAdiRaw);
+                                if (mmcStatus === "" && !hasMMC && !/asc|qsc|şirkət|firması/i.test(firmaAdiRaw)) isFiziki = true;
+                                if (voen && voen.toString().endsWith('2')) isFiziki = true; 
+                                else if (voen && voen.toString().endsWith('1')) isFiziki = false;
+
+                                let tamFirmaAdi = firmaAdiRaw; 
+
+                                if (!groupedResults[idareAdi]) groupedResults[idareAdi] = {};
+                                let groupKey = voen ? voen : tamFirmaAdi;
+                                if (!groupedResults[idareAdi][groupKey]) { 
+                                    groupedResults[idareAdi][groupKey] = { 
+                                        firma: tamFirmaAdi, 
+                                        voen: voen || "", 
+                                        isFiziki: isFiziki, 
+                                        decls: {}, 
+                                        toplamBorc: 0, 
+                                        qeydSayi: 0 
+                                    }; 
+                                }
+                                
+                                let firmObj = groupedResults[idareAdi][groupKey];
+                                if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set() };
+                                
+                                firmObj.decls[bNo].borc += qaliqBorc;
+                                firmObj.decls[bNo].tarixler.add(tarixStr);
+                                firmObj.toplamBorc += qaliqBorc; 
+                                firmObj.qeydSayi += 1;
                             }
                         }
 
-                        if (isMatch && qaliqBorc > minAmountFilter) {
-                            let idareAdi = row[0] ? row[0].toString().trim() : "Qeydsiz İdarə";
-                            let bNo = row[1] ? row[1].toString().trim() : "Nömrəsiz";
-                            let voen = row[3] ? row[3].toString().trim() : ""; 
-                            let firmaAdiRaw = row[5] ? row[5].toString().trim() : "Bilinməyən Firma"; 
-
-                            let isFiziki = false;
-                            let mmcStatus = row[4] ? row[4].toString().trim().toUpperCase() : "";
-                            let hasMMC = /mmc|məhdud məsuliyyətli cəmiyyət(i)?/i.test(firmaAdiRaw);
-                            if (mmcStatus === "" && !hasMMC && !/asc|qsc|şirkət|firması/i.test(firmaAdiRaw)) isFiziki = true;
-                            if (voen && voen.toString().endsWith('2')) isFiziki = true; 
-                            else if (voen && voen.toString().endsWith('1')) isFiziki = false;
-
-                            let tamFirmaAdi = firmaAdiRaw; 
-
-                            if (!groupedResults[idareAdi]) groupedResults[idareAdi] = {};
-                            let groupKey = voen ? voen : tamFirmaAdi;
-                            if (!groupedResults[idareAdi][groupKey]) { 
-                                groupedResults[idareAdi][groupKey] = { 
-                                    firma: tamFirmaAdi, 
-                                    voen: voen || "", 
-                                    isFiziki: isFiziki, 
-                                    decls: {}, 
-                                    toplamBorc: 0, 
-                                    qeydSayi: 0 
-                                }; 
-                            }
-                            
-                            let firmObj = groupedResults[idareAdi][groupKey];
-                            if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set() };
-                            
-                            firmObj.decls[bNo].borc += qaliqBorc;
-                            firmObj.decls[bNo].tarixler.add(tarixStr);
-                            firmObj.toplamBorc += qaliqBorc; 
-                            firmObj.qeydSayi += 1;
+                        if (Object.keys(groupedResults).length === 0) { 
+                            analizBox.innerHTML = `<div style="text-align:center; padding: 40px; color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="font-size: 30px; margin-bottom: 10px;"></i><p>Uyğun borc tapılmadı!</p></div>`; 
+                            const actionBtns = document.querySelectorAll('.action-bar .btn');
+                            actionBtns.forEach(btn => {
+                                btn.disabled = true;
+                                btn.style.opacity = '0.5';
+                                btn.style.cursor = 'not-allowed';
+                            });
+                            return; 
                         }
-                    }
 
-                    if (Object.keys(groupedResults).length === 0) { 
-                        analizBox.innerHTML = `<div style="text-align:center; padding: 40px; color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="font-size: 30px; margin-bottom: 10px;"></i><p>Uyğun borc tapılmadı!</p></div>`; 
+                        let htmlContent = ``; 
+                        let idareIdx = 1; 
+                        let firmaIdx = 1;
+                        
+                        for (const idare in groupedResults) {
+                            let idaredəkiFirmalar = Object.values(groupedResults[idare]);
+                            let idareUmumiBorc = 0; 
+                            let idareUmumiQeydSayi = 0;
+                            idaredəkiFirmalar.forEach(item => { 
+                                idareUmumiBorc += item.toplamBorc; 
+                                idareUmumiQeydSayi += item.qeydSayi; 
+                            });
+
+                            let safeIdare = idare.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+                            htmlContent += `<div class="result-group"><div class="group-header"><div class="group-title-main"><h4><input type="checkbox" class="custom-checkbox idare-check1" id="idare-check1-${idareIdx}" checked style="margin-right:12px; display:inline-grid;">${idare}</h4><span class="group-meta">(${idaredəkiFirmalar.length} firma, ${idareUmumiQeydSayi} bəyannamə)</span></div><div class="group-debt">Ümumi Borc: ${idareUmumiBorc.toFixed(2)} ABŞ</div></div>`;
+
+                            idaredəkiFirmalar.forEach(item => {
+                                let isVoenInDb = true; 
+                                let missingAlertHtml = ""; 
+                                let safeFirmaAdi = item.firma ? item.firma.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+
+                                if (item.voen) {
+                                    isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
+                                    if (!isVoenInDb) { 
+                                        missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
+                                    }
+                                } else { 
+                                    isVoenInDb = false; 
+                                }
+
+                                let newDecls = [];
+                                let oldDecls = [];
+                                let newBorc = 0;
+                                let newTarixler = new Set();
+                                let allTarixler = new Set();
+                                let accordionListHtml = ``;
+                                let hasBildiris = false;
+                                
+                                let foundRecordsForFirm = allBildirislerData.filter(b => 
+                                    (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)
+                                );
+
+                                for(const nomre in item.decls) {
+                                    let borcu = item.decls[nomre].borc;
+                                    let tarixleri = Array.from(item.decls[nomre].tarixler);
+                                    tarixleri.forEach(t => allTarixler.add(t));
+                                    
+                                    let regex = new RegExp(`\\b${nomre}\\b`);
+                                    let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
+
+                                    if (matchedRecord) {
+                                        hasBildiris = true;
+                                        oldDecls.push(nomre);
+                                        let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
+
+                                        accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
+                                    } else {
+                                        newDecls.push(nomre);
+                                        newBorc += borcu; 
+                                        tarixleri.forEach(t => newTarixler.add(t));
+                                        accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
+                                    }
+                                }
+
+                                let bgStyle = "#ffffff";
+                                let cardBorder = "1px solid #e2e8f0";
+                                let statusBadge = "";
+                                
+                                if (oldDecls.length > 0 && newDecls.length > 0) {
+                                    bgStyle = "#fffbeb"; 
+                                    cardBorder = "1px solid #fde68a";
+                                    statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
+                                } else if (oldDecls.length > 0 && newDecls.length === 0) {
+                                    bgStyle = "#f8fafc";
+                                    cardBorder = "1px solid #e2e8f0";
+                                    statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Tamamilə Bildiriş Yazılıb</div>`;
+                                } else {
+                                    bgStyle = "#f0fdf4";
+                                    cardBorder = "1px solid #bbf7d0";
+                                    statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
+                                }
+
+                                let canCreateNew = isVoenInDb;
+                                let checkboxAttr = canCreateNew ? "checked" : "disabled";
+                                let opacityStyle = canCreateNew ? "1" : "0.5"; 
+
+                                let byNoStr = Object.keys(item.decls).join(", ");
+                                let tarixStr = Array.from(allTarixler).join(", ");
+                                let newTarixStr = Array.from(newTarixler).join(", ");
+                                let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
+
+                                htmlContent += `<div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};"><div class="firm-main-row"><input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}"><div class="firm-info"><div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div><div class="firm-badges"><div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div><div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>${statusBadge}</div>${missingAlertHtml}</div>${accordionToggleBtn}</div>${hasBildiris ? `<div class="details-panel"><ul>${accordionListHtml}</ul></div>` : ''}</div>`;
+                                
+                                firmaIdx++;
+                            });
+                            htmlContent += `</div>`; idareIdx++;
+                        }
+                        analizBox.innerHTML = htmlContent;
+
                         const actionBtns = document.querySelectorAll('.action-bar .btn');
                         actionBtns.forEach(btn => {
-                            btn.disabled = true;
-                            btn.style.opacity = '0.5';
-                            btn.style.cursor = 'not-allowed';
-                        });
-                        return; 
-                    }
-
-                    let htmlContent = ``; 
-                    let idareIdx = 1; 
-                    let firmaIdx = 1;
-                    
-                    for (const idare in groupedResults) {
-                        let idaredəkiFirmalar = Object.values(groupedResults[idare]);
-                        let idareUmumiBorc = 0; 
-                        let idareUmumiQeydSayi = 0;
-                        idaredəkiFirmalar.forEach(item => { 
-                            idareUmumiBorc += item.toplamBorc; 
-                            idareUmumiQeydSayi += item.qeydSayi; 
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                            btn.style.cursor = 'pointer';
                         });
 
-                        let safeIdare = idare.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                        document.querySelectorAll('.add-missing-voen-btn').forEach(btn => {
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const voen = this.getAttribute('data-voen'); 
+                                const firmaName = this.getAttribute('data-firma'); 
+                                const isFiziki = this.getAttribute('data-isfiziki') === 'true';
 
-                        htmlContent += `<div class="result-group"><div class="group-header"><div class="group-title-main"><h4><input type="checkbox" class="custom-checkbox idare-check1" id="idare-check1-${idareIdx}" checked style="margin-right:12px; display:inline-grid;">${idare}</h4><span class="group-meta">(${idaredəkiFirmalar.length} firma, ${idareUmumiQeydSayi} bəyannamə)</span></div><div class="group-debt">Ümumi Borc: ${idareUmumiBorc.toFixed(2)} ABŞ</div></div>`;
-
-                        idaredəkiFirmalar.forEach(item => {
-                            let isVoenInDb = true; 
-                            let missingAlertHtml = ""; 
-                            let safeFirmaAdi = item.firma ? item.firma.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-
-                            if (item.voen) {
-                                isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
-                                if (!isVoenInDb) { 
-                                    missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
+                                popupDiv.style.display = "flex"; 
+                                clearFormFields();
+                                if (inputVoen) { inputVoen.value = voen; inputVoen.dispatchEvent(new Event('input')); }
+                                if (isFiziki) { 
+                                    if (radioPerson2) radioPerson2.checked = true; 
+                                    if (inputLeader) inputLeader.value = firmaName; 
+                                } else { 
+                                    if (radioPerson1) radioPerson1.checked = true; 
+                                    if (inputCompany) inputCompany.value = firmaName; 
                                 }
-                            } else { 
-                                isVoenInDb = false; 
-                            }
+                                handleRadioChange();
+                            });
+                        });
 
-                            let newDecls = [];
-                            let oldDecls = [];
-                            let newBorc = 0;
-                            let newTarixler = new Set();
-                            let allTarixler = new Set();
-                            let accordionListHtml = ``;
-                            let hasBildiris = false;
-                            
-                            let foundRecordsForFirm = allBildirislerData.filter(b => 
-                                (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)
-                            );
-
-                            for(const nomre in item.decls) {
-                                let borcu = item.decls[nomre].borc;
-                                let tarixleri = Array.from(item.decls[nomre].tarixler);
-                                tarixleri.forEach(t => allTarixler.add(t));
-                                
-                                let regex = new RegExp(`\\b${nomre}\\b`);
-                                let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
-
-                                if (matchedRecord) {
-                                    hasBildiris = true;
-                                    oldDecls.push(nomre);
-                                    let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
-
-                                    accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
-                                } else {
-                                    newDecls.push(nomre);
-                                    newBorc += borcu; 
-                                    tarixleri.forEach(t => newTarixler.add(t));
-                                    accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
+                        document.querySelectorAll('.toggle-btn').forEach(btn => {
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const parentItem = this.closest('.firm-item');
+                                const panel = parentItem.querySelector('.details-panel');
+                                const icon = this.querySelector('i');
+                                if (panel.style.display === 'block') { 
+                                    panel.style.display = 'none'; 
+                                    icon.className = 'fa-solid fa-chevron-down';
+                                } else { 
+                                    panel.style.display = 'block'; 
+                                    icon.className = 'fa-solid fa-chevron-up'; 
                                 }
-                            }
-
-                            let bgStyle = "#ffffff";
-                            let cardBorder = "1px solid #e2e8f0";
-                            let statusBadge = "";
-                            
-                            if (oldDecls.length > 0 && newDecls.length > 0) {
-                                bgStyle = "#fffbeb"; 
-                                cardBorder = "1px solid #fde68a";
-                                statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
-                            } else if (oldDecls.length > 0 && newDecls.length === 0) {
-                                bgStyle = "#f8fafc";
-                                cardBorder = "1px solid #e2e8f0";
-                                statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Tamamilə Bildiriş Yazılıb</div>`;
-                            } else {
-                                bgStyle = "#f0fdf4";
-                                cardBorder = "1px solid #bbf7d0";
-                                statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
-                            }
-
-                            let canCreateNew = isVoenInDb;
-                            let checkboxAttr = canCreateNew ? "checked" : "disabled";
-                            let opacityStyle = canCreateNew ? "1" : "0.5"; 
-
-                            let byNoStr = Object.keys(item.decls).join(", ");
-                            let tarixStr = Array.from(allTarixler).join(", ");
-                            let newTarixStr = Array.from(newTarixler).join(", ");
-                            let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
-
-                            htmlContent += `<div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};"><div class="firm-main-row"><input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}"><div class="firm-info"><div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div><div class="firm-badges"><div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div><div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>${statusBadge}</div>${missingAlertHtml}</div>${accordionToggleBtn}</div>${hasBildiris ? `<div class="details-panel"><ul>${accordionListHtml}</ul></div>` : ''}</div>`;
-                            
-                            firmaIdx++;
+                            });
                         });
-                        htmlContent += `</div>`; idareIdx++;
+
+                        document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                if (bildirisPopup) { 
+                                    bildirisPopup.style.display = 'flex'; 
+                                    currentBilPage = 1; 
+                                    renderBildirisTable(); 
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.idare-check1').forEach(idareCheck => { 
+                            idareCheck.addEventListener('change', function() { 
+                                const parentDiv = this.closest('.result-group'); 
+                                parentDiv.querySelectorAll('.firma-check2:not([disabled])').forEach(child => child.checked = this.checked); 
+                            }); 
+                        });
+                        
+                        document.querySelectorAll('.firma-check2:not([disabled])').forEach(firmaCheck => { 
+                            firmaCheck.addEventListener('change', function() { 
+                                const parentDiv = this.closest('.result-group'); 
+                                const parentCheck = parentDiv.querySelector('.idare-check1'); 
+                                const allChildren = parentDiv.querySelectorAll('.firma-check2:not([disabled])'); 
+                                if(allChildren.length > 0) { 
+                                    parentCheck.checked = Array.from(allChildren).every(c => c.checked); 
+                                    parentCheck.indeterminate = !parentCheck.checked && Array.from(allChildren).some(c => c.checked); 
+                                } 
+                            }); 
+                        });
+                    } catch (err) {
+                        alert("Analiz zamanı xəta baş verdi: " + err.message);
+                        console.error(err);
                     }
-                    analizBox.innerHTML = htmlContent;
-
-                    const actionBtns = document.querySelectorAll('.action-bar .btn');
-                    actionBtns.forEach(btn => {
-                        btn.disabled = false;
-                        btn.style.opacity = '1';
-                        btn.style.cursor = 'pointer';
-                    });
-
-                    document.querySelectorAll('.add-missing-voen-btn').forEach(btn => {
-                        btn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            const voen = this.getAttribute('data-voen'); 
-                            const firmaName = this.getAttribute('data-firma'); 
-                            const isFiziki = this.getAttribute('data-isfiziki') === 'true';
-
-                            popupDiv.style.display = "flex"; 
-                            clearFormFields();
-                            if (inputVoen) { inputVoen.value = voen; inputVoen.dispatchEvent(new Event('input')); }
-                            if (isFiziki) { 
-                                if (radioPerson2) radioPerson2.checked = true; 
-                                if (inputLeader) inputLeader.value = firmaName; 
-                            } else { 
-                                if (radioPerson1) radioPerson1.checked = true; 
-                                if (inputCompany) inputCompany.value = firmaName; 
-                            }
-                            handleRadioChange();
-                        });
-                    });
-
-                    document.querySelectorAll('.toggle-btn').forEach(btn => {
-                        btn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            const parentItem = this.closest('.firm-item');
-                            const panel = parentItem.querySelector('.details-panel');
-                            const icon = this.querySelector('i');
-                            if (panel.style.display === 'block') { 
-                                panel.style.display = 'none'; 
-                                icon.className = 'fa-solid fa-chevron-down';
-                            } else { 
-                                panel.style.display = 'block'; 
-                                icon.className = 'fa-solid fa-chevron-up'; 
-                            }
-                        });
-                    });
-
-                    document.querySelectorAll('.idare-check1').forEach(idareCheck => { 
-                        idareCheck.addEventListener('change', function() { 
-                            const parentDiv = this.closest('.result-group'); 
-                            parentDiv.querySelectorAll('.firma-check2:not([disabled])').forEach(child => child.checked = this.checked); 
-                        }); 
-                    });
-                    
-                    document.querySelectorAll('.firma-check2:not([disabled])').forEach(firmaCheck => { 
-                        firmaCheck.addEventListener('change', function() { 
-                            const parentDiv = this.closest('.result-group'); 
-                            const parentCheck = parentDiv.querySelector('.idare-check1'); 
-                            const allChildren = parentDiv.querySelectorAll('.firma-check2:not([disabled])'); 
-                            if(allChildren.length > 0) { 
-                                parentCheck.checked = Array.from(allChildren).every(c => c.checked); 
-                                parentCheck.indeterminate = !parentCheck.checked && Array.from(allChildren).some(c => c.checked); 
-                            } 
-                        }); 
-                    });
                 }, 500); 
             };
         });
@@ -1038,7 +1030,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    const executeZipProcess = function() {
+    const executeZipProcess = async () => {
         const payload = [];
         pendingDbSavePayload = []; 
         const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
@@ -1081,16 +1073,25 @@ document.addEventListener("DOMContentLoaded", function() {
             bildirisQosmaBtn.disabled = true;
         }
 
-        fetch(`${API_URL}/generate-docs`, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ selectedFirms: payload }) 
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Server xətası baş verdi");
-            return response.blob();
-        })
-        .then(blob => {
+        try {
+            const response = await fetch(`${API_URL}/generate-docs`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ selectedFirms: payload }) 
+            });
+            
+            if (!response.ok) {
+                let errMsg = 'Server xətası baş verdi.';
+                try { 
+                    const errData = await response.json(); 
+                    errMsg = errData.error || errMsg; 
+                } catch(ex) { 
+                    errMsg = `Server xətası (Status: ${response.status})`; 
+                }
+                throw new Error(errMsg);
+            }
+            
+            const blob = await response.blob(); 
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a'); 
             a.href = url; 
@@ -1110,16 +1111,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             
             if (zipPopup) zipPopup.style.display = 'flex';
-        })
-        .catch(error => {
-            alert("XƏTA: " + error.message);
-        })
-        .finally(() => {
+            
+        } catch (error) { 
+            alert("XƏTA: " + error.message); 
+        } finally { 
             if (bildirisQosmaBtn) {
                 bildirisQosmaBtn.innerHTML = oldBtnText; 
                 bildirisQosmaBtn.disabled = false; 
             }
-        });
+        }
     };
 
     if(confirmPrezipBtn) {
