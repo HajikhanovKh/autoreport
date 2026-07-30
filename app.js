@@ -93,6 +93,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
 
+    /* ZIP və Pre-ZIP Modalları */
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
@@ -362,9 +363,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
     
-    if (closeBildirisBtn && bildirisPopup) { 
-        closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); 
-    }
+    if (closeBildirisBtn && bildirisPopup) { closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); }
 
     loadSigners(); loadAllBildirisler();
 
@@ -507,7 +506,6 @@ document.addEventListener("DOMContentLoaded", function() {
         fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) { selectedFile = fileInput.files[0]; fileArea.innerText = selectedFile.name; fileArea.style.color = "#3b82f6"; } });
     }
 
-    // 🔥 3 SÜTUNLU FİLTR İDARƏETMƏSİ (RÜB, AY, TARİX)
     const sections = [
         { btn: document.getElementById('slc-rub-btn'), div: document.getElementById('slc-rub'), type: "rub" }, 
         { btn: document.getElementById('slc-ay-btn'), div: document.getElementById('slc-ay'), type: "ay" },
@@ -802,64 +800,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if(cancelZipSaveBtn) { cancelZipSaveBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
     if(zipSelectAll) { zipSelectAll.addEventListener('change', (e) => { const cbs = document.querySelectorAll('.zip-row-check'); cbs.forEach(cb => cb.checked = e.target.checked); }); }
 
-    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-    if (bildirisQosmaBtn) {
-        bildirisQosmaBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-            if (checkedFirms.length === 0) { alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Yalnız VÖEN-i bazada olanlar seçilə bilər)!"); return; }
-
-            let firmsToProcess = [];
-            let warningHtml = "";
-            let hasOverlap = false;
-
-            for (const checkbox of checkedFirms) {
-                let oldGb = checkbox.getAttribute("data-old-gb");
-                let newGb = checkbox.getAttribute("data-new-gb");
-                let newBorc = checkbox.getAttribute("data-new-borc");
-                let firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
-
-                if (!newGb || newGb.trim() === "") { continue; } 
-
-                if (oldGb && oldGb.trim() !== "") hasOverlap = true;
-
-                firmsToProcess.push({
-                    checkbox: checkbox,
-                    newGb: newGb,
-                    newBorc: newBorc
-                });
-
-                if(oldGb && oldGb.trim() !== "") {
-                    warningHtml += `<tr>
-                        <td><strong>${firmaAdi}</strong></td>
-                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
-                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td>
-                        <td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td>
-                    </tr>`;
-                }
-            }
-
-            if (firmsToProcess.length === 0) { alert("Seçdiyiniz firmaların bütün bəyannamələri artıq bazadadır. Yeni bildiriş yazılası məlumat yoxdur!"); return; }
-
-            window.pendingFirmsToZip = firmsToProcess;
-
-            if (hasOverlap) {
-                prezipTbody.innerHTML = warningHtml;
-                preZipPopup.style.display = "flex";
-            } else {
-                executeZipProcess();
-            }
-        });
-    }
-
-    if(confirmPrezipBtn) {
-        confirmPrezipBtn.addEventListener("click", () => {
-            preZipPopup.style.display = "none";
-            executeZipProcess();
-        });
-    }
-
-    async function executeZipProcess() {
+    const executeZipProcess = async () => {
         const payload = [];
         pendingDbSavePayload = []; 
         const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
@@ -932,6 +873,71 @@ document.addEventListener("DOMContentLoaded", function() {
         } finally { 
             bildirisQosmaBtn.innerHTML = oldBtnText; bildirisQosmaBtn.disabled = false; 
         }
+    };
+
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            if (preZipPopup) preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
+
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Yalnız VÖEN-i bazada olanlar seçilə bilər)!"); 
+                return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+            let hasOverlap = false;
+
+            for (const checkbox of checkedFirms) {
+                let oldGb = checkbox.getAttribute("data-old-gb") || "";
+                let newGb = checkbox.getAttribute("data-new-gb") || "";
+                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (oldGb.trim() !== "") {
+                    hasOverlap = true;
+                    warningHtml += `<tr>
+                        <td><strong>${firmaAdi}</strong></td>
+                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
+                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
+                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
+                    </tr>`;
+                }
+
+                if (newGb.trim() === "") { 
+                    continue; 
+                }
+
+                firmsToProcess.push({
+                    checkbox: checkbox,
+                    newGb: newGb,
+                    newBorc: newBorc
+                });
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb! Yeni qeydə alınacaq heç bir borc və ya bəyannamə tapılmadı."); 
+                return; 
+            }
+
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (hasOverlap) {
+                if(prezipTbody) prezipTbody.innerHTML = warningHtml;
+                if(preZipPopup) preZipPopup.style.display = "flex";
+            } else {
+                executeZipProcess();
+            }
+        });
     }
 
     if(saveZipSelectionsBtn) {
