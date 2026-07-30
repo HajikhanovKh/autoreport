@@ -61,14 +61,16 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let currentPage = 1;
     const rowsPerPage = 20;
-
     let currentBilPage = 1;
     const bilRowsPerPage = 30;
 
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
+    let pendingDbSavePayload = [];
+    let selectedFile = null; 
 
+    // DOM Elementlər
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
     const popupDiv = document.getElementById("popup_1");
@@ -85,13 +87,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const voenTbody = document.getElementById('voen-tbody');
     const dataCountBadge = document.getElementById('data-count-badge');
     const refreshDbBtn = document.getElementById('refresh-db-btn');
-    
     const meblegBtn = document.getElementById('mebleg-axtarisi');
     const popupMebleg = document.getElementById('popup_mebleg');
     const closeMeblegBtn = document.getElementById('close-mebleg-popup');
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
-
     const signerBtn = document.getElementById('signer-btn');
     const popupSigners = document.getElementById('popup_signers');
     const closeSignerBtn = document.getElementById('close-signer-popup');
@@ -101,28 +101,22 @@ document.addEventListener("DOMContentLoaded", function() {
     const iSecondPerson = document.getElementById('sign-second-person');
     const iPhone = document.getElementById('sign-phone');
     const signerStatusMsg = document.getElementById('signer-status-msg');
-
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
-
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
     const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
     const prezipTbody = document.getElementById('prezip-tbody');
-
     const zipPopup = document.getElementById('popup_zip_selection');
     const closeZipPopupBtn = document.getElementById('close-zip-popup');
     const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
     const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
     const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
-
-    let pendingDbSavePayload = [];
-    let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
     function normStr(str) {
@@ -157,12 +151,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (meblegBtn && popupMebleg) { 
         meblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; 
+            e.preventDefault(); 
+            minAmountInput.value = minAmountFilter; 
+            popupMebleg.style.display = 'flex'; 
         }); 
     }
     if (closeMeblegBtn && popupMebleg) { 
         closeMeblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); popupMebleg.style.display = 'none'; 
+            e.preventDefault(); 
+            popupMebleg.style.display = 'none'; 
         }); 
     }
     if (applyMeblegBtn && popupMebleg) {
@@ -189,24 +186,51 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
     
-    if (signerBtn && popupSigners) { signerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'flex'; signerStatusMsg.style.display = 'none'; }); }
-    if (closeSignerBtn && popupSigners) { closeSignerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'none'; }); }
-    
+    if (signerBtn && popupSigners) { 
+        signerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'flex'; 
+            signerStatusMsg.style.display = 'none'; 
+        }); 
+    }
+    if (closeSignerBtn && popupSigners) { 
+        closeSignerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'none'; 
+        }); 
+    }
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
-            const payload = { leaderperson: iLeaderPerson.value.trim(), leadername: iLeaderName.value.trim(), secondperson: iSecondPerson.value.trim(), phone: iPhone.value.trim() };
-            let method = currentSignerId ? 'PUT' : 'POST'; let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; saveSignersBtn.disabled = true;
+            const payload = { 
+                leaderperson: iLeaderPerson.value.trim(), 
+                leadername: iLeaderName.value.trim(), 
+                secondperson: iSecondPerson.value.trim(), 
+                phone: iPhone.value.trim() 
+            };
+            let method = currentSignerId ? 'PUT' : 'POST'; 
+            let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
+            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; 
+            saveSignersBtn.disabled = true;
 
-            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            fetch(url, { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
-                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; signerStatusMsg.style.color = "#10b981"; signerStatusMsg.style.display = "block";
+                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; 
+                signerStatusMsg.style.color = "#10b981"; 
+                signerStatusMsg.style.display = "block";
                 if (!currentSignerId && data && data.id) currentSignerId = data.id;
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
-                signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
-            }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
+                signerStatusMsg.innerText = "Xəta baş verdi!"; 
+                signerStatusMsg.style.color = "#ef4444"; 
+                signerStatusMsg.style.display = "block";
+            }).finally(() => { 
+                saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; 
+                saveSignersBtn.disabled = false; 
+            });
         });
     }
     
@@ -419,9 +443,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // ----------------------------------------------------
-    // 5. VÖEN İDARƏETMƏ PANELI
-    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
@@ -711,7 +732,6 @@ document.addEventListener("DOMContentLoaded", function() {
         analizBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // XƏTA TUTUCU - XLSX YÜKLƏNİBMİ?
             if (typeof XLSX === 'undefined') {
                 alert("SİSTEM XƏTASI: Excel analiz kitabxanası (XLSX) tapılmadı! Zəhmət olmasa Webflow-da '<script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\"></script>' teqinin olduğuna əmin olun.");
                 return;
@@ -892,7 +912,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                         oldDecls.push(nomre);
                                         let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
 
-                                        accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
+                                        accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="window.openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
                                     } else {
                                         newDecls.push(nomre);
                                         newBorc += borcu; 
@@ -980,17 +1000,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             });
                         });
 
-                        document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
-                            btn.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                if (bildirisPopup) { 
-                                    bildirisPopup.style.display = 'flex'; 
-                                    currentBilPage = 1; 
-                                    renderBildirisTable(); 
-                                }
-                            });
-                        });
-
                         document.querySelectorAll('.idare-check1').forEach(idareCheck => { 
                             idareCheck.addEventListener('change', function() { 
                                 const parentDiv = this.closest('.result-group'); 
@@ -1030,7 +1039,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    const executeZipProcess = async () => {
+    window.executeZipProcess = async function() {
+        if (!window.pendingFirmsToZip || window.pendingFirmsToZip.length === 0) {
+            alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
+            return;
+        }
+
         const payload = [];
         pendingDbSavePayload = []; 
         const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
@@ -1124,13 +1138,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
-            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
-                if (preZipPopup) preZipPopup.style.display = "none";
-                return;
-            }
             if (preZipPopup) preZipPopup.style.display = "none";
-            executeZipProcess();
+            window.executeZipProcess();
         });
     }
 
@@ -1146,6 +1155,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             let firmsToProcess = [];
             let warningHtml = "";
+            let hasOverlap = false;
 
             for (const checkbox of checkedFirms) {
                 let oldGb = checkbox.getAttribute("data-old-gb") || "";
@@ -1154,14 +1164,20 @@ document.addEventListener("DOMContentLoaded", function() {
                 let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
                 let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                if (newGb.trim() !== "") {
-                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
-                    firmsToProcess.push({
-                        checkbox: checkbox,
-                        newGb: newGb,
-                        newBorc: newBorc
-                    });
+                if (oldGb.trim() !== "") {
+                    hasOverlap = true;
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td><td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td></tr>`;
                 }
+
+                if (newGb.trim() === "") { 
+                    continue; 
+                }
+
+                firmsToProcess.push({
+                    checkbox: checkbox,
+                    newGb: newGb,
+                    newBorc: newBorc
+                });
             }
 
             if (firmsToProcess.length === 0) { 
@@ -1171,20 +1187,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
             window.pendingFirmsToZip = firmsToProcess;
 
-            const popupHeader = document.querySelector('#popup_pre_zip_warning h2');
-            const popupText = document.querySelector('#popup_pre_zip_warning .modal-body p');
-            if(popupHeader) popupHeader.innerHTML = `<i class="fa-solid fa-list-check" style="color:#3b82f6;"></i> Əməliyyat Xülasəsi`;
-            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sizin seçdiyiniz və bazada olmayan <strong>(Yeni)</strong> bəyannamələr sıralanmışdır. Davam etdikdə sənədlər məhz bu qeydlər üzrə hazırlanacaq:`;
-
-            if (prezipTbody && preZipPopup) {
+            if (hasOverlap && prezipTbody && preZipPopup) {
                 prezipTbody.innerHTML = warningHtml;
                 preZipPopup.style.display = "flex";
+            } else {
+                window.executeZipProcess();
             }
         });
     }
 
     if(saveZipSelectionsBtn) {
-        saveZipSelectionsBtn.addEventListener('click', function() {
+        saveZipSelectionsBtn.addEventListener('click', async () => {
             const checkedBoxes = document.querySelectorAll('.zip-row-check:checked');
             if(checkedBoxes.length === 0) { alert("Heç bir məlumat seçilməyib!"); return; }
 
@@ -1198,27 +1211,27 @@ document.addEventListener("DOMContentLoaded", function() {
             saveZipSelectionsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yazılır...`; 
             saveZipSelectionsBtn.disabled = true;
 
-            fetch(BIL_API_URL + '/bulk', {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ bildirisler: finalPayload })
-            })
-            .then(res => {
-                if(!res.ok) return res.json().then(err => { throw new Error(err.error || "Bilinməyən xəta") });
-                return res.json();
-            })
-            .then(data => {
-                alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
-                if(zipPopup) zipPopup.style.display = 'none'; 
-                loadAllBildirisler(() => renderBildirisTable()); 
-            })
-            .catch(err => {
+            try {
+                const bRes = await fetch(BIL_API_URL + '/bulk', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ bildirisler: finalPayload })
+                });
+                
+                if(!bRes.ok) {
+                    const err = await bRes.json(); 
+                    alert("Xəta baş verdi: " + (err.error || "Bilinməyən xəta"));
+                } else {
+                    alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
+                    if(zipPopup) zipPopup.style.display = 'none'; 
+                    loadAllBildirisler(() => renderBildirisTable()); 
+                }
+            } catch(err) { 
                 alert("Şəbəkə xətası: " + err.message);
-            })
-            .finally(() => {
+            } finally { 
                 saveZipSelectionsBtn.innerHTML = oldText; 
                 saveZipSelectionsBtn.disabled = false; 
-            });
+            }
         });
     }
 
