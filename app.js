@@ -137,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function() {
             e.preventDefault();
             const payload = { leaderperson: iLeaderPerson.value.trim(), leadername: iLeaderName.value.trim(), secondperson: iSecondPerson.value.trim(), phone: iPhone.value.trim() };
             let method = currentSignerId ? 'PUT' : 'POST'; let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = "Gözləyin..."; saveSignersBtn.disabled = true;
+            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; saveSignersBtn.disabled = true;
 
             fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
@@ -146,7 +146,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
                 signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
-            }).finally(() => { saveSignersBtn.innerHTML = "Yadda Saxla"; saveSignersBtn.disabled = false; });
+            }).finally(() => { saveSignersBtn.innerHTML = `Yadda Saxla`; saveSignersBtn.disabled = false; });
         });
     }
     
@@ -359,7 +359,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // VÖEN İdarəetmə Paneli
     loadSigners(); 
     loadAllBildirisler();
 
@@ -686,7 +685,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (neticeDovrElement) neticeDovrElement.innerText = displayPeriod;
 
-            analizBox.innerHTML = `<div style="text-align:center; padding: 40px;">Analiz edilir, gözləyin...</div>`;
+            analizBox.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:30px; color:#3b82f6;"></i> <span style="margin-left:10px;">Analiz edilir, gözləyin...</span></div>`;
 
             const fileReader = new FileReader(); 
             fileReader.readAsArrayBuffer(selectedFile);
@@ -850,6 +849,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     bgStyle = "#f8fafc";
                                     cardBorder = "1px solid #e2e8f0";
                                     statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"> Bildiriş Yazılıb</div>`;
+                                    // Bütün bəyannamələr bazadadırsa bu bloku heç ZIP cədvəlinə əlavə etmirik.
                                 } else {
                                     bgStyle = "#f0fdf4";
                                     cardBorder = "1px solid #bbf7d0";
@@ -910,6 +910,17 @@ document.addEventListener("DOMContentLoaded", function() {
                                     panel.style.display = 'none'; 
                                 } else { 
                                     panel.style.display = 'block'; 
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                if (bildirisPopup) { 
+                                    bildirisPopup.style.display = 'flex'; 
+                                    currentBilPage = 1; 
+                                    renderBildirisTable(); 
                                 }
                             });
                         });
@@ -1078,15 +1089,16 @@ document.addEventListener("DOMContentLoaded", function() {
                 let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
                 let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                if (oldGb.trim() !== "") {
-                    hasOverlap = true;
-                }
-
+                // ƏGƏR BÜTÜN BƏYANNAMƏLƏR BAZADADIRSA BURA HEÇ DÜŞMƏSİN
                 if (newGb.trim() === "") { 
                     continue; 
                 }
 
-                warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
+                if (oldGb.trim() !== "") {
+                    hasOverlap = true;
+                }
+
+                warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
                 
                 firmsToProcess.push({
                     checkbox: checkbox,
