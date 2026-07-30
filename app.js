@@ -61,16 +61,14 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let currentPage = 1;
     const rowsPerPage = 20;
+
     let currentBilPage = 1;
     const bilRowsPerPage = 30;
 
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
-    let pendingDbSavePayload = [];
-    let selectedFile = null; 
 
-    // DOM Elementlər
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
     const popupDiv = document.getElementById("popup_1");
@@ -87,11 +85,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const voenTbody = document.getElementById('voen-tbody');
     const dataCountBadge = document.getElementById('data-count-badge');
     const refreshDbBtn = document.getElementById('refresh-db-btn');
+    
     const meblegBtn = document.getElementById('mebleg-axtarisi');
     const popupMebleg = document.getElementById('popup_mebleg');
     const closeMeblegBtn = document.getElementById('close-mebleg-popup');
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
+
     const signerBtn = document.getElementById('signer-btn');
     const popupSigners = document.getElementById('popup_signers');
     const closeSignerBtn = document.getElementById('close-signer-popup');
@@ -101,22 +101,28 @@ document.addEventListener("DOMContentLoaded", function() {
     const iSecondPerson = document.getElementById('sign-second-person');
     const iPhone = document.getElementById('sign-phone');
     const signerStatusMsg = document.getElementById('signer-status-msg');
+
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
+
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
     const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
     const prezipTbody = document.getElementById('prezip-tbody');
+
     const zipPopup = document.getElementById('popup_zip_selection');
     const closeZipPopupBtn = document.getElementById('close-zip-popup');
     const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
     const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
     const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
+
+    let pendingDbSavePayload = [];
+    let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
     function normStr(str) {
@@ -149,27 +155,13 @@ document.addEventListener("DOMContentLoaded", function() {
         if (selectedFile && analizBtn) analizBtn.click(); 
     }
 
-    if (meblegBtn && popupMebleg) { 
-        meblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            minAmountInput.value = minAmountFilter; 
-            popupMebleg.style.display = 'flex'; 
-        }); 
-    }
-    if (closeMeblegBtn && popupMebleg) { 
-        closeMeblegBtn.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            popupMebleg.style.display = 'none'; 
-        }); 
-    }
+    if (meblegBtn && popupMebleg) { meblegBtn.addEventListener('click', (e) => { e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; }); }
+    if (closeMeblegBtn && popupMebleg) { closeMeblegBtn.addEventListener('click', (e) => { e.preventDefault(); popupMebleg.style.display = 'none'; }); }
     if (applyMeblegBtn && popupMebleg) {
         applyMeblegBtn.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            let val = parseFloat(minAmountInput.value);
-            if (isNaN(val)) val = 0; 
-            minAmountFilter = val;
-            popupMebleg.style.display = 'none'; 
-            refreshAnalysisIfPossible();
+            e.preventDefault(); let val = parseFloat(minAmountInput.value);
+            if (isNaN(val)) val = 0; minAmountFilter = val;
+            popupMebleg.style.display = 'none'; refreshAnalysisIfPossible();
         });
     }
 
@@ -177,60 +169,29 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
             if (data && data.length > 0) {
                 const s = data[0]; 
-                currentSignerId = s.id; 
-                iLeaderPerson.value = s.leaderperson || ''; 
-                iLeaderName.value = s.leadername || '';
-                iSecondPerson.value = s.secondperson || ''; 
-                iPhone.value = s.phone || '';
+                currentSignerId = s.id; iLeaderPerson.value = s.leaderperson || ''; iLeaderName.value = s.leadername || '';
+                iSecondPerson.value = s.secondperson || ''; iPhone.value = s.phone || '';
             }
         }).catch(err => console.error(err));
     }
     
-    if (signerBtn && popupSigners) { 
-        signerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'flex'; 
-            signerStatusMsg.style.display = 'none'; 
-        }); 
-    }
-    if (closeSignerBtn && popupSigners) { 
-        closeSignerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'none'; 
-        }); 
-    }
+    if (signerBtn && popupSigners) { signerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'flex'; signerStatusMsg.style.display = 'none'; }); }
+    if (closeSignerBtn && popupSigners) { closeSignerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'none'; }); }
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
-            const payload = { 
-                leaderperson: iLeaderPerson.value.trim(), 
-                leadername: iLeaderName.value.trim(), 
-                secondperson: iSecondPerson.value.trim(), 
-                phone: iPhone.value.trim() 
-            };
-            let method = currentSignerId ? 'PUT' : 'POST'; 
-            let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; 
-            saveSignersBtn.disabled = true;
+            const payload = { leaderperson: iLeaderPerson.value.trim(), leadername: iLeaderName.value.trim(), secondperson: iSecondPerson.value.trim(), phone: iPhone.value.trim() };
+            let method = currentSignerId ? 'PUT' : 'POST'; let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
+            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; saveSignersBtn.disabled = true;
 
-            fetch(url, { 
-                method: method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(payload)
+            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
-                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; 
-                signerStatusMsg.style.color = "#10b981"; 
-                signerStatusMsg.style.display = "block";
+                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; signerStatusMsg.style.color = "#10b981"; signerStatusMsg.style.display = "block";
                 if (!currentSignerId && data && data.id) currentSignerId = data.id;
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
-                signerStatusMsg.innerText = "Xəta baş verdi!"; 
-                signerStatusMsg.style.color = "#ef4444"; 
-                signerStatusMsg.style.display = "block";
-            }).finally(() => { 
-                saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; 
-                saveSignersBtn.disabled = false; 
-            });
+                signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
+            }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
         });
     }
     
@@ -304,19 +265,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         renderBilPagination(totalPages);
-
-        if (highlightId) {
-            setTimeout(() => {
-                const targetRow = document.querySelector(`tr[data-id="${highlightId}"]`);
-                if (targetRow) {
-                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    const inputField = targetRow.querySelector('.modal-input[placeholder="Nömrə əlavə et..."]');
-                    if (inputField) {
-                        setTimeout(() => inputField.focus(), 500);
-                    }
-                }
-            }, 300);
-        }
     }
 
     function renderBilPagination(totalPages) {
@@ -443,6 +391,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // VÖEN İdarəetmə Paneli
     loadSigners(); 
     loadAllBildirisler();
 
@@ -1166,7 +1115,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (oldGb.trim() !== "") {
                     hasOverlap = true;
-                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td><td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td></tr>`;
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td><td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td></tr>`;
                 }
 
                 if (newGb.trim() === "") { 
@@ -1186,6 +1135,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             window.pendingFirmsToZip = firmsToProcess;
+
+            const popupHeader = document.querySelector('#popup_pre_zip_warning h2');
+            const popupText = document.querySelector('#popup_pre_zip_warning .modal-body p');
+            if(popupHeader) popupHeader.innerHTML = `<i class="fa-solid fa-list-check" style="color:#3b82f6;"></i> Əməliyyat Xülasəsi`;
+            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sizin seçdiyiniz və bazada olmayan <strong>(Yeni)</strong> bəyannamələr sıralanmışdır. Davam etdikdə sənədlər məhz bu qeydlər üzrə hazırlanacaq:`;
 
             if (hasOverlap && prezipTbody && preZipPopup) {
                 prezipTbody.innerHTML = warningHtml;
