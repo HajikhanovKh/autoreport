@@ -93,7 +93,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
 
-    /* ZIP və Pre-ZIP Modalları */
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
@@ -255,8 +254,12 @@ document.addEventListener("DOMContentLoaded", function() {
                         <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
                             <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
                             <div style="display:flex; gap:6px; width:100%;">
-                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
-                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})"><i class="fa-solid fa-xmark"></i> Ləğv</button>
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
+                                    <i class="fa-solid fa-save"></i> Saxla
+                                </button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">
+                                    <i class="fa-solid fa-xmark"></i> Ləğv
+                                </button>
                             </div>
                         </div>
                     </td>
@@ -645,9 +648,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 if (!isVoenInDb) { missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; }
                             } else { isVoenInDb = false; }
 
-                            let checkboxAttr = isVoenInDb ? "checked" : "disabled";
-                            let opacityStyle = isVoenInDb ? "1" : "0.5"; 
-
                             let newDecls = [];
                             let oldDecls = [];
                             let newBorc = 0;
@@ -655,31 +655,31 @@ document.addEventListener("DOMContentLoaded", function() {
                             let allTarixler = new Set();
                             let accordionListHtml = ``;
                             let hasBildiris = false;
+                            
+                            let foundRecordsForFirm = allBildirislerData.filter(b => 
+                                (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)
+                            );
 
                             for(const nomre in item.decls) {
                                 let borcu = item.decls[nomre].borc;
                                 let tarixleri = Array.from(item.decls[nomre].tarixler);
                                 tarixleri.forEach(t => allTarixler.add(t));
                                 
-                                let foundBil = allBildirislerData.find(b => {
-                                    let isFirmMatch = (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma);
-                                    if (!isFirmMatch || !b.melumat) return false;
-                                    let savedNomreler = b.melumat.replace('Bəyannamələr:', '').split(',').map(s => s.trim());
-                                    return savedNomreler.includes(nomre);
-                                });
+                                let regex = new RegExp(`\\b${nomre}\\b`);
+                                let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
 
-                                if (foundBil) {
+                                if (matchedRecord) {
                                     hasBildiris = true;
                                     oldDecls.push(nomre);
-                                    let mainBildirisNo = foundBil.bildiris_nomresi && foundBil.bildiris_nomresi.trim() !== "" ? foundBil.bildiris_nomresi : null;
+                                    let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
 
                                     accordionListHtml += `
-                                        <li>
-                                            <span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> Bəyannamə: <strong>${nomre}</strong></span>
+                                        <li style="opacity:0.6;">
+                                            <span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> <span style="text-decoration: line-through;">${nomre}</span></span>
                                             <span>
                                                 ${mainBildirisNo 
-                                                    ? `<span style="color: #10b981; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` 
-                                                    : `<button class="btn-sec add-bildiris-panel-btn" style="padding: 4px 10px; font-size:11px; color:#2563eb; border-color:#2563eb; background:#eff6ff; cursor:pointer;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Panelə keç</button>`
+                                                    ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> №: ${mainBildirisNo}</span>` 
+                                                    : `<span style="color: #f59e0b; font-weight:700;"><i class="fa-solid fa-clock"></i> Nömrəsiz</span>`
                                                 }
                                             </span>
                                         </li>
@@ -690,8 +690,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                     tarixleri.forEach(t => newTarixler.add(t));
                                     accordionListHtml += `
                                         <li>
-                                            <span style="color: #64748b;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> Bəyannamə: <strong>${nomre}</strong></span>
-                                            <span style="font-size: 11px; color: #94a3b8;"><i class="fa-solid fa-circle-info"></i> Hələ bazaya yazılmayıb</span>
+                                            <span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span>
+                                            <span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span>
                                         </li>
                                     `;
                                 }
@@ -704,12 +704,20 @@ document.addEventListener("DOMContentLoaded", function() {
                             if (oldDecls.length > 0 && newDecls.length > 0) {
                                 bgStyle = "#fffbeb"; 
                                 cardBorder = "1px solid #fde68a";
-                                statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-triangle-exclamation"></i> Qismən Yazılıb</div>`;
+                                statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
                             } else if (oldDecls.length > 0 && newDecls.length === 0) {
+                                bgStyle = "#f8fafc";
+                                cardBorder = "1px solid #e2e8f0";
+                                statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Tamamilə Bazadadır</div>`;
+                            } else {
                                 bgStyle = "#f0fdf4";
                                 cardBorder = "1px solid #bbf7d0";
-                                statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Tam Yazılıb</div>`;
+                                statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
                             }
+
+                            let canCreateNew = isVoenInDb && newDecls.length > 0;
+                            let checkboxAttr = canCreateNew ? "checked" : "disabled";
+                            let opacityStyle = canCreateNew ? "1" : "0.5"; 
 
                             let byNoStr = Object.keys(item.decls).join(", ");
                             let tarixStr = Array.from(allTarixler).join(", ");
@@ -733,9 +741,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                     <div class="firm-info">
                                         <div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
                                         <div class="firm-badges">
-                                            <div class="badge-pill"><strong>Bəyannamələr:</strong> ${byNoStr}</div>
-                                            <div class="badge-pill"><strong>Tarixlər:</strong> ${tarixStr}</div>
-                                            <div class="badge-pill badge-danger-pill">Yekun Borc: ${item.toplamBorc.toFixed(2)} ABŞ</div>
+                                            <div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div>
+                                            <div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>
                                             ${statusBadge}
                                         </div>
                                         ${missingAlertHtml}
@@ -779,13 +786,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         });
                     });
 
-                    document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
-                        btn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            if (bildirisPopup) { bildirisPopup.style.display = 'flex'; currentBilPage = 1; renderBildirisTable(); }
-                        });
-                    });
-
                     document.querySelectorAll('.idare-check1').forEach(idareCheck => { idareCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); parentDiv.querySelectorAll('.firma-check2:not([disabled])').forEach(child => child.checked = this.checked); }); });
                     document.querySelectorAll('.firma-check2:not([disabled])').forEach(firmaCheck => { firmaCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); const parentCheck = parentDiv.querySelector('.idare-check1'); const allChildren = parentDiv.querySelectorAll('.firma-check2:not([disabled])'); if(allChildren.length > 0) { parentCheck.checked = Array.from(allChildren).every(c => c.checked); parentCheck.indeterminate = !parentCheck.checked && Array.from(allChildren).some(c => c.checked); } }); });
                 }, 500); 
@@ -799,6 +799,69 @@ document.addEventListener("DOMContentLoaded", function() {
     if(closeZipPopupBtn) { closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
     if(cancelZipSaveBtn) { cancelZipSaveBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
     if(zipSelectAll) { zipSelectAll.addEventListener('change', (e) => { const cbs = document.querySelectorAll('.zip-row-check'); cbs.forEach(cb => cb.checked = e.target.checked); }); }
+
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Bütün bəyannamələri bazada olan firmalar avtomatik sənədə düşmür)!"); 
+                return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+            let hasOverlap = false;
+
+            for (const checkbox of checkedFirms) {
+                let oldGb = checkbox.getAttribute("data-old-gb") || "";
+                let newGb = checkbox.getAttribute("data-new-gb") || "";
+                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (oldGb.trim() !== "") {
+                    hasOverlap = true;
+                    warningHtml += `<tr>
+                        <td><strong>${firmaAdi}</strong></td>
+                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
+                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
+                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
+                    </tr>`;
+                }
+
+                if (newGb.trim() === "") { continue; }
+
+                firmsToProcess.push({
+                    checkbox: checkbox,
+                    newGb: newGb,
+                    newBorc: newBorc
+                });
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb! Yeni qeydə alınacaq heç bir borc və ya bəyannamə tapılmadı."); 
+                return; 
+            }
+
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (hasOverlap) {
+                if(prezipTbody) prezipTbody.innerHTML = warningHtml;
+                if(preZipPopup) preZipPopup.style.display = "flex";
+            } else {
+                executeZipProcess();
+            }
+        });
+    }
+
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            if (preZipPopup) preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
 
     const executeZipProcess = async () => {
         const payload = [];
@@ -862,7 +925,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     <td>${obj.gomruk_orqani}</td>
                     <td>${obj.firma}</td>
                     <td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td>
-                    <td>Borc məlumatı Exceldə</td>
+                    <td>Sənəddə mövcuddur</td>
                 `;
                 zipTbody.appendChild(tr);
             });
@@ -874,71 +937,6 @@ document.addEventListener("DOMContentLoaded", function() {
             bildirisQosmaBtn.innerHTML = oldBtnText; bildirisQosmaBtn.disabled = false; 
         }
     };
-
-    if(confirmPrezipBtn) {
-        confirmPrezipBtn.addEventListener("click", () => {
-            if (preZipPopup) preZipPopup.style.display = "none";
-            executeZipProcess();
-        });
-    }
-
-    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-    if (bildirisQosmaBtn) {
-        bildirisQosmaBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-            if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Yalnız VÖEN-i bazada olanlar seçilə bilər)!"); 
-                return; 
-            }
-
-            let firmsToProcess = [];
-            let warningHtml = "";
-            let hasOverlap = false;
-
-            for (const checkbox of checkedFirms) {
-                let oldGb = checkbox.getAttribute("data-old-gb") || "";
-                let newGb = checkbox.getAttribute("data-new-gb") || "";
-                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
-                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
-                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
-
-                if (oldGb.trim() !== "") {
-                    hasOverlap = true;
-                    warningHtml += `<tr>
-                        <td><strong>${firmaAdi}</strong></td>
-                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
-                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
-                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
-                    </tr>`;
-                }
-
-                if (newGb.trim() === "") { 
-                    continue; 
-                }
-
-                firmsToProcess.push({
-                    checkbox: checkbox,
-                    newGb: newGb,
-                    newBorc: newBorc
-                });
-            }
-
-            if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb! Yeni qeydə alınacaq heç bir borc və ya bəyannamə tapılmadı."); 
-                return; 
-            }
-
-            window.pendingFirmsToZip = firmsToProcess;
-
-            if (hasOverlap) {
-                if(prezipTbody) prezipTbody.innerHTML = warningHtml;
-                if(preZipPopup) preZipPopup.style.display = "flex";
-            } else {
-                executeZipProcess();
-            }
-        });
-    }
 
     if(saveZipSelectionsBtn) {
         saveZipSelectionsBtn.addEventListener('click', async () => {
