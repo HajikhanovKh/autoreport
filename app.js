@@ -265,6 +265,19 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         renderBilPagination(totalPages);
+
+        if (highlightId) {
+            setTimeout(() => {
+                const targetRow = document.querySelector(`tr[data-id="${highlightId}"]`);
+                if (targetRow) {
+                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const inputField = targetRow.querySelector('.modal-input[placeholder="Nömrə əlavə et..."]');
+                    if (inputField) {
+                        setTimeout(() => inputField.focus(), 500);
+                    }
+                }
+            }, 300);
+        }
     }
 
     function renderBilPagination(totalPages) {
@@ -1115,13 +1128,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (oldGb.trim() !== "") {
                     hasOverlap = true;
-                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td><td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td></tr>`;
                 }
 
                 if (newGb.trim() === "") { 
                     continue; 
                 }
 
+                warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#10b981; font-weight:bold; font-size:13px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
+                
                 firmsToProcess.push({
                     checkbox: checkbox,
                     newGb: newGb,
@@ -1139,13 +1153,11 @@ document.addEventListener("DOMContentLoaded", function() {
             const popupHeader = document.querySelector('#popup_pre_zip_warning h2');
             const popupText = document.querySelector('#popup_pre_zip_warning .modal-body p');
             if(popupHeader) popupHeader.innerHTML = `<i class="fa-solid fa-list-check" style="color:#3b82f6;"></i> Əməliyyat Xülasəsi`;
-            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sizin seçdiyiniz və bazada olmayan <strong>(Yeni)</strong> bəyannamələr sıralanmışdır. Davam etdikdə sənədlər məhz bu qeydlər üzrə hazırlanacaq:`;
+            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sənəd hazırlanacaq <strong>YENİ bəyannamələr</strong> və onların borcları göstərilmişdir (Əvvəlcədən bazada olan bəyannamələr avtomatik çıxarılıb):`;
 
-            if (hasOverlap && prezipTbody && preZipPopup) {
+            if (prezipTbody && preZipPopup) {
                 prezipTbody.innerHTML = warningHtml;
                 preZipPopup.style.display = "flex";
-            } else {
-                window.executeZipProcess();
             }
         });
     }
