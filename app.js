@@ -115,6 +115,14 @@ document.addEventListener("DOMContentLoaded", function() {
         return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
     }
 
+    function excelDateToJSDate(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.toString().trim().split('.');
+        if (parts.length !== 3) return null;
+        const isoString = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T00:00:00`;
+        return new Date(isoString);
+    }
+
     function getTodayFormatted() { const today = new Date(); return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; }
     function setStatus(message, isError = false) { if (statusMsg) { statusMsg.innerText = message; statusMsg.style.color = isError ? '#ef4444' : '#10b981'; statusMsg.style.display = 'block'; } }
     function refreshAnalysisIfPossible() { if (selectedFile && analizBtn) analizBtn.click(); }
@@ -169,7 +177,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
 
-// Bütün Bildirişləri (və Paginasiyanı) Ekrana Çıxaran Funksiya
     function renderBildirisTable() {
         if (!bildirisTbody) return;
         
@@ -198,7 +205,6 @@ document.addEventListener("DOMContentLoaded", function() {
             const tr = document.createElement('tr');
             let isMissing = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
             
-            // Xam Dəyərləri ehtiyat üçün data-attribute kimi saxlayırıq (Update üçün lazımdır)
             tr.setAttribute('data-id', b.id);
             tr.setAttribute('data-orqan', b.gomruk_orqani || '');
             tr.setAttribute('data-firma', b.firma || '');
@@ -209,7 +215,6 @@ document.addEventListener("DOMContentLoaded", function() {
             tr.setAttribute('data-nomre', b.bildiris_nomresi || '');
 
             if (isMissing) {
-                // EKSİK OLANLAR: Açıq Input-larla görünür
                 tr.innerHTML = `
                     <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
                     <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
@@ -228,7 +233,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     </td>
                 `;
             } else {
-                // TAMAMLANMIŞLAR: Mətn kimi görünür, modern Action iconları var
                 tr.innerHTML = `
                     <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
                     <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
@@ -242,32 +246,16 @@ document.addEventListener("DOMContentLoaded", function() {
                         <div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
                             <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
                             <div style="display:flex; gap:6px;">
-                                <button onclick="enableEditMode(${b.id})" 
-                                    style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" 
-                                    title="Dəyişdir"
-                                    onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" 
-                                    onmouseout="this.style.backgroundColor='transparent'">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <button onclick="deleteBildiris(${b.id})" 
-                                    style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" 
-                                    title="Sil"
-                                    onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" 
-                                    onmouseout="this.style.backgroundColor='transparent'">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                                <button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir" onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                         
                         <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
                             <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
                             <div style="display:flex; gap:6px; width:100%;">
-                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
-                                    <i class="fa-solid fa-save"></i> Saxla
-                                </button>
-                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">
-                                    <i class="fa-solid fa-xmark"></i> Ləğv
-                                </button>
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})"><i class="fa-solid fa-xmark"></i> Ləğv</button>
                             </div>
                         </div>
                     </td>
@@ -370,18 +358,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (bildirisBtn && bildirisPopup) { 
         bildirisBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            bildirisPopup.style.display = 'flex'; 
-            currentBilPage = 1; 
-            renderBildirisTable(); 
+            e.preventDefault(); bildirisPopup.style.display = 'flex'; currentBilPage = 1; renderBildirisTable(); 
         }); 
     }
     
     if (closeBildirisBtn && bildirisPopup) { 
-        closeBildirisBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            bildirisPopup.style.display = 'none'; 
-        }); 
+        closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); 
     }
 
     loadSigners(); loadAllBildirisler();
@@ -525,8 +507,22 @@ document.addEventListener("DOMContentLoaded", function() {
         fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) { selectedFile = fileInput.files[0]; fileArea.innerText = selectedFile.name; fileArea.style.color = "#3b82f6"; } });
     }
 
-    const sections = [{ btn: document.getElementById('slc-rub-btn'), div: document.getElementById('slc-rub'), type: "rub" }, { btn: document.getElementById('slc-ay-btn'), div: document.getElementById('slc-ay'), type: "ay" }];
-    sections.forEach(s => { if (s.btn && s.div) { s.btn.addEventListener('click', (e) => { e.preventDefault(); sections.forEach(x => { if(x.div) { x.div.classList.remove('active-filter'); } }); s.div.classList.add('active-filter'); currentFilterType = s.type; }); } });
+    // 🔥 3 SÜTUNLU FİLTR İDARƏETMƏSİ (RÜB, AY, TARİX)
+    const sections = [
+        { btn: document.getElementById('slc-rub-btn'), div: document.getElementById('slc-rub'), type: "rub" }, 
+        { btn: document.getElementById('slc-ay-btn'), div: document.getElementById('slc-ay'), type: "ay" },
+        { btn: document.getElementById('slc-tarix-btn'), div: document.getElementById('slc-tarix'), type: "tarix" }
+    ];
+    sections.forEach(s => { 
+        if (s.btn && s.div) { 
+            s.btn.addEventListener('click', (e) => { 
+                e.preventDefault(); 
+                sections.forEach(x => { if(x.div) { x.div.classList.remove('active-filter'); } }); 
+                s.div.classList.add('active-filter'); 
+                currentFilterType = s.type; 
+            }); 
+        } 
+    });
 
     function parseExcelDate(dateStr) {
         if (!dateStr) return null; const parts = dateStr.toString().trim().split('.'); if (parts.length !== 3) return null;
@@ -542,16 +538,34 @@ document.addEventListener("DOMContentLoaded", function() {
     if (analizBtn) {
         analizBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            if (!selectedFile || !currentFilterType) { alert("Zəhmət olmasa əvvəlcə faylı və dövrü (Rüb və ya Ay) seçin!"); return; }
+            if (!selectedFile || !currentFilterType) { alert("Zəhmət olmasa əvvəlcə faylı və dövrü (Rüb, Ay və ya Tarix) seçin!"); return; }
 
-            let rawPeriod = (currentFilterType === "rub" ? document.getElementById('slc-rub-select')?.value : document.getElementById('slc-ay-select')?.value) || "";
-            let rawYear = (currentFilterType === "rub" ? document.getElementById('slc-rub-year')?.value : document.getElementById('slc-ay-year')?.value) || "";
-            
-            let displayPeriod = `${rawPeriod.toUpperCase()} ${rawYear}`.trim();
+            let displayPeriod = "";
+            let filterPeriod = "";
+            let filterYear = "";
+
+            if (currentFilterType === "rub") {
+                let rawPeriod = document.getElementById('slc-rub-select')?.value || "";
+                let rawYear = document.getElementById('slc-rub-year')?.value || "";
+                displayPeriod = `${rawPeriod.toUpperCase()} ${rawYear}`.trim();
+                filterPeriod = rawPeriod.trim().toLowerCase();
+                filterYear = rawYear.trim();
+            } else if (currentFilterType === "ay") {
+                let rawPeriod = document.getElementById('slc-ay-select')?.value || "";
+                let rawYear = document.getElementById('slc-ay-year')?.value || "";
+                displayPeriod = `${rawPeriod.toUpperCase()} ${rawYear}`.trim();
+                filterPeriod = rawPeriod.trim().toLowerCase();
+                filterYear = rawYear.trim();
+            } else if (currentFilterType === "tarix") {
+                let baslangic = document.getElementById('tarix-baslangic').value;
+                let son = document.getElementById('tarix-son').value;
+                if(!baslangic || !son) { alert("Zəhmət olmasa başlanğıc və son tarixi tam seçin!"); return; }
+                let bFormat = baslangic.split('-').reverse().join('.');
+                let sFormat = son.split('-').reverse().join('.');
+                displayPeriod = `${bFormat} - ${sFormat}`;
+            }
+
             if (neticeDovrElement) neticeDovrElement.innerText = displayPeriod;
-            
-            let filterPeriod = rawPeriod.trim().toLowerCase(); 
-            let filterYear = rawYear.trim();
 
             analizBox.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:30px; color:#3b82f6;"></i><p style="margin-top:10px;">Analiz edilir, gözləyin...</p></div>`;
 
@@ -571,6 +585,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
                         if (currentFilterType === "rub" && dateInfo.rub === filterPeriod && dateInfo.year === filterYear) isMatch = true;
                         if (currentFilterType === "ay" && dateInfo.month === filterPeriod && dateInfo.year === filterYear) isMatch = true;
+                        if (currentFilterType === "tarix") {
+                            let baslangic = document.getElementById('tarix-baslangic').value;
+                            let son = document.getElementById('tarix-son').value;
+                            let excelD = excelDateToJSDate(tarixStr);
+                            let startD = new Date(baslangic + "T00:00:00");
+                            let endD = new Date(son + "T23:59:59");
+                            if (excelD && excelD >= startD && excelD <= endD) {
+                                isMatch = true;
+                            }
+                        }
 
                         if (isMatch && qaliqBorc > minAmountFilter) {
                             let idareAdi = row[0] ? row[0].toString().trim() : "Qeydsiz İdarə";
@@ -760,11 +784,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
                         btn.addEventListener('click', function(e) {
                             e.preventDefault();
-                            if (bildirisPopup) { 
-                                bildirisPopup.style.display = 'flex'; 
-                                currentBilPage = 1; 
-                                renderBildirisTable(); 
-                            }
+                            if (bildirisPopup) { bildirisPopup.style.display = 'flex'; currentBilPage = 1; renderBildirisTable(); }
                         });
                     });
 
@@ -775,14 +795,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function getMinMaxDate(datesStr) {
-        if (!datesStr) return ""; const parts = datesStr.split(", "); if (parts.length === 1) return parts[0];
-        const dates = parts.map(d => { const [day, month, year] = d.split("."); return new Date(`${year}-${month}-${day}`); });
-        const minDate = new Date(Math.min(...dates)); const maxDate = new Date(Math.max(...dates));
-        const format = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
-        return `${format(minDate)} - ${format(maxDate)}`;
-    }
-
+    // MODAL BAĞLAMA EVENTLƏRİ
     if(closePrezipBtn) { closePrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(cancelPrezipBtn) { cancelPrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(closeZipPopupBtn) { closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
