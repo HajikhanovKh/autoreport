@@ -5,18 +5,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const overlay = document.createElement('div');
         overlay.id = "security-overlay";
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
-        overlay.innerHTML = `
-            <div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px;">
-                <div style="background: #e0e7ff; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #4f46e5; font-size: 28px;">
-                    <i class="fa-solid fa-lock"></i>
-                </div>
-                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">Giriş Təsdiqi</h2>
-                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.</p>
-                <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;">
-                <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p>
-                <button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button>
-            </div>
-        `;
+        overlay.innerHTML = `<div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px;"><div style="background: #e0e7ff; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #4f46e5; font-size: 28px;"><i class="fa-solid fa-lock"></i></div><h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">Giriş Təsdiqi</h2><p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.</p><input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;"><p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p><button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button></div>`;
         document.body.appendChild(overlay);
         const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
@@ -280,51 +269,9 @@ document.addEventListener("DOMContentLoaded", function() {
             tr.setAttribute('data-nomre', b.bildiris_nomresi || '');
 
             if (isMissing) {
-                tr.innerHTML = `
-                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
-                    <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
-                    <td>
-                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
-                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
-                    </td>
-                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td>
-                    <td>
-                        <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
-                            <input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
-                            <button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
-                                <i class="fa-solid fa-save"></i> Saxla
-                            </button>
-                        </div>
-                    </td>
-                `;
+                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td><td><div style="display:flex; gap:6px; flex-direction:column; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);"><button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button></div></td>`;
             } else {
-                tr.innerHTML = `
-                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
-                    <td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
-                    <td>
-                        <div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div>
-                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
-                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
-                    </td>
-                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td>
-                    <td>
-                        <div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
-                            <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
-                            <div style="display:flex; gap:6px;">
-                                <button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir" onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                        
-                        <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
-                            <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
-                            <div style="display:flex; gap:6px; width:100%;">
-                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button>
-                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})"><i class="fa-solid fa-xmark"></i> Ləğv</button>
-                            </div>
-                        </div>
-                    </td>
-                `;
+                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${b.firma || '—'}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${b.melumat || '—'}</td><td><div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;"><span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span><div style="display:flex; gap:6px;"><button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir" onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-pen"></i></button><button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-trash"></i></button></div></div><div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;"><div style="display:flex; gap:6px; width:100%;"><button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button><button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})"><i class="fa-solid fa-xmark"></i> Ləğv</button></div></div></td>`;
             }
             bildirisTbody.appendChild(tr);
         });
@@ -521,18 +468,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const isFiziki = company.pstatus == 2;
             const compName = isFiziki ? `<span style="color:#64748b; font-style:italic;">Fiziki Şəxs</span>` : (company.comp_name || '—');
 
-            tr.innerHTML = `
-                <td style="font-weight: 700; color: #3b82f6;">${company.voen || '—'}</td>
-                <td style="font-weight: 500;">${compName}</td>
-                <td>${company.comp_director_name || '—'}</td>
-                <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${company.comp_adress || ''}">${company.comp_adress || '—'}</td>
-                <td>
-                    <div class="action-cell">
-                        <button class="btn-icon btn-edit" title="Redaktə et"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn-icon btn-delete" title="Sil"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </td>
-            `;
+            tr.innerHTML = `<td style="font-weight: 700; color: #3b82f6;">${company.voen || '—'}</td><td style="font-weight: 500;">${compName}</td><td>${company.comp_director_name || '—'}</td><td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${company.comp_adress || ''}">${company.comp_adress || '—'}</td><td><div class="action-cell"><button class="btn-icon btn-edit" title="Redaktə et"><i class="fa-solid fa-pen"></i></button><button class="btn-icon btn-delete" title="Sil"><i class="fa-solid fa-trash"></i></button></div></td>`;
             tr.querySelector('.btn-edit').addEventListener('click', (e) => { 
                 e.preventDefault(); 
                 fillFormWithData(company); 
@@ -734,6 +670,14 @@ document.addEventListener("DOMContentLoaded", function() {
         } 
     });
 
+    function parseExcelDate(dateStr) {
+        if (!dateStr) return null; const parts = dateStr.toString().trim().split('.'); if (parts.length !== 3) return null;
+        const month = parseInt(parts[1], 10); const year = parts[2].toString().trim();
+        let rub = "i rüb"; if (month >= 4 && month <= 6) rub = "ii rüb"; else if (month >= 7 && month <= 9) rub = "iii rüb"; else if (month >= 10 && month <= 12) rub = "iv rüb";
+        const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
+        return { month: monthsAz[month - 1] || "", year, rub };
+    }
+    
     const analizBox = document.getElementById('analiz-box');
     const neticeDovrElement = document.querySelector('.netice-dovr');
     
@@ -908,27 +852,12 @@ document.addEventListener("DOMContentLoaded", function() {
                                     oldDecls.push(nomre);
                                     let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
 
-                                    accordionListHtml += `
-                                        <li style="opacity:0.6;">
-                                            <span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> <span style="text-decoration: line-through;">${nomre}</span></span>
-                                            <span>
-                                                ${mainBildirisNo 
-                                                    ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> №: ${mainBildirisNo}</span>` 
-                                                    : `<span style="color: #f59e0b; font-weight:700;"><i class="fa-solid fa-clock"></i> Nömrəsiz</span>`
-                                                }
-                                            </span>
-                                        </li>
-                                    `;
+                                    accordionListHtml += `<li style="opacity:0.6;"><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> <span style="text-decoration: line-through;">${nomre}</span></span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> №: ${mainBildirisNo}</span>` : `<span style="color: #f59e0b; font-weight:700;"><i class="fa-solid fa-clock"></i> Nömrəsiz</span>`}</span></li>`;
                                 } else {
                                     newDecls.push(nomre);
                                     newBorc += borcu; 
                                     tarixleri.forEach(t => newTarixler.add(t));
-                                    accordionListHtml += `
-                                        <li>
-                                            <span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span>
-                                            <span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span>
-                                        </li>
-                                    `;
+                                    accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
                                 }
                             }
 
@@ -959,37 +888,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             let newTarixStr = Array.from(newTarixler).join(", ");
                             let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
 
-                            htmlContent += `
-                            <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};">
-                                <div class="firm-main-row">
-                                    <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} 
-                                        data-idare="${safeIdare}" 
-                                        data-voen="${item.voen}" 
-                                        data-firma="${safeFirmaAdi}" 
-                                        data-isfiziki="${item.isFiziki}"
-                                        data-gb="${byNoStr}" 
-                                        data-new-gb="${newDecls.join(', ')}"
-                                        data-old-gb="${oldDecls.join(', ')}"
-                                        data-borc="${item.toplamBorc.toFixed(2)}"
-                                        data-new-borc="${newBorc.toFixed(2)}"
-                                        data-new-tarixler="${newTarixStr}">
-                                    <div class="firm-info">
-                                        <div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
-                                        <div class="firm-badges">
-                                            <div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div>
-                                            <div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>
-                                            ${statusBadge}
-                                        </div>
-                                        ${missingAlertHtml}
-                                    </div>
-                                    ${accordionToggleBtn}
-                                </div>
-                                ${hasBildiris ? `
-                                <div class="details-panel">
-                                    <ul>${accordionListHtml}</ul>
-                                </div>
-                                ` : ''}
-                            </div>`;
+                            htmlContent += `<div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};"><div class="firm-main-row"><input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}"><div class="firm-info"><div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div><div class="firm-badges"><div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div><div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>${statusBadge}</div>${missingAlertHtml}</div>${accordionToggleBtn}</div>${hasBildiris ? `<div class="details-panel"><ul>${accordionListHtml}</ul></div>` : ''}</div>`;
                             
                             firmaIdx++;
                         });
@@ -1155,13 +1054,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 zipTbody.innerHTML = '';
                 pendingDbSavePayload.forEach((obj, idx) => {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td>
-                        <td>${obj.gomruk_orqani}</td>
-                        <td>${obj.firma}</td>
-                        <td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td>
-                        <td>Sənəddə mövcuddur</td>
-                    `;
+                    tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Sənəddə mövcuddur</td>`;
                     zipTbody.appendChild(tr);
                 });
             }
@@ -1208,12 +1101,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (oldGb.trim() !== "") {
                     hasOverlap = true;
-                    warningHtml += `<tr>
-                        <td><strong>${firmaAdi}</strong></td>
-                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
-                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
-                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
-                    </tr>`;
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td><td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td></tr>`;
                 }
 
                 if (newGb.trim() === "") { 
