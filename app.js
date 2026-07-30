@@ -1,3 +1,5 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -32,20 +34,20 @@ if (!document.documentElement.classList.contains('w-editor')) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-
+    
+    // Xüsusi Animasiya Stili əlavə edilir
     const style = document.createElement('style');
     style.innerHTML = `
         @keyframes flashHighlight {
-            0% { background-color: #fde047; }
-            50% { background-color: #fef08a; }
+            0% { background-color: #fef08a; }
+            50% { background-color: #fde047; }
             100% { background-color: transparent; }
         }
-        .highlight-row {
-            animation: flashHighlight 3s ease-out;
-        }
+        .highlight-row { animation: flashHighlight 3s ease-out; }
     `;
     document.head.appendChild(style);
 
+    // İlk açılışda Action (əməliyyat) düymələrini deaktiv edirik
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
         btn.disabled = true;
@@ -63,14 +65,16 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let currentPage = 1;
     const rowsPerPage = 20;
-
     let currentBilPage = 1;
     const bilRowsPerPage = 30;
 
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
+    let pendingDbSavePayload = [];
+    let selectedFile = null; 
 
+    // DOM Elementlər
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
     const popupDiv = document.getElementById("popup_1");
@@ -87,13 +91,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const voenTbody = document.getElementById('voen-tbody');
     const dataCountBadge = document.getElementById('data-count-badge');
     const refreshDbBtn = document.getElementById('refresh-db-btn');
-    
     const meblegBtn = document.getElementById('mebleg-axtarisi');
     const popupMebleg = document.getElementById('popup_mebleg');
     const closeMeblegBtn = document.getElementById('close-mebleg-popup');
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
-
     const signerBtn = document.getElementById('signer-btn');
     const popupSigners = document.getElementById('popup_signers');
     const closeSignerBtn = document.getElementById('close-signer-popup');
@@ -103,28 +105,22 @@ document.addEventListener("DOMContentLoaded", function() {
     const iSecondPerson = document.getElementById('sign-second-person');
     const iPhone = document.getElementById('sign-phone');
     const signerStatusMsg = document.getElementById('signer-status-msg');
-
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
-
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
     const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
     const prezipTbody = document.getElementById('prezip-tbody');
-
     const zipPopup = document.getElementById('popup_zip_selection');
     const closeZipPopupBtn = document.getElementById('close-zip-popup');
     const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
     const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
     const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
-
-    let pendingDbSavePayload = [];
-    let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
     function normStr(str) {
@@ -157,13 +153,27 @@ document.addEventListener("DOMContentLoaded", function() {
         if (selectedFile && analizBtn) analizBtn.click(); 
     }
 
-    if (meblegBtn && popupMebleg) { meblegBtn.addEventListener('click', (e) => { e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; }); }
-    if (closeMeblegBtn && popupMebleg) { closeMeblegBtn.addEventListener('click', (e) => { e.preventDefault(); popupMebleg.style.display = 'none'; }); }
+    if (meblegBtn && popupMebleg) { 
+        meblegBtn.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            minAmountInput.value = minAmountFilter; 
+            popupMebleg.style.display = 'flex'; 
+        }); 
+    }
+    if (closeMeblegBtn && popupMebleg) { 
+        closeMeblegBtn.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            popupMebleg.style.display = 'none'; 
+        }); 
+    }
     if (applyMeblegBtn && popupMebleg) {
         applyMeblegBtn.addEventListener('click', (e) => {
-            e.preventDefault(); let val = parseFloat(minAmountInput.value);
-            if (isNaN(val)) val = 0; minAmountFilter = val;
-            popupMebleg.style.display = 'none'; refreshAnalysisIfPossible();
+            e.preventDefault(); 
+            let val = parseFloat(minAmountInput.value);
+            if (isNaN(val)) val = 0; 
+            minAmountFilter = val;
+            popupMebleg.style.display = 'none'; 
+            refreshAnalysisIfPossible();
         });
     }
 
@@ -180,23 +190,51 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
     
-    if (signerBtn && popupSigners) { signerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'flex'; signerStatusMsg.style.display = 'none'; }); }
-    if (closeSignerBtn && popupSigners) { closeSignerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'none'; }); }
+    if (signerBtn && popupSigners) { 
+        signerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'flex'; 
+            signerStatusMsg.style.display = 'none'; 
+        }); 
+    }
+    if (closeSignerBtn && popupSigners) { 
+        closeSignerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'none'; 
+        }); 
+    }
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
-            const payload = { leaderperson: iLeaderPerson.value.trim(), leadername: iLeaderName.value.trim(), secondperson: iSecondPerson.value.trim(), phone: iPhone.value.trim() };
-            let method = currentSignerId ? 'PUT' : 'POST'; let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; saveSignersBtn.disabled = true;
+            const payload = { 
+                leaderperson: iLeaderPerson.value.trim(), 
+                leadername: iLeaderName.value.trim(), 
+                secondperson: iSecondPerson.value.trim(), 
+                phone: iPhone.value.trim() 
+            };
+            let method = currentSignerId ? 'PUT' : 'POST'; 
+            let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
+            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; 
+            saveSignersBtn.disabled = true;
 
-            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            fetch(url, { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
-                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; signerStatusMsg.style.color = "#10b981"; signerStatusMsg.style.display = "block";
+                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; 
+                signerStatusMsg.style.color = "#10b981"; 
+                signerStatusMsg.style.display = "block";
                 if (!currentSignerId && data && data.id) currentSignerId = data.id;
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
-                signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
-            }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
+                signerStatusMsg.innerText = "Xəta baş verdi!"; 
+                signerStatusMsg.style.color = "#ef4444"; 
+                signerStatusMsg.style.display = "block";
+            }).finally(() => { 
+                saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; 
+                saveSignersBtn.disabled = false; 
+            });
         });
     }
     
@@ -221,7 +259,6 @@ document.addEventListener("DOMContentLoaded", function() {
             return b.id - a.id; 
         });
 
-        // Ağıllı Səhifəyə Keçid
         if (highlightId) {
             const targetIndex = sortedData.findIndex(item => item.id.toString() === highlightId.toString());
             if (targetIndex !== -1) {
@@ -403,7 +440,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    // YENİ: Ağıllı Səhifə Keçidi və Highlight (Nömrə artır vurduqda)
     window.openBildirisPanelAndHighlight = function(bilId) {
         if (bildirisPopup) {
             bildirisPopup.style.display = 'flex';
@@ -684,6 +720,20 @@ document.addEventListener("DOMContentLoaded", function() {
             }); 
         } 
     });
+
+    function parseExcelDate(dateStr) {
+        if (!dateStr) return null; 
+        const parts = dateStr.toString().trim().split('.'); 
+        if (parts.length !== 3) return null;
+        const month = parseInt(parts[1], 10); 
+        const year = parts[2].toString().trim();
+        let rub = "i rüb"; 
+        if (month >= 4 && month <= 6) rub = "ii rüb"; 
+        else if (month >= 7 && month <= 9) rub = "iii rüb"; 
+        else if (month >= 10 && month <= 12) rub = "iv rüb";
+        const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
+        return { month: monthsAz[month - 1] || "", year, rub };
+    }
     
     const analizBox = document.getElementById('analiz-box');
     const neticeDovrElement = document.querySelector('.netice-dovr');
@@ -892,8 +942,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                 statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
                             }
 
-                            let checkboxAttr = isVoenInDb ? "checked" : "disabled";
-                            let opacityStyle = isVoenInDb ? "1" : "0.5"; 
+                            let canCreateNew = isVoenInDb;
+                            let checkboxAttr = canCreateNew ? "checked" : "disabled";
+                            let opacityStyle = canCreateNew ? "1" : "0.5"; 
 
                             let byNoStr = Object.keys(item.decls).join(", ");
                             let tarixStr = Array.from(allTarixler).join(", ");
@@ -1073,6 +1124,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
+                if (preZipPopup) preZipPopup.style.display = "none";
+                return;
+            }
             if (preZipPopup) preZipPopup.style.display = "none";
             executeZipProcess();
         });
