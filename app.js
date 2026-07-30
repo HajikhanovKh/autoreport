@@ -36,6 +36,9 @@ if (!document.documentElement.classList.contains('w-editor')) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    // ----------------------------------------------------
+    // 1. QLOBAL DƏYİŞƏNLƏR VƏ APİ-LƏR
+    // ----------------------------------------------------
     const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
     const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
     const BİL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
@@ -53,7 +56,10 @@ document.addEventListener("DOMContentLoaded", function() {
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
+    let pendingDbSavePayload = [];
+    let selectedFile = null; 
 
+    // DOM Elementlər
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
     const popupDiv = document.getElementById("popup_1");
@@ -70,13 +76,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const voenTbody = document.getElementById('voen-tbody');
     const dataCountBadge = document.getElementById('data-count-badge');
     const refreshDbBtn = document.getElementById('refresh-db-btn');
-    
     const meblegBtn = document.getElementById('mebleg-axtarisi');
     const popupMebleg = document.getElementById('popup_mebleg');
     const closeMeblegBtn = document.getElementById('close-mebleg-popup');
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
-
     const signerBtn = document.getElementById('signer-btn');
     const popupSigners = document.getElementById('popup_signers');
     const closeSignerBtn = document.getElementById('close-signer-popup');
@@ -86,29 +90,44 @@ document.addEventListener("DOMContentLoaded", function() {
     const iSecondPerson = document.getElementById('sign-second-person');
     const iPhone = document.getElementById('sign-phone');
     const signerStatusMsg = document.getElementById('signer-status-msg');
-
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
-
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
     const confirmPrezipBtn = document.getElementById('confirm-zip-btn');
     const prezipTbody = document.getElementById('prezip-tbody');
-
     const zipPopup = document.getElementById('popup_zip_selection');
     const closeZipPopupBtn = document.getElementById('close-zip-popup');
     const cancelZipSaveBtn = document.getElementById('cancel-zip-save');
     const saveZipSelectionsBtn = document.getElementById('save-zip-selections-btn');
-    const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
-
-    let pendingDbSavePayload = [];
-    let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
+
+    // ----------------------------------------------------
+    // 2. KÖMƏKÇİ FUNKSİYALAR (ƏN ÜSTDƏ)
+    // ----------------------------------------------------
+    function getTodayFormatted() { 
+        const today = new Date(); 
+        return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; 
+    }
+
+    function getMinMaxDate(datesStr) {
+        if (!datesStr) return ""; 
+        const parts = datesStr.split(", "); 
+        if (parts.length === 1) return parts[0];
+        const dates = parts.map(d => { 
+            const [day, month, year] = d.split("."); 
+            return new Date(`${year}-${month}-${day}`); 
+        });
+        const minDate = new Date(Math.min(...dates)); 
+        const maxDate = new Date(Math.max(...dates));
+        const format = dt => `${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
+        return `${format(minDate)} - ${format(maxDate)}`;
+    }
 
     function normStr(str) {
         if(!str) return "";
@@ -123,17 +142,45 @@ document.addEventListener("DOMContentLoaded", function() {
         return new Date(isoString);
     }
 
-    function getTodayFormatted() { const today = new Date(); return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; }
-    function setStatus(message, isError = false) { if (statusMsg) { statusMsg.innerText = message; statusMsg.style.color = isError ? '#ef4444' : '#10b981'; statusMsg.style.display = 'block'; } }
-    function refreshAnalysisIfPossible() { if (selectedFile && analizBtn) analizBtn.click(); }
+    function setStatus(message, isError = false) { 
+        if (statusMsg) { 
+            statusMsg.innerText = message; 
+            statusMsg.style.color = isError ? '#ef4444' : '#10b981'; 
+            statusMsg.style.display = 'block'; 
+        } 
+    }
 
+    function refreshAnalysisIfPossible() { 
+        if (selectedFile && analizBtn) analizBtn.click(); 
+    }
+
+    function parseExcelDate(dateStr) {
+        if (!dateStr) return null; 
+        const parts = dateStr.toString().trim().split('.'); 
+        if (parts.length !== 3) return null;
+        const month = parseInt(parts[1], 10); 
+        const year = parts[2].toString().trim();
+        let rub = "i rüb"; 
+        if (month >= 4 && month <= 6) rub = "ii rüb"; 
+        else if (month >= 7 && month <= 9) rub = "iii rüb"; 
+        else if (month >= 10 && month <= 12) rub = "iv rüb";
+        const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
+        return { month: monthsAz[month - 1] || "", year, rub };
+    }
+
+    // ----------------------------------------------------
+    // 3. MƏBLƏĞ, İMZAÇI VƏ BAZA İDARƏETMƏSİ
+    // ----------------------------------------------------
     if (meblegBtn && popupMebleg) { meblegBtn.addEventListener('click', (e) => { e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; }); }
     if (closeMeblegBtn && popupMebleg) { closeMeblegBtn.addEventListener('click', (e) => { e.preventDefault(); popupMebleg.style.display = 'none'; }); }
     if (applyMeblegBtn && popupMebleg) {
         applyMeblegBtn.addEventListener('click', (e) => {
-            e.preventDefault(); let val = parseFloat(minAmountInput.value);
-            if (isNaN(val)) val = 0; minAmountFilter = val;
-            popupMebleg.style.display = 'none'; refreshAnalysisIfPossible();
+            e.preventDefault(); 
+            let val = parseFloat(minAmountInput.value);
+            if (isNaN(val)) val = 0; 
+            minAmountFilter = val;
+            popupMebleg.style.display = 'none'; 
+            refreshAnalysisIfPossible();
         });
     }
 
@@ -166,7 +213,10 @@ document.addEventListener("DOMContentLoaded", function() {
             }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
         });
     }
-    
+
+    // ----------------------------------------------------
+    // 4. BİLDİRİŞLƏR PƏNCƏRƏSİ MƏNTİQİ
+    // ----------------------------------------------------
     function loadAllBildirisler(callback) {
         fetch(BİL_API_URL).then(r => r.json()).then(data => {
             allBildirislerData = data || [];
@@ -366,8 +416,13 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
     
-    if (closeBildirisBtn && bildirisPopup) { closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); }
+    if (closeBildirisBtn && bildirisPopup) { 
+        closeBildirisBtn.addEventListener('click', e => { e.preventDefault(); bildirisPopup.style.display = 'none'; }); 
+    }
 
+    // ----------------------------------------------------
+    // 5. VÖEN İDARƏETMƏ PANELI
+    // ----------------------------------------------------
     loadSigners(); loadAllBildirisler();
 
     function handleRadioChange() {
@@ -509,6 +564,9 @@ document.addEventListener("DOMContentLoaded", function() {
         fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) { selectedFile = fileInput.files[0]; fileArea.innerText = selectedFile.name; fileArea.style.color = "#3b82f6"; } });
     }
 
+    // ----------------------------------------------------
+    // 6. EXCEL ANALİZİ VƏ CƏDVƏL YARADILMASI
+    // ----------------------------------------------------
     const sections = [
         { btn: document.getElementById('slc-rub-btn'), div: document.getElementById('slc-rub'), type: "rub" }, 
         { btn: document.getElementById('slc-ay-btn'), div: document.getElementById('slc-ay'), type: "ay" },
@@ -525,14 +583,6 @@ document.addEventListener("DOMContentLoaded", function() {
         } 
     });
 
-    function parseExcelDate(dateStr) {
-        if (!dateStr) return null; const parts = dateStr.toString().trim().split('.'); if (parts.length !== 3) return null;
-        const month = parseInt(parts[1], 10); const year = parts[2].toString().trim();
-        let rub = "i rüb"; if (month >= 4 && month <= 6) rub = "ii rüb"; else if (month >= 7 && month <= 9) rub = "iii rüb"; else if (month >= 10 && month <= 12) rub = "iv rüb";
-        const monthsAz = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktabr", "noyabr", "dekabr"];
-        return { month: monthsAz[month - 1] || "", year, rub };
-    }
-    
     const analizBox = document.getElementById('analiz-box');
     const neticeDovrElement = document.querySelector('.netice-dovr');
     
@@ -786,6 +836,17 @@ document.addEventListener("DOMContentLoaded", function() {
                         });
                     });
 
+                    document.querySelectorAll('.add-bildiris-panel-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            if (bildirisPopup) { 
+                                bildirisPopup.style.display = 'flex'; 
+                                currentBilPage = 1; 
+                                renderBildirisTable(); 
+                            }
+                        });
+                    });
+
                     document.querySelectorAll('.idare-check1').forEach(idareCheck => { idareCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); parentDiv.querySelectorAll('.firma-check2:not([disabled])').forEach(child => child.checked = this.checked); }); });
                     document.querySelectorAll('.firma-check2:not([disabled])').forEach(firmaCheck => { firmaCheck.addEventListener('change', function() { const parentDiv = this.closest('.result-group'); const parentCheck = parentDiv.querySelector('.idare-check1'); const allChildren = parentDiv.querySelectorAll('.firma-check2:not([disabled])'); if(allChildren.length > 0) { parentCheck.checked = Array.from(allChildren).every(c => c.checked); parentCheck.indeterminate = !parentCheck.checked && Array.from(allChildren).some(c => c.checked); } }); });
                 }, 500); 
@@ -793,75 +854,14 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // MODAL BAĞLAMA EVENTLƏRİ
+    // ----------------------------------------------------
+    // 7. ZİP YARADILMASI VƏ YADDA SAXLAMA
+    // ----------------------------------------------------
     if(closePrezipBtn) { closePrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(cancelPrezipBtn) { cancelPrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; }); }
     if(closeZipPopupBtn) { closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
     if(cancelZipSaveBtn) { cancelZipSaveBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; }); }
     if(zipSelectAll) { zipSelectAll.addEventListener('change', (e) => { const cbs = document.querySelectorAll('.zip-row-check'); cbs.forEach(cb => cb.checked = e.target.checked); }); }
-
-    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-    if (bildirisQosmaBtn) {
-        bildirisQosmaBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-            if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Bütün bəyannamələri bazada olan firmalar avtomatik sənədə düşmür)!"); 
-                return; 
-            }
-
-            let firmsToProcess = [];
-            let warningHtml = "";
-            let hasOverlap = false;
-
-            for (const checkbox of checkedFirms) {
-                let oldGb = checkbox.getAttribute("data-old-gb") || "";
-                let newGb = checkbox.getAttribute("data-new-gb") || "";
-                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
-                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
-                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
-
-                if (oldGb.trim() !== "") {
-                    hasOverlap = true;
-                    warningHtml += `<tr>
-                        <td><strong>${firmaAdi}</strong></td>
-                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
-                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
-                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
-                    </tr>`;
-                }
-
-                if (newGb.trim() === "") { continue; }
-
-                firmsToProcess.push({
-                    checkbox: checkbox,
-                    newGb: newGb,
-                    newBorc: newBorc
-                });
-            }
-
-            if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb! Yeni qeydə alınacaq heç bir borc və ya bəyannamə tapılmadı."); 
-                return; 
-            }
-
-            window.pendingFirmsToZip = firmsToProcess;
-
-            if (hasOverlap) {
-                if(prezipTbody) prezipTbody.innerHTML = warningHtml;
-                if(preZipPopup) preZipPopup.style.display = "flex";
-            } else {
-                executeZipProcess();
-            }
-        });
-    }
-
-    if(confirmPrezipBtn) {
-        confirmPrezipBtn.addEventListener("click", () => {
-            if (preZipPopup) preZipPopup.style.display = "none";
-            executeZipProcess();
-        });
-    }
 
     const executeZipProcess = async () => {
         const payload = [];
@@ -898,9 +898,12 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
-        const oldBtnText = bildirisQosmaBtn.innerHTML; 
-        bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`; 
-        bildirisQosmaBtn.disabled = true;
+        const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+        const oldBtnText = bildirisQosmaBtn ? bildirisQosmaBtn.innerHTML : "Bildiriş + qoşma hazırlanması"; 
+        if (bildirisQosmaBtn) {
+            bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`; 
+            bildirisQosmaBtn.disabled = true;
+        }
 
         try {
             const response = await fetch(`${API_URL}/generate-docs`, { 
@@ -913,30 +916,106 @@ document.addEventListener("DOMContentLoaded", function() {
                 throw new Error(errMsg);
             }
             
-            const blob = await response.blob(); const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `Senedler_${getTodayFormatted()}.zip`;
-            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+            const blob = await response.blob(); 
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); 
+            a.href = url; 
+            a.download = `Senedler_${getTodayFormatted()}.zip`;
+            document.body.appendChild(a); 
+            a.click(); 
+            a.remove(); 
+            window.URL.revokeObjectURL(url);
             
-            zipTbody.innerHTML = '';
-            pendingDbSavePayload.forEach((obj, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td>
-                    <td>${obj.gomruk_orqani}</td>
-                    <td>${obj.firma}</td>
-                    <td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td>
-                    <td>Sənəddə mövcuddur</td>
-                `;
-                zipTbody.appendChild(tr);
-            });
-            zipPopup.style.display = 'flex';
+            if (zipTbody) {
+                zipTbody.innerHTML = '';
+                pendingDbSavePayload.forEach((obj, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td>
+                        <td>${obj.gomruk_orqani}</td>
+                        <td>${obj.firma}</td>
+                        <td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td>
+                        <td>Sənəddə mövcuddur</td>
+                    `;
+                    zipTbody.appendChild(tr);
+                });
+            }
+            if (zipPopup) zipPopup.style.display = 'flex';
             
         } catch (error) { 
             alert("XƏTA: " + error.message); 
         } finally { 
-            bildirisQosmaBtn.innerHTML = oldBtnText; bildirisQosmaBtn.disabled = false; 
+            if (bildirisQosmaBtn) {
+                bildirisQosmaBtn.innerHTML = oldBtnText; 
+                bildirisQosmaBtn.disabled = false; 
+            }
         }
     };
+
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            if (preZipPopup) preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
+
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin (Yalnız VÖEN-i bazada olanlar seçilə bilər)!"); 
+                return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+            let hasOverlap = false;
+
+            for (const checkbox of checkedFirms) {
+                let oldGb = checkbox.getAttribute("data-old-gb") || "";
+                let newGb = checkbox.getAttribute("data-new-gb") || "";
+                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (oldGb.trim() !== "") {
+                    hasOverlap = true;
+                    warningHtml += `<tr>
+                        <td><strong>${firmaAdi}</strong></td>
+                        <td style="color:#ef4444; font-size:12px;">${oldGb}</td>
+                        <td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb.trim() !== "" ? newGb : "Yoxdur (Tamamilə bazadadır)"}</td>
+                        <td style="font-weight:bold; color:#1e293b;">${newBorc !== "0.00" ? newBorc + " ABŞ" : "0.00 ABŞ"}</td>
+                    </tr>`;
+                }
+
+                if (newGb.trim() === "") { 
+                    continue; 
+                }
+
+                firmsToProcess.push({
+                    checkbox: checkbox,
+                    newGb: newGb,
+                    newBorc: newBorc
+                });
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb! Yeni qeydə alınacaq heç bir borc və ya bəyannamə tapılmadı."); 
+                return; 
+            }
+
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (hasOverlap && prezipTbody && preZipPopup) {
+                prezipTbody.innerHTML = warningHtml;
+                preZipPopup.style.display = "flex";
+            } else {
+                executeZipProcess();
+            }
+        });
+    }
 
     if(saveZipSelectionsBtn) {
         saveZipSelectionsBtn.addEventListener('click', async () => {
