@@ -1,4 +1,48 @@
+if (!document.documentElement.classList.contains('w-editor')) {
+    (function() {
+        const DOGRU_SIFRE = "Analog*+2026+*"; 
+        document.body.style.overflow = 'hidden';
+        const overlay = document.createElement('div');
+        overlay.id = "security-overlay";
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
+        overlay.innerHTML = `<div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px;"><div style="background: #e0e7ff; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #4f46e5; font-size: 28px;"><i class="fa-solid fa-lock"></i></div><h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">Giriş Təsdiqi</h2><p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.</p><input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;"><p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p><button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button></div>`;
+        document.body.appendChild(overlay);
+        const input = document.getElementById('sec-password');
+        const btn = document.getElementById('sec-submit');
+        const error = document.getElementById('sec-error');
+        function checkPassword() {
+            if (input.value === DOGRU_SIFRE) {
+                overlay.style.opacity = '0'; 
+                overlay.style.transition = 'opacity 0.4s ease'; 
+                document.body.style.overflow = ''; 
+                setTimeout(() => overlay.remove(), 400); 
+            } else {
+                error.style.display = 'block'; 
+                input.style.borderColor = '#ef4444'; 
+                input.value = ''; 
+                input.focus();
+            }
+        }
+        btn.addEventListener('click', checkPassword);
+        input.addEventListener('keypress', function(e) { 
+            if (e.key === 'Enter') checkPassword(); 
+        });
+        setTimeout(() => input.focus(), 100);
+    })();
+}
+
 document.addEventListener("DOMContentLoaded", function() {
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes flashHighlight {
+            0% { background-color: #fde047; }
+            50% { background-color: #fef08a; }
+            100% { background-color: transparent; }
+        }
+        .highlight-row { animation: flashHighlight 3s ease-out; }
+    `;
+    document.head.appendChild(style);
 
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
@@ -111,27 +155,43 @@ document.addEventListener("DOMContentLoaded", function() {
         if (selectedFile && analizBtn) analizBtn.click(); 
     }
 
-    if (meblegBtn && popupMebleg) { meblegBtn.addEventListener('click', (e) => { e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; }); }
-    if (closeMeblegBtn && popupMebleg) { closeMeblegBtn.addEventListener('click', (e) => { e.preventDefault(); popupMebleg.style.display = 'none'; }); }
+    if (meblegBtn && popupMebleg) { 
+        meblegBtn.addEventListener('click', (e) => { 
+            e.preventDefault(); minAmountInput.value = minAmountFilter; popupMebleg.style.display = 'flex'; 
+        }); 
+    }
+    if (closeMeblegBtn && popupMebleg) { 
+        closeMeblegBtn.addEventListener('click', (e) => { 
+            e.preventDefault(); popupMebleg.style.display = 'none'; 
+        }); 
+    }
     if (applyMeblegBtn && popupMebleg) {
         applyMeblegBtn.addEventListener('click', (e) => {
-            e.preventDefault(); let val = parseFloat(minAmountInput.value);
-            if (isNaN(val)) val = 0; minAmountFilter = val;
-            popupMebleg.style.display = 'none'; refreshAnalysisIfPossible();
+            e.preventDefault(); 
+            let val = parseFloat(minAmountInput.value);
+            if (isNaN(val)) val = 0; 
+            minAmountFilter = val;
+            popupMebleg.style.display = 'none'; 
+            refreshAnalysisIfPossible();
         });
     }
 
     function loadSigners() {
         fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
             if (data && data.length > 0) {
-                const s = data[0]; currentSignerId = s.id; iLeaderPerson.value = s.leaderperson || ''; iLeaderName.value = s.leadername || '';
-                iSecondPerson.value = s.secondperson || ''; iPhone.value = s.phone || '';
+                const s = data[0]; 
+                currentSignerId = s.id; 
+                iLeaderPerson.value = s.leaderperson || ''; 
+                iLeaderName.value = s.leadername || '';
+                iSecondPerson.value = s.secondperson || ''; 
+                iPhone.value = s.phone || '';
             }
         }).catch(err => console.error(err));
     }
     
     if (signerBtn && popupSigners) { signerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'flex'; signerStatusMsg.style.display = 'none'; }); }
     if (closeSignerBtn && popupSigners) { closeSignerBtn.addEventListener('click', e => { e.preventDefault(); popupSigners.style.display = 'none'; }); }
+    
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
@@ -146,7 +206,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
             }).catch(err => {
                 signerStatusMsg.innerText = "Xəta baş verdi!"; signerStatusMsg.style.color = "#ef4444"; signerStatusMsg.style.display = "block";
-            }).finally(() => { saveSignersBtn.innerHTML = `Yadda Saxla`; saveSignersBtn.disabled = false; });
+            }).finally(() => { saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; saveSignersBtn.disabled = false; });
         });
     }
     
@@ -212,9 +272,9 @@ document.addEventListener("DOMContentLoaded", function() {
             let melumatText = b.melumat || '';
 
             if (isMissing) {
-                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td><td><div style="display:flex; gap:6px; flex-direction:column; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);"><button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="window.updateBildirisFromTable(${b.id})">Saxla</button></div></td>`;
+                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td><td><div style="display:flex; gap:6px; flex-direction:column; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);"><button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button></div></td>`;
             } else {
-                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td><td><div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;"><span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span><div style="display:flex; gap:6px;"><button onclick="window.enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir">M</button><button onclick="window.deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil">X</button></div></div><div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;"><div style="display:flex; gap:6px; width:100%;"><button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="window.updateBildirisFromTable(${b.id})">Saxla</button><button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="window.cancelEditMode(${b.id})">Ləğv</button></div></div></td>`;
+                tr.innerHTML = `<td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td><td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td><td><div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div><input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix"><div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div></td><td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td><td><div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;"><span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span><div style="display:flex; gap:6px;"><button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir" onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-pen"></i></button><button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'"><i class="fa-solid fa-trash"></i></button></div></div><div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;"><input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;"><div style="display:flex; gap:6px; width:100%;"><button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})"><i class="fa-solid fa-save"></i> Saxla</button><button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})"><i class="fa-solid fa-xmark"></i> Ləğv</button></div></div></td>`;
             }
             bildirisTbody.appendChild(tr);
         });
@@ -249,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const prevBtn = document.createElement('button'); 
         prevBtn.className = 'page-btn'; 
-        prevBtn.innerHTML = '<-';
+        prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
         prevBtn.disabled = currentBilPage === 1; 
         prevBtn.onclick = (e) => { e.preventDefault(); currentBilPage--; renderBildirisTable(); };
         container.appendChild(prevBtn);
@@ -266,7 +326,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const nextBtn = document.createElement('button'); 
         nextBtn.className = 'page-btn'; 
-        nextBtn.innerHTML = '->';
+        nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
         nextBtn.disabled = currentBilPage === totalPages; 
         nextBtn.onclick = (e) => { e.preventDefault(); currentBilPage++; renderBildirisTable(); };
         container.appendChild(nextBtn);
@@ -359,6 +419,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // ----------------------------------------------------
+    // 5. VÖEN İDARƏETMƏ PANELI
+    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
@@ -431,7 +494,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const isFiziki = company.pstatus == 2;
             const compName = isFiziki ? `<span style="color:#64748b; font-style:italic;">Fiziki Şəxs</span>` : (company.comp_name || '—');
 
-            tr.innerHTML = `<td style="font-weight: 700; color: #3b82f6;">${company.voen || '—'}</td><td style="font-weight: 500;">${compName}</td><td>${company.comp_director_name || '—'}</td><td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${company.comp_adress || ''}">${company.comp_adress || '—'}</td><td><div class="action-cell"><button class="btn-icon btn-edit" title="Redaktə et">M</button><button class="btn-icon btn-delete" title="Sil">X</button></div></td>`;
+            tr.innerHTML = `<td style="font-weight: 700; color: #3b82f6;">${company.voen || '—'}</td><td style="font-weight: 500;">${compName}</td><td>${company.comp_director_name || '—'}</td><td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${company.comp_adress || ''}">${company.comp_adress || '—'}</td><td><div class="action-cell"><button class="btn-icon btn-edit" title="Redaktə et"><i class="fa-solid fa-pen"></i></button><button class="btn-icon btn-delete" title="Sil"><i class="fa-solid fa-trash"></i></button></div></td>`;
             tr.querySelector('.btn-edit').addEventListener('click', (e) => { 
                 e.preventDefault(); 
                 fillFormWithData(company); 
@@ -456,7 +519,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const prevBtn = document.createElement('button'); 
         prevBtn.className = 'page-btn'; 
-        prevBtn.innerHTML = '<-';
+        prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
         prevBtn.disabled = currentPage === 1; 
         prevBtn.onclick = (e) => { e.preventDefault(); currentPage--; renderTable(); };
         paginationContainer.appendChild(prevBtn);
@@ -473,7 +536,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const nextBtn = document.createElement('button'); 
         nextBtn.className = 'page-btn'; 
-        nextBtn.innerHTML = '->';
+        nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
         nextBtn.disabled = currentPage === totalPages; 
         nextBtn.onclick = (e) => { e.preventDefault(); currentPage++; renderTable(); };
         paginationContainer.appendChild(nextBtn);
@@ -567,7 +630,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!addressVal) { setStatus("Xəta: Ünvan boş ola bilməz!", true); return; }
             
             const oldText = saveBtn.innerHTML; 
-            saveBtn.innerHTML = `Yadda saxlanılır...`; 
+            saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yadda saxlanılır...`; 
             saveBtn.disabled = true;
 
             const finalPayload = { 
@@ -648,8 +711,9 @@ document.addEventListener("DOMContentLoaded", function() {
         analizBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
+            // XƏTA TUTUCU - XLSX YÜKLƏNİBMİ?
             if (typeof XLSX === 'undefined') {
-                alert("SİSTEM XƏTASI: Excel analiz kitabxanası (XLSX) tapılmadı! Zəhmət olmasa Webflow-da script teqinin olduğuna əmin olun.");
+                alert("SİSTEM XƏTASI: Excel analiz kitabxanası (XLSX) tapılmadı! Zəhmət olmasa Webflow-da '<script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\"></script>' teqinin olduğuna əmin olun.");
                 return;
             }
             
@@ -685,7 +749,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (neticeDovrElement) neticeDovrElement.innerText = displayPeriod;
 
-            analizBox.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:30px; color:#3b82f6;"></i> <span style="margin-left:10px;">Analiz edilir, gözləyin...</span></div>`;
+            analizBox.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:30px; color:#3b82f6;"></i><p style="margin-top:10px;">Analiz edilir, gözləyin...</p></div>`;
 
             const fileReader = new FileReader(); 
             fileReader.readAsArrayBuffer(selectedFile);
@@ -762,7 +826,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
 
                         if (Object.keys(groupedResults).length === 0) { 
-                            analizBox.innerHTML = `<div style="text-align:center; padding: 40px; color:#ef4444;">Uyğun borc tapılmadı!</div>`; 
+                            analizBox.innerHTML = `<div style="text-align:center; padding: 40px; color:#ef4444;"><i class="fa-solid fa-circle-exclamation" style="font-size: 30px; margin-bottom: 10px;"></i><p>Uyğun borc tapılmadı!</p></div>`; 
                             const actionBtns = document.querySelectorAll('.action-bar .btn');
                             actionBtns.forEach(btn => {
                                 btn.disabled = true;
@@ -797,7 +861,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 if (item.voen) {
                                     isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
                                     if (!isVoenInDb) { 
-                                        missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
+                                        missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
                                     }
                                 } else { 
                                     isVoenInDb = false; 
@@ -828,12 +892,12 @@ document.addEventListener("DOMContentLoaded", function() {
                                         oldDecls.push(nomre);
                                         let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
 
-                                        accordionListHtml += `<li><span> Bəyannamə: <strong>${nomre}</strong></span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="window.openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"> Nömrə yazmaq üçün klikləyin</button>`}</span></li>`;
+                                        accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
                                     } else {
                                         newDecls.push(nomre);
                                         newBorc += borcu; 
                                         tarixleri.forEach(t => newTarixler.add(t));
-                                        accordionListHtml += `<li><span style="color: #2563eb;"> Bəyannamə: <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"> Yeni</span></li>`;
+                                        accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
                                     }
                                 }
 
@@ -844,16 +908,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                 if (oldDecls.length > 0 && newDecls.length > 0) {
                                     bgStyle = "#fffbeb"; 
                                     cardBorder = "1px solid #fde68a";
-                                    statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"> Qismən Yeni</div>`;
+                                    statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
                                 } else if (oldDecls.length > 0 && newDecls.length === 0) {
                                     bgStyle = "#f8fafc";
                                     cardBorder = "1px solid #e2e8f0";
-                                    statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"> Bildiriş Yazılıb</div>`;
-                                    // Bütün bəyannamələr bazadadırsa bu bloku heç ZIP cədvəlinə əlavə etmirik.
+                                    statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Tamamilə Bildiriş Yazılıb</div>`;
                                 } else {
                                     bgStyle = "#f0fdf4";
                                     cardBorder = "1px solid #bbf7d0";
-                                    statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"> Yeni Bildiriş</div>`;
+                                    statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
                                 }
 
                                 let canCreateNew = isVoenInDb;
@@ -863,7 +926,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let byNoStr = Object.keys(item.decls).join(", ");
                                 let tarixStr = Array.from(allTarixler).join(", ");
                                 let newTarixStr = Array.from(newTarixler).join(", ");
-                                let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər">V</button>` : '';
+                                let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
 
                                 htmlContent += `<div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};"><div class="firm-main-row"><input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}"><div class="firm-info"><div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div><div class="firm-badges"><div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div><div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>${statusBadge}</div>${missingAlertHtml}</div>${accordionToggleBtn}</div>${hasBildiris ? `<div class="details-panel"><ul>${accordionListHtml}</ul></div>` : ''}</div>`;
                                 
@@ -906,10 +969,13 @@ document.addEventListener("DOMContentLoaded", function() {
                                 e.preventDefault();
                                 const parentItem = this.closest('.firm-item');
                                 const panel = parentItem.querySelector('.details-panel');
+                                const icon = this.querySelector('i');
                                 if (panel.style.display === 'block') { 
                                     panel.style.display = 'none'; 
+                                    icon.className = 'fa-solid fa-chevron-down';
                                 } else { 
                                     panel.style.display = 'block'; 
+                                    icon.className = 'fa-solid fa-chevron-up'; 
                                 }
                             });
                         });
@@ -964,12 +1030,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    window.executeZipProcess = async function() {
-        if (!window.pendingFirmsToZip || window.pendingFirmsToZip.length === 0) {
-            alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
-            return;
-        }
-
+    const executeZipProcess = async () => {
         const payload = [];
         pendingDbSavePayload = []; 
         const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
@@ -1008,7 +1069,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const oldBtnText = bildirisQosmaBtn ? bildirisQosmaBtn.innerHTML : "Bildiriş + qoşma hazırlanması"; 
         
         if (bildirisQosmaBtn) {
-            bildirisQosmaBtn.innerHTML = `ZİP Hazırlanır...`; 
+            bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`; 
             bildirisQosmaBtn.disabled = true;
         }
 
@@ -1063,8 +1124,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
+                if (preZipPopup) preZipPopup.style.display = "none";
+                return;
+            }
             if (preZipPopup) preZipPopup.style.display = "none";
-            window.executeZipProcess();
+            executeZipProcess();
         });
     }
 
@@ -1080,7 +1146,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             let firmsToProcess = [];
             let warningHtml = "";
-            let hasOverlap = false;
 
             for (const checkbox of checkedFirms) {
                 let oldGb = checkbox.getAttribute("data-old-gb") || "";
@@ -1089,22 +1154,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
                 let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
 
-                // ƏGƏR BÜTÜN BƏYANNAMƏLƏR BAZADADIRSA BURA HEÇ DÜŞMƏSİN
-                if (newGb.trim() === "") { 
-                    continue; 
+                if (newGb.trim() !== "") {
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
+                    firmsToProcess.push({
+                        checkbox: checkbox,
+                        newGb: newGb,
+                        newBorc: newBorc
+                    });
                 }
-
-                if (oldGb.trim() !== "") {
-                    hasOverlap = true;
-                }
-
-                warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
-                
-                firmsToProcess.push({
-                    checkbox: checkbox,
-                    newGb: newGb,
-                    newBorc: newBorc
-                });
             }
 
             if (firmsToProcess.length === 0) { 
@@ -1116,20 +1173,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const popupHeader = document.querySelector('#popup_pre_zip_warning h2');
             const popupText = document.querySelector('#popup_pre_zip_warning .modal-body p');
-            if(popupHeader) popupHeader.innerHTML = `Əməliyyat Xülasəsi`;
-            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sənəd hazırlanacaq <strong>YENİ bəyannamələr</strong> və onların borcları göstərilmişdir (Əvvəlcədən bazada olan bəyannamələr avtomatik çıxarılıb):`;
+            if(popupHeader) popupHeader.innerHTML = `<i class="fa-solid fa-list-check" style="color:#3b82f6;"></i> Əməliyyat Xülasəsi`;
+            if(popupText) popupText.innerHTML = `Aşağıdakı cədvəldə yalnız sizin seçdiyiniz və bazada olmayan <strong>(Yeni)</strong> bəyannamələr sıralanmışdır. Davam etdikdə sənədlər məhz bu qeydlər üzrə hazırlanacaq:`;
 
-            if (hasOverlap && prezipTbody && preZipPopup) {
+            if (prezipTbody && preZipPopup) {
                 prezipTbody.innerHTML = warningHtml;
                 preZipPopup.style.display = "flex";
-            } else {
-                window.executeZipProcess();
             }
         });
     }
 
     if(saveZipSelectionsBtn) {
-        saveZipSelectionsBtn.addEventListener('click', async () => {
+        saveZipSelectionsBtn.addEventListener('click', function() {
             const checkedBoxes = document.querySelectorAll('.zip-row-check:checked');
             if(checkedBoxes.length === 0) { alert("Heç bir məlumat seçilməyib!"); return; }
 
@@ -1140,30 +1195,30 @@ document.addEventListener("DOMContentLoaded", function() {
             });
 
             const oldText = saveZipSelectionsBtn.innerHTML;
-            saveZipSelectionsBtn.innerHTML = `Yazılır...`; 
+            saveZipSelectionsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yazılır...`; 
             saveZipSelectionsBtn.disabled = true;
 
-            try {
-                const bRes = await fetch(BIL_API_URL + '/bulk', {
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ bildirisler: finalPayload })
-                });
-                
-                if(!bRes.ok) {
-                    const err = await bRes.json(); 
-                    alert("Xəta baş verdi: " + (err.error || "Bilinməyən xəta"));
-                } else {
-                    alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
-                    if(zipPopup) zipPopup.style.display = 'none'; 
-                    loadAllBildirisler(() => renderBildirisTable()); 
-                }
-            } catch(err) { 
+            fetch(BIL_API_URL + '/bulk', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ bildirisler: finalPayload })
+            })
+            .then(res => {
+                if(!res.ok) return res.json().then(err => { throw new Error(err.error || "Bilinməyən xəta") });
+                return res.json();
+            })
+            .then(data => {
+                alert("Məlumatlar uğurla bazaya yazıldı! Nəticələr yenilənir.");
+                if(zipPopup) zipPopup.style.display = 'none'; 
+                loadAllBildirisler(() => renderBildirisTable()); 
+            })
+            .catch(err => {
                 alert("Şəbəkə xətası: " + err.message);
-            } finally { 
+            })
+            .finally(() => {
                 saveZipSelectionsBtn.innerHTML = oldText; 
                 saveZipSelectionsBtn.disabled = false; 
-            }
+            });
         });
     }
 
