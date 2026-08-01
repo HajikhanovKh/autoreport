@@ -11,7 +11,15 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'PUT'] }));
+
+// ==========================================
+// 🔥 CORS İCAZƏSİ BURADA VERİLİR (ÇOX KRİTİK)
+// ==========================================
+app.use(cors({
+    origin: '*', // Hər ehtimala qarşı bütün domenlərə açıq buraxırıq
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 const dbConfig = process.env.MYSQL_URL || {
     host: 'ballast.proxy.rlwy.net',
@@ -22,7 +30,7 @@ const dbConfig = process.env.MYSQL_URL || {
 };
 
 // ==========================================
-// CƏDVƏLLƏRİN AVTOMATİK YARADILMASI (UĞURLU QURAŞDIRMA ÜÇÜN)
+// CƏDVƏLLƏRİN AVTOMATİK YARADILMASI
 // ==========================================
 async function initializeTables() {
     let connection;
@@ -234,10 +242,8 @@ app.put('/api/mesulsexs/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🔥 YENİ: BİLDİRİŞLƏR (bildirisler) API-ləri
+// BİLDİRİŞLƏR (bildirisler) API-ləri
 // ==========================================
-
-// ZIP yaranarkən toplu əlavə etmək üçün
 app.post('/api/bildirisler/bulk', async (req, res) => {
     const { bildirisler } = req.body;
     if (!bildirisler || bildirisler.length === 0) return res.json({ success: true });
@@ -267,7 +273,6 @@ app.post('/api/bildirisler/bulk', async (req, res) => {
     }
 });
 
-// 🔥 YENİ: Bütün bildirişləri gətirmək (Analiz bölməsində yoxlamaq üçün)
 app.get('/api/bildirisler', async (req, res) => {
     let connection;
     try {
@@ -281,7 +286,6 @@ app.get('/api/bildirisler', async (req, res) => {
     }
 });
 
-// Nömrəsi olmayanları (boş olanları) gətir (Modal cədvəl üçün)
 app.get('/api/bildirisler/missing', async (req, res) => {
     let connection;
     try {
@@ -295,7 +299,6 @@ app.get('/api/bildirisler/missing', async (req, res) => {
     }
 });
 
-// Bildiriş nömrəsini yeniləyib yadda saxlamaq
 app.put('/api/bildirisler/:id', async (req, res) => {
     const { bildiris_nomresi } = req.body;
     let connection;
@@ -310,7 +313,6 @@ app.put('/api/bildirisler/:id', async (req, res) => {
     }
 });
 
-// Bildiriş qeydini silmək
 app.delete('/api/bildirisler/:id', async (req, res) => {
     let connection;
     try {
