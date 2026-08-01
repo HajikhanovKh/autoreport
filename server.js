@@ -1,15 +1,9 @@
 import express from 'express';
-
 import mysql from 'mysql2/promise';
-
 import cors from 'cors';
-
 import PizZip from 'pizzip';
-
 import Docxtemplater from 'docxtemplater';
-
 import JSZip from 'jszip';
-
 import axios from 'axios';
 
 
