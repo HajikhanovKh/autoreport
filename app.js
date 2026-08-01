@@ -52,9 +52,9 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.style.cursor = 'not-allowed';
     });
 
-    const API_URL = 'https://webflow-mysql-production.up.railway.app/api/companies';
-    const SIGNER_API_URL = 'https://webflow-mysql-production.up.railway.app/api/mesulsexs';
-    const BIL_API_URL = 'https://webflow-mysql-production.up.railway.app/api/bildirisler';
+    const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
+    const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
+    const BIL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
 
     let allCompaniesData = [];
     let currentFilteredData = [];
@@ -125,6 +125,11 @@ document.addEventListener("DOMContentLoaded", function() {
     let pendingDbSavePayload = [];
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
+
+    function normStr(str) {
+        if(!str) return "";
+        return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
+    }
 
     function excelDateToJSDate(dateStr) {
         if (!dateStr) return null;
@@ -415,6 +420,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // ----------------------------------------------------
+    // 5. VÖEN İDARƏETMƏ PANELI
+    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
@@ -1049,13 +1057,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // ƏSAS ZIP HAZIRLAMA FUNKSİYASI
     window.executeZipProcess = async () => {
-        let overlay = createLoadingOverlay();
+        let overlay = document.getElementById('zip-loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'zip-loading-overlay';
+            overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; font-family: 'Inter', sans-serif;";
+            overlay.innerHTML = `
+                <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; color: #0f172a; max-width: 400px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+                    <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
+                    <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses bir neçə saniyə çəkə bilər, zəhmət olmasa gözləyin...</p>
+                    <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden;">
+                        <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
+                    </div>
+                    <p id="zip-progress-text" style="margin-top: 12px; font-weight: 700; color: #3b82f6; font-size: 14px;">0%</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
         let progressBar = document.getElementById('zip-progress-bar');
         let progressText = document.getElementById('zip-progress-text');
-        
         overlay.style.display = 'flex';
-        overlay.style.pointerEvents = 'auto';
-        setTimeout(() => overlay.style.opacity = '1', 10);
 
         let progress = 0;
         let progressInterval = setInterval(() => {
@@ -1119,24 +1142,12 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             const generateDocsEndpoint = 'https://webflow-mysql-production.up.railway.app/api/companies/generate-docs';
-            const signerData = {
-                leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
-                leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
-                secondperson: document.getElementById('sign-second-person')?.value.trim() || '',
-                phone: document.getElementById('sign-phone')?.value.trim() || ''
-            };
 
             const response = await fetch(generateDocsEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData }) 
+                body: JSON.stringify({ selectedFirms: payload }) 
             });
-
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                const errData = await response.json();
-                throw new Error(errData.error || errData.message || "Server xətası baş verdi.");
-            }
 
             if (!response.ok) {
                 throw new Error(`Server xətası (Status: ${response.status}). Zəhmət olmasa Railway API ünvanının aktiv olduğunu yoxlayın.`);
@@ -1177,16 +1188,12 @@ document.addEventListener("DOMContentLoaded", function() {
             alert("XƏTA: " + error.message);
             console.error("Proses xətası:", error);
         } finally {
-            overlay.style.opacity = '0';
-            overlay.style.pointerEvents = 'none';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                if(progressBar) progressBar.style.width = '0%';
-                if(progressText) {
-                    progressText.innerText = '0%';
-                    progressText.style.color = '#3b82f6';
-                }
-            }, 300);
+            overlay.style.display = 'none';
+            if(progressBar) progressBar.style.width = '0%';
+            if(progressText) {
+                progressText.innerText = '0%';
+                progressText.style.color = '#3b82f6';
+            }
         }
     };
 
