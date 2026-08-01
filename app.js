@@ -1,7 +1,5 @@
 <script>
-// ==========================================
-// 1. QLOBAL FUNKSİYALAR (Hər yerdən əlçatan olmalıdır)
-// ==========================================
+// --- 1. QLOBAL VƏ VACİB FUNKSİYALAR (Ən yuxarıda olmalıdır ki, heç vaxt silinməsin) ---
 window.getMinMaxDate = function(dateStr) {
     if (!dateStr) return "";
     const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
@@ -23,9 +21,7 @@ window.getTodayFormatted = function() {
     return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; 
 };
 
-// ==========================================
-// 2. YÜKLƏNMƏ EKRANI FUNKSİYASI
-// ==========================================
+// YÜKLƏNMƏ (LOADING) EKRANINI YARADAN FUNKSİYA
 window.createLoadingOverlay = function() {
     let overlay = document.getElementById('zip-loading-overlay');
     if (!overlay) {
@@ -49,9 +45,7 @@ window.createLoadingOverlay = function() {
     return overlay;
 };
 
-// ==========================================
-// 3. TƏHLÜKƏSİZLİK EKRANI (ŞİFRƏ)
-// ==========================================
+// --- 2. TƏHLÜKƏSİZLİK (ŞİFRƏ EKRANI) ---
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -64,7 +58,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
         const error = document.getElementById('sec-error');
-        
         function checkPassword() {
             if (input.value === DOGRU_SIFRE) {
                 overlay.style.opacity = '0'; 
@@ -86,9 +79,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
     })();
 }
 
-// ==========================================
-// 4. ƏSAS MƏNTİQ VƏ API İNTEQRASİYASI
-// ==========================================
+// --- 3. ƏSAS MƏNTİQ VƏ API ƏLAQƏLƏRİ ---
 document.addEventListener("DOMContentLoaded", function() {
 
     const style = document.createElement('style');
@@ -109,7 +100,6 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.style.cursor = 'not-allowed';
     });
 
-    // 🟢 Düzgün API Ünvanları (Railway MySQL servisi)
     const API_URL = 'https://webflow-mysql-production.up.railway.app/api/companies';
     const SIGNER_API_URL = 'https://webflow-mysql-production.up.railway.app/api/mesulsexs';
     const BIL_API_URL = 'https://webflow-mysql-production.up.railway.app/api/bildirisler';
@@ -191,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const isoString = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T00:00:00`;
         return new Date(isoString);
     }
-    
+
     function setStatus(message, isError = false) { 
         if (statusMsg) { 
             statusMsg.innerText = message; 
@@ -468,9 +458,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // ----------------------------------------------------
-    // VÖEN İDARƏETMƏ PANELI
-    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
