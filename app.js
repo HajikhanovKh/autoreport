@@ -1056,39 +1056,53 @@ const createLoadingOverlay = () => {
 };
 
 // ƏSAS ZIP HAZIRLAMA FUNKSİYASI
-const executeZipProcess = async () => {
-    const overlay = createLoadingOverlay();
-    const progressBar = document.getElementById('zip-progress-bar');
-    const progressText = document.getElementById('zip-progress-text');
+window.executeZipProcess = async () => {
+    // 1. DİNAMİK YÜKLƏNMƏ (LOADING) PƏNCƏRƏSİ YARADILIR
+    let overlay = document.getElementById('zip-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'zip-loading-overlay';
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; font-family: 'Inter', sans-serif;";
+        overlay.innerHTML = `
+            <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; color: #0f172a; max-width: 400px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+                <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
+                <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses bir neçə saniyə çəkə bilər, zəhmət olmasa gözləyin...</p>
+                <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden;">
+                    <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
+                </div>
+                <p id="zip-progress-text" style="margin-top: 12px; font-weight: 700; color: #3b82f6; font-size: 14px;">0%</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
     
-    // Loading ekranını göstər
+    let progressBar = document.getElementById('zip-progress-bar');
+    let progressText = document.getElementById('zip-progress-text');
     overlay.style.display = 'flex';
-    overlay.style.pointerEvents = 'auto';
-    setTimeout(() => overlay.style.opacity = '1', 10);
 
-    // Süni faiz artımı (İstifadəçiyə vizual məlumat vermək üçün)
+    // Süni animasiya (Faizi doldurur)
     let progress = 0;
-    const progressInterval = setInterval(() => {
+    let progressInterval = setInterval(() => {
         if (progress < 90) {
-            progress += Math.floor(Math.random() * 15) + 5; // 5-20 arası artırır
-            if(progress > 90) progress = 90; // 90%-də dayanır, backend bitirəndə 100% olacaq
-            progressBar.style.width = `${progress}%`;
-            progressText.innerText = `${progress}%`;
+            progress += Math.floor(Math.random() * 15) + 5;
+            if(progress > 90) progress = 90;
+            if(progressBar) progressBar.style.width = `${progress}%`;
+            if(progressText) progressText.innerText = `${progress}%`;
         }
-    }, 600);
+    }, 400);
 
     try {
+        // 2. XƏTANIN HƏLLİ: getMinMaxDate funksiyası burada düzgün təyin edildi
         const getMinMaxDate = (dateStr) => {
             if (!dateStr) return "";
             const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
             if (dates.length === 0) return "";
             if (dates.length === 1) return dates[0];
-
             let parsedDates = dates.map(d => {
                 let parts = d.split('.');
                 return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : new Date(d);
             }).filter(d => !isNaN(d.getTime()));
-
             if (parsedDates.length === 0) return dateStr;
             let minDate = new Date(Math.min(...parsedDates));
             let maxDate = new Date(Math.max(...parsedDates));
@@ -1130,45 +1144,32 @@ const executeZipProcess = async () => {
             });
         }
 
-        const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-docs';
-        const signerData = {
-            leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
-            leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
-            secondperson: document.getElementById('sign-second-person')?.value.trim() || '',
-            phone: document.getElementById('sign-phone')?.value.trim() || ''
-        };
+        // 3. 404 XƏTASININ HƏLLİ: Aktiv Railway linki tətbiq edildi
+        const generateDocsEndpoint = 'https://webflow-mysql-production.up.railway.app/api/companies/generate-docs';
 
         const response = await fetch(generateDocsEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
+            body: JSON.stringify({ selectedFirms: payload }) 
         });
 
-        // 1. Əgər server fayl əvəzinə xəta (JSON) qaytarıbsa
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            const errData = await response.json();
-            throw new Error(errData.error || errData.message || "Server xətası baş verdi.");
-        }
-
         if (!response.ok) {
-            throw new Error(`Server xətası (Status: ${response.status})`);
+            throw new Error(`Server xətası (Status: ${response.status}). Zəhmət olmasa Railway API ünvanının aktiv olduğunu yoxlayın.`);
         }
 
-        // 2. BLOB YARADILMA XƏTASININ HƏLLİ
         const arrayBuffer = await response.arrayBuffer();
         const blob = new Blob([arrayBuffer], { type: 'application/zip' });
-        
-        // Proses bitdi - 100% et
+
+        // Uğurla bitdikdə 100% göstər
         clearInterval(progressInterval);
-        progressBar.style.width = `100%`;
-        progressText.style.color = `#10b981`; // Rəngi yaşıl edirik
-        progressText.innerText = `100% - Yüklənir!`;
+        if(progressBar) progressBar.style.width = '100%';
+        if(progressText) {
+            progressText.innerText = '100% - Yüklənir!';
+            progressText.style.color = '#10b981';
+        }
+        await new Promise(r => setTimeout(r, 600)); 
 
-        // Gözün görməsi üçün çox qısa gözləmə
-        await new Promise(r => setTimeout(r, 600));
-
-        // Faylı Kompüterə Yüklə
+        // Faylı kompüterə endir
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1178,7 +1179,7 @@ const executeZipProcess = async () => {
         a.remove();
         window.URL.revokeObjectURL(url);
 
-        // Növbəti Pop-up (Baza yazılışı) ekranını hazırla
+        // ZİP Endirildikdən Sonra Açılan Seçim Pəncərəsi [cite: 44]
         if (zipTbody) {
             zipTbody.innerHTML = '';
             pendingDbSavePayload.forEach((obj, idx) => {
@@ -1192,17 +1193,15 @@ const executeZipProcess = async () => {
     } catch (error) {
         clearInterval(progressInterval);
         alert("XƏTA: " + error.message);
-        console.error("ZIP Error:", error);
+        console.error("Proses xətası:", error);
     } finally {
-        // Hər şey bitdikdə və ya xəta olduqda Loading ekranını bağla
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            progressBar.style.width = '0%';
+        // Hər şey bitdikdə və ya xəta olduqda Loading ekranını təmizlə
+        overlay.style.display = 'none';
+        if(progressBar) progressBar.style.width = '0%';
+        if(progressText) {
             progressText.innerText = '0%';
             progressText.style.color = '#3b82f6';
-        }, 300);
+        }
     }
 };
 
