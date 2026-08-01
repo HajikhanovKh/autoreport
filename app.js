@@ -1031,28 +1031,56 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const executeZipProcess = async () => {
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    const oldBtnText = bildirisQosmaBtn ? bildirisQosmaBtn.innerHTML : "Bildiriş + qoşma hazırlanması";
+
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`;
+        bildirisQosmaBtn.disabled = true;
+    }
+
+    try {
+        // 1. Əksik olan getMinMaxDate funksiyasını funksiya daxilinə əlavə etdik ki, xəta verməsin.
+        const getMinMaxDate = (dateStr) => {
+            if (!dateStr) return "";
+            const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
+            if (dates.length === 0) return "";
+            if (dates.length === 1) return dates[0];
+
+            let parsedDates = dates.map(d => {
+                let parts = d.split('.');
+                return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : new Date(d);
+            }).filter(d => !isNaN(d.getTime()));
+
+            if (parsedDates.length === 0) return dateStr;
+            let minDate = new Date(Math.min(...parsedDates));
+            let maxDate = new Date(Math.max(...parsedDates));
+            let formatD = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+            return minDate.getTime() === maxDate.getTime() ? formatD(minDate) : `${formatD(minDate)} - ${formatD(maxDate)}`;
+        };
+
         const payload = [];
-        pendingDbSavePayload = []; 
+        pendingDbSavePayload = [];
         const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
 
         for (const item of window.pendingFirmsToZip) {
             const checkbox = item.checkbox;
-            const voen = checkbox.getAttribute("data-voen"); 
-            const firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+            const voen = checkbox.getAttribute("data-voen");
+            const firmaAdi = checkbox.getAttribute("data-firma").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
             const isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
-            const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {}; 
+            const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {};
             const rehberAdi = dbData.comp_director_name || "Qeyd edilməyib";
-            
-            payload.push({ 
-                unvan: dbData.comp_adress || "Qeyd edilməyib", 
-                firma: isFiziki ? rehberAdi : firmaAdi, 
-                voen: voen, 
-                tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")), 
-                soyadiadi: rehberAdi, 
-                gb: item.newGb, 
-                borc: item.newBorc, 
-                tarixQosma: getTodayFormatted(), 
-                safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) 
+
+            payload.push({
+                unvan: dbData.comp_adress || "Qeyd edilməyib",
+                firma: isFiziki ? rehberAdi : firmaAdi,
+                voen: voen || "Qeyd edilməyib",
+                tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
+                soyadiadi: rehberAdi,
+                gb: item.newGb || "",
+                borc: item.newBorc || "0.00",
+                tarixQosma: getTodayFormatted(),
+                safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma"
             });
 
             pendingDbSavePayload.push({
@@ -1065,62 +1093,67 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
-        const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-        const oldBtnText = bildirisQosmaBtn ? bildirisQosmaBtn.innerHTML : "Bildiriş + qoşma hazırlanması"; 
-        
-        if (bildirisQosmaBtn) {
-            bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`; 
-            bildirisQosmaBtn.disabled = true;
+        // 2. Yanlış API endpointi dəqiqləşdirildi
+        const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-docs';
+
+        // 3. Backendin ehtiyac duya biləcəyi imzalayan şəxslərin məlumatı payload-a əlavə edildi
+        const signerData = {
+            leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
+            leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
+            secondperson: document.getElementById('sign-second-person')?.value.trim() || '',
+            phone: document.getElementById('sign-phone')?.value.trim() || ''
+        };
+
+        const response = await fetch(generateDocsEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
+        });
+
+        if (!response.ok) {
+            let errMsg = 'Server xətası baş verdi.';
+            try {
+                const errData = await response.json();
+                // Backenddən gələn real xəta mesajını tuturuq
+                errMsg = errData.error || errData.message || errMsg;
+            } catch(ex) {
+                errMsg = `Server xətası (Status: ${response.status})`;
+            }
+            throw new Error(errMsg);
         }
 
-        try {
-            const response = await fetch(`${API_URL}/generate-docs`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ selectedFirms: payload }) 
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Senedler_${getTodayFormatted()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        if (zipTbody) {
+            zipTbody.innerHTML = '';
+            pendingDbSavePayload.forEach((obj, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Sənəddə mövcuddur</td>`;
+                zipTbody.appendChild(tr);
             });
-            
-            if (!response.ok) {
-                let errMsg = 'Server xətası baş verdi.';
-                try { 
-                    const errData = await response.json(); 
-                    errMsg = errData.error || errMsg; 
-                } catch(ex) { 
-                    errMsg = `Server xətası (Status: ${response.status})`; 
-                }
-                throw new Error(errMsg);
-            }
-            
-            const blob = await response.blob(); 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); 
-            a.href = url; 
-            a.download = `Senedler_${getTodayFormatted()}.zip`;
-            document.body.appendChild(a); 
-            a.click(); 
-            a.remove(); 
-            window.URL.revokeObjectURL(url);
-            
-            if (zipTbody) {
-                zipTbody.innerHTML = '';
-                pendingDbSavePayload.forEach((obj, idx) => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Sənəddə mövcuddur</td>`;
-                    zipTbody.appendChild(tr);
-                });
-            }
-            
-            if (zipPopup) zipPopup.style.display = 'flex';
-            
-        } catch (error) { 
-            alert("XƏTA: " + error.message); 
-        } finally { 
-            if (bildirisQosmaBtn) {
-                bildirisQosmaBtn.innerHTML = oldBtnText; 
-                bildirisQosmaBtn.disabled = false; 
-            }
         }
-    };
+
+        if (zipPopup) zipPopup.style.display = 'flex';
+
+    } catch (error) {
+        // Hər hansı bir JS xətası və ya Server xətası birbaşa ekranda görünəcək
+        alert("XƏTA: " + error.message);
+        console.error("ZIP Generation Error:", error);
+    } finally {
+        if (bildirisQosmaBtn) {
+            bildirisQosmaBtn.innerHTML = oldBtnText;
+            bildirisQosmaBtn.disabled = false;
+        }
+    }
+};
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
