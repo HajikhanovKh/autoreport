@@ -1,3 +1,35 @@
+const express = require('express');
+const cors = require('cors'); // CORS kitabxanası əlavə edildi
+const authRoutes = require('./routes/auth');
+const companyRoutes = require('./routes/companies');
+const bildirisRoutes = require('./routes/bildirisler');
+const mesulsexsRoutes = require('./routes/mesulsexs');
+require('dotenv').config();
+
+const app = express();
+
+// --- ƏN VACİB HİSSƏ: CORS BURAYA ƏLAVƏ EDİLİR ---
+app.use(cors({
+    origin: '*', // Hər ehtimala qarşı bütün saytlara icazə veririk (Gələcəkdə yalnız 'https://autoreport.webflow.io' edə bilərsiniz)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+// ------------------------------------------------
+
+app.use(express.json());
+
+// API Routeları
+app.use('/api/auth', authRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/bildirisler', bildirisRoutes);
+app.use('/api/mesulsexs', mesulsexsRoutes);
+
+// Serveri başlatmaq
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
