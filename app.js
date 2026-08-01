@@ -1,4 +1,51 @@
 <script>
+// --- 1. QLOBAL VƏ VACİB FUNKSİYALAR (Ən yuxarıda olmalıdır ki, heç vaxt silinməsin) ---
+window.getMinMaxDate = function(dateStr) {
+    if (!dateStr) return "";
+    const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
+    if (dates.length === 0) return "";
+    if (dates.length === 1) return dates[0];
+    let parsedDates = dates.map(d => {
+        let parts = d.split('.');
+        return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : new Date(d);
+    }).filter(d => !isNaN(d.getTime()));
+    if (parsedDates.length === 0) return dateStr;
+    let minDate = new Date(Math.min(...parsedDates));
+    let maxDate = new Date(Math.max(...parsedDates));
+    let formatD = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+    return minDate.getTime() === maxDate.getTime() ? formatD(minDate) : `${formatD(minDate)} - ${formatD(maxDate)}`;
+};
+
+window.getTodayFormatted = function() { 
+    const today = new Date(); 
+    return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; 
+};
+
+// YÜKLƏNMƏ (LOADING) EKRANINI YARADAN FUNKSİYA
+window.createLoadingOverlay = function() {
+    let overlay = document.getElementById('zip-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'zip-loading-overlay';
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s; pointer-events: none;";
+        
+        overlay.innerHTML = `
+            <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 400px; width: 90%; border: 1px solid #cbd5e1;">
+                <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
+                <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifəni bağlamayın...</p>
+                <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
+                    <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
+                </div>
+                <p id="zip-progress-text" style="margin-top: 12px; font-weight: 800; color: #3b82f6; font-size: 15px;">0%</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    return overlay;
+};
+
+// --- 2. TƏHLÜKƏSİZLİK (ŞİFRƏ EKRANI) ---
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*"; 
@@ -32,6 +79,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
     })();
 }
 
+// --- 3. ƏSAS MƏNTİQ VƏ API ƏLAQƏLƏRİ ---
 document.addEventListener("DOMContentLoaded", function() {
 
     const style = document.createElement('style');
@@ -52,9 +100,9 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.style.cursor = 'not-allowed';
     });
 
-    const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
-    const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
-    const BIL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
+    const API_URL = 'https://webflow-mysql-production.up.railway.app/api/companies';
+    const SIGNER_API_URL = 'https://webflow-mysql-production.up.railway.app/api/mesulsexs';
+    const BIL_API_URL = 'https://webflow-mysql-production.up.railway.app/api/bildirisler';
 
     let allCompaniesData = [];
     let currentFilteredData = [];
@@ -126,11 +174,6 @@ document.addEventListener("DOMContentLoaded", function() {
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
-    function normStr(str) {
-        if(!str) return "";
-        return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
-    }
-
     function excelDateToJSDate(dateStr) {
         if (!dateStr) return null;
         const parts = dateStr.toString().trim().split('.');
@@ -139,11 +182,6 @@ document.addEventListener("DOMContentLoaded", function() {
         return new Date(isoString);
     }
 
-    function getTodayFormatted() { 
-        const today = new Date(); 
-        return `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`; 
-    }
-    
     function setStatus(message, isError = false) { 
         if (statusMsg) { 
             statusMsg.innerText = message; 
@@ -420,9 +458,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // ----------------------------------------------------
-    // 5. VÖEN İDARƏETMƏ PANELI
-    // ----------------------------------------------------
     loadSigners(); 
     loadAllBildirisler();
 
@@ -640,7 +675,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 comp_director_name: leaderVal, 
                 comp_adress: addressVal, 
                 pstatus: pstatusVal, 
-                data_info_date: getTodayFormatted() 
+                data_info_date: window.getTodayFormatted() 
             };
 
             fetch(API_URL, { 
@@ -1030,34 +1065,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    // YÜKLƏNMƏ (LOADING) EKRANINI YARADAN FUNKSİYA
-    const createLoadingOverlay = () => {
-        let overlay = document.getElementById('zip-loading-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'zip-loading-overlay';
-            overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s; pointer-events: none;";
-            
-            overlay.innerHTML = `
-                <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 400px; width: 90%; border: 1px solid #cbd5e1;">
-                    <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
-                    <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
-                    <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifəni bağlamayın...</p>
-                    
-                    <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
-                        <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
-                    </div>
-                    <p id="zip-progress-text" style="margin-top: 12px; font-weight: 800; color: #3b82f6; font-size: 15px;">0%</p>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
-        return overlay;
-    };
-
     // ƏSAS ZIP HAZIRLAMA FUNKSİYASI
     window.executeZipProcess = async () => {
-        let overlay = createLoadingOverlay();
+        let overlay = window.createLoadingOverlay();
         let progressBar = document.getElementById('zip-progress-bar');
         let progressText = document.getElementById('zip-progress-text');
         
@@ -1076,22 +1086,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 400);
 
         try {
-            const getMinMaxDate = (dateStr) => {
-                if (!dateStr) return "";
-                const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
-                if (dates.length === 0) return "";
-                if (dates.length === 1) return dates[0];
-                let parsedDates = dates.map(d => {
-                    let parts = d.split('.');
-                    return parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}`) : new Date(d);
-                }).filter(d => !isNaN(d.getTime()));
-                if (parsedDates.length === 0) return dateStr;
-                let minDate = new Date(Math.min(...parsedDates));
-                let maxDate = new Date(Math.max(...parsedDates));
-                let formatD = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-                return minDate.getTime() === maxDate.getTime() ? formatD(minDate) : `${formatD(minDate)} - ${formatD(maxDate)}`;
-            };
-
             const payload = [];
             pendingDbSavePayload = [];
             const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
@@ -1108,11 +1102,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     unvan: dbData.comp_adress || "Qeyd edilməyib",
                     firma: isFiziki ? rehberAdi : firmaAdi,
                     voen: voen || "Qeyd edilməyib",
-                    tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
+                    tarixEsas: window.getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
                     soyadiadi: rehberAdi,
                     gb: item.newGb || "",
                     borc: item.newBorc || "0.00",
-                    tarixQosma: getTodayFormatted(),
+                    tarixQosma: window.getTodayFormatted(),
                     safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma"
                 });
 
@@ -1120,13 +1114,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     gomruk_orqani: checkbox.getAttribute("data-idare") || "",
                     firma: isFiziki ? rehberAdi : firmaAdi,
                     voen: voen || "",
-                    tarix_yazilma: getTodayFormatted(),
+                    tarix_yazilma: window.getTodayFormatted(),
                     tarix_borcdovru: targetPeriod || "",
                     melumat: `Bəyannamələr: ${item.newGb}`
                 });
             }
 
-            const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/companies/generate-docs';
+            const generateDocsEndpoint = 'https://webflow-mysql-production.up.railway.app/api/companies/generate-docs';
             const signerData = {
                 leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
                 leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
@@ -1164,7 +1158,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Senedler_${getTodayFormatted()}.zip`;
+            a.download = `Senedler_${window.getTodayFormatted()}.zip`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -1197,18 +1191,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }, 300);
         }
     };
-
-    if(confirmPrezipBtn) {
-        confirmPrezipBtn.addEventListener("click", () => {
-            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
-                if (preZipPopup) preZipPopup.style.display = "none";
-                return;
-            }
-            if (preZipPopup) preZipPopup.style.display = "none";
-            window.executeZipProcess();
-        });
-    }
 
     const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
     if (bildirisQosmaBtn) {
