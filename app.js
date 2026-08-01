@@ -1030,17 +1030,54 @@ document.addEventListener("DOMContentLoaded", function() {
         }); 
     }
 
-    const executeZipProcess = async () => {
-    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-    const oldBtnText = bildirisQosmaBtn ? bildirisQosmaBtn.innerHTML : "Bildiriş + qoşma hazırlanması";
-
-    if (bildirisQosmaBtn) {
-        bildirisQosmaBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ZİP Hazırlanır...`;
-        bildirisQosmaBtn.disabled = true;
+    // YÜKLƏNMƏ (LOADING) EKRANINI YARADAN FUNKSİYA
+const createLoadingOverlay = () => {
+    let overlay = document.getElementById('zip-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'zip-loading-overlay';
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s; pointer-events: none;";
+        
+        overlay.innerHTML = `
+            <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 400px; width: 90%; border: 1px solid #cbd5e1;">
+                <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
+                <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
+                <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifəni bağlamayın...</p>
+                
+                <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
+                    <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
+                </div>
+                <p id="zip-progress-text" style="margin-top: 12px; font-weight: 800; color: #3b82f6; font-size: 15px;">0%</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
     }
+    return overlay;
+};
+
+// ƏSAS ZIP HAZIRLAMA FUNKSİYASI
+const executeZipProcess = async () => {
+    const overlay = createLoadingOverlay();
+    const progressBar = document.getElementById('zip-progress-bar');
+    const progressText = document.getElementById('zip-progress-text');
+    
+    // Loading ekranını göstər
+    overlay.style.display = 'flex';
+    overlay.style.pointerEvents = 'auto';
+    setTimeout(() => overlay.style.opacity = '1', 10);
+
+    // Süni faiz artımı (İstifadəçiyə vizual məlumat vermək üçün)
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += Math.floor(Math.random() * 15) + 5; // 5-20 arası artırır
+            if(progress > 90) progress = 90; // 90%-də dayanır, backend bitirəndə 100% olacaq
+            progressBar.style.width = `${progress}%`;
+            progressText.innerText = `${progress}%`;
+        }
+    }, 600);
 
     try {
-        // 1. Əksik olan getMinMaxDate funksiyasını funksiya daxilinə əlavə etdik ki, xəta verməsin.
         const getMinMaxDate = (dateStr) => {
             if (!dateStr) return "";
             const dates = dateStr.split(',').map(d => d.trim()).filter(d => d);
@@ -1093,10 +1130,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
-        // 2. Yanlış API endpointi dəqiqləşdirildi
         const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-docs';
-
-        // 3. Backendin ehtiyac duya biləcəyi imzalayan şəxslərin məlumatı payload-a əlavə edildi
         const signerData = {
             leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
             leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
@@ -1110,19 +1144,31 @@ document.addEventListener("DOMContentLoaded", function() {
             body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
         });
 
-        if (!response.ok) {
-            let errMsg = 'Server xətası baş verdi.';
-            try {
-                const errData = await response.json();
-                // Backenddən gələn real xəta mesajını tuturuq
-                errMsg = errData.error || errData.message || errMsg;
-            } catch(ex) {
-                errMsg = `Server xətası (Status: ${response.status})`;
-            }
-            throw new Error(errMsg);
+        // 1. Əgər server fayl əvəzinə xəta (JSON) qaytarıbsa
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            const errData = await response.json();
+            throw new Error(errData.error || errData.message || "Server xətası baş verdi.");
         }
 
-        const blob = await response.blob();
+        if (!response.ok) {
+            throw new Error(`Server xətası (Status: ${response.status})`);
+        }
+
+        // 2. BLOB YARADILMA XƏTASININ HƏLLİ
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+        
+        // Proses bitdi - 100% et
+        clearInterval(progressInterval);
+        progressBar.style.width = `100%`;
+        progressText.style.color = `#10b981`; // Rəngi yaşıl edirik
+        progressText.innerText = `100% - Yüklənir!`;
+
+        // Gözün görməsi üçün çox qısa gözləmə
+        await new Promise(r => setTimeout(r, 600));
+
+        // Faylı Kompüterə Yüklə
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1132,6 +1178,7 @@ document.addEventListener("DOMContentLoaded", function() {
         a.remove();
         window.URL.revokeObjectURL(url);
 
+        // Növbəti Pop-up (Baza yazılışı) ekranını hazırla
         if (zipTbody) {
             zipTbody.innerHTML = '';
             pendingDbSavePayload.forEach((obj, idx) => {
@@ -1140,18 +1187,22 @@ document.addEventListener("DOMContentLoaded", function() {
                 zipTbody.appendChild(tr);
             });
         }
-
         if (zipPopup) zipPopup.style.display = 'flex';
 
     } catch (error) {
-        // Hər hansı bir JS xətası və ya Server xətası birbaşa ekranda görünəcək
+        clearInterval(progressInterval);
         alert("XƏTA: " + error.message);
-        console.error("ZIP Generation Error:", error);
+        console.error("ZIP Error:", error);
     } finally {
-        if (bildirisQosmaBtn) {
-            bildirisQosmaBtn.innerHTML = oldBtnText;
-            bildirisQosmaBtn.disabled = false;
-        }
+        // Hər şey bitdikdə və ya xəta olduqda Loading ekranını bağla
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            progressText.style.color = '#3b82f6';
+        }, 300);
     }
 };
 
