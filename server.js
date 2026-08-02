@@ -205,24 +205,16 @@ app.post('/api/generate-docs', async (req, res) => {
                 const docSablon = new Docxtemplater(docSablonZip, { paragraphLoop: true, linebreaks: true });
 
                 docSablon.render({
-
-                    unvan: firm.unvan,
-
-                    firma: firm.firma,
-
-                    voen: firm.voen,
-
-                    tarix: firm.tarixEsas,
-
-                    leaderperson: signers.leaderperson,
-
-                    leadername: signers.leadername,
-
-                    secondperson: signers.secondperson,
-
-                    phone: signers.phone
-
-                });
+    unvan: firm.unvan,
+    firma: firm.firma,
+    voen: firm.voen,
+    tarix: firm.tarixEsas,
+    uzatma: firm.uzatma, 
+    leaderperson: signers.leaderperson,
+    leadername: signers.leadername,
+    secondperson: signers.secondperson,
+    phone: signers.phone
+});
 
                 const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
 
