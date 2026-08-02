@@ -1261,16 +1261,17 @@ document.addEventListener("DOMContentLoaded", function() {
                 const rehberAdi = dbData.comp_director_name || "Qeyd edilməyib";
 
                 payload.push({
-                    unvan: dbData.comp_adress || "Qeyd edilməyib",
-                    firma: isFiziki ? rehberAdi : firmaAdi,
-                    voen: voen || "Qeyd edilməyib",
-                    tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
-                    soyadiadi: rehberAdi,
-                    gb: item.newGb || "",
-                    borc: item.newBorc || "0.00",
-                    tarixQosma: getTodayFormatted(),
-                    safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma"
-                });
+    unvan: dbData.comp_adress || "Qeyd edilməyib",
+    firma: isFiziki ? rehberAdi : firmaAdi,
+    voen: voen || "Qeyd edilməyib",
+    tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
+    soyadiadi: rehberAdi,
+    gb: item.newGb || "",
+    borc: item.newBorc || "0.00",
+    tarixQosma: getTodayFormatted(),
+    safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
+    uzatma: isFiziki ? "na" : "yə" 
+});
 
                 pendingDbSavePayload.push({
                     gomruk_orqani: checkbox.getAttribute("data-idare") || "",
