@@ -683,28 +683,54 @@ app.post('/api/generate-cover', async (req, res) => {
         // GitHub-dan şablonu çəkirik
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/convertsablon.docx";
         const sablonRes = await axios.get(sablon_url, { responseType: 'arraybuffer' });
+        const sablonBuffer = sablonRes.data;
 
-        // Şablona göndəriləcək obyekt
-        const firmsForTemplate = selectedFirms.map(f => ({
-            covergo: coverData.go,
-            coveradres: coverData.adres,
-            covername: f.covername,
-            covercompany: f.covercompany,
-            covercompanyadres: f.covercompanyadres,
-            index: f.index
-        }));
+        // Əsas ZIP obyekti yaradırıq (Bütün fərdi Word-lər bura yığılacaq)
+        const zipOutput = new JSZip();
 
-        const zip = new PizZip(sablonRes.data);
-        const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+        // Hər bir firma üçün fərdi Word sənədi yaradırıq
+        for (let i = 0; i < selectedFirms.length; i++) {
+            const f = selectedFirms[i];
+            
+            // Faylın adı üçün xüsusi simvolları təmizləyirik
+            const rawName = f.covercompany || f.covername || `Firma_${i+1}`;
+            const safeName = rawName.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
+
+            const data = {
+                covergo: coverData.go || "",
+                coveradres: coverData.adres || "",
+                covername: f.covername || "",
+                covercompany: f.covercompany || "",
+                covercompanyadres: f.covercompanyadres || "",
+                index: f.index || ""
+            };
+
+            try {
+                const docZip = new PizZip(sablonBuffer);
+                const doc = new Docxtemplater(docZip, { 
+                    paragraphLoop: true, 
+                    linebreaks: true,
+                    nullGetter: function(part) { return ""; } // "undefined" yazılmasının qarşısını alır
+                });
+                
+                doc.render(data);
+                
+                const outDocx = doc.getZip().generate({ type: "nodebuffer" });
+                
+                // Yaradılmış tək Word faylını ZIP-in içinə atırıq
+                zipOutput.file(`Zerf_${safeName}.docx`, outDocx);
+            } catch (docErr) {
+                console.error(`Sənəd yaratma xətası:`, docErr);
+            }
+        }
+
+        // Yekun ZIP faylını hazırlayırıq
+        const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
         
-        // Şablona 'firms' arrayini ötürürük
-        doc.render({ firms: firmsForTemplate });
-
-        const buf = doc.getZip().generate({ type: "nodebuffer", compression: "STORE" });
-        
-        res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlugu.docx');
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        return res.send(buf);
+        // ZIP olaraq client-ə göndəririk
+        res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlukleri.zip');
+        res.setHeader('Content-Type', 'application/zip');
+        return res.send(zipBuffer);
 
     } catch (err) {
         console.error(err);
@@ -713,7 +739,6 @@ app.post('/api/generate-cover', async (req, res) => {
         if (connection) await connection.end();
     }
 });
-
 
 
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
