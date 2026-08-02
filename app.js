@@ -267,127 +267,136 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
 
+////
     function renderBildirisTable(highlightId = null) {
-        if (!bildirisTbody) return;
-        
-        let sortedData = [...allBildirislerData].sort((a, b) => {
-            const aEmpty = (!a.bildiris_nomresi || a.bildiris_nomresi.trim() === '');
-            const bEmpty = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
-            if (aEmpty && !bEmpty) return -1;
-            if (!aEmpty && bEmpty) return 1;
-            return b.id - a.id; 
-        });
+    if (!bildirisTbody) return;
+    
+    let sortedData = [...allBildirislerData].sort((a, b) => {
+        const aEmpty = (!a.bildiris_nomresi || a.bildiris_nomresi.trim() === '');
+        const bEmpty = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
+        if (aEmpty && !bEmpty) return -1;
+        if (!aEmpty && bEmpty) return 1;
+        return b.id - a.id; 
+    });
 
-        if (highlightId) {
-            const targetIndex = sortedData.findIndex(item => item.id.toString() === highlightId.toString());
-            if (targetIndex !== -1) {
-                currentBilPage = Math.floor(targetIndex / bilRowsPerPage) + 1;
-            }
-        }
-
-        const totalPages = Math.ceil(sortedData.length / bilRowsPerPage) || 1;
-        if (currentBilPage > totalPages) currentBilPage = totalPages;
-
-        const startIndex = (currentBilPage - 1) * bilRowsPerPage;
-        const pageData = sortedData.slice(startIndex, startIndex + bilRowsPerPage);
-
-        bildirisTbody.innerHTML = '';
-        if (pageData.length === 0) {
-            bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Sistemdə heç bir bildiriş məlumatı tapılmadı.</td></tr>`;
-            renderBilPagination(totalPages);
-            return;
-        }
-        
-        pageData.forEach(b => {
-            const tr = document.createElement('tr');
-            if (highlightId && b.id.toString() === highlightId.toString()) {
-                tr.classList.add('highlight-row');
-            }
-
-            let isMissing = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
-            
-            tr.setAttribute('data-id', b.id);
-            tr.setAttribute('data-orqan', b.gomruk_orqani || '');
-            tr.setAttribute('data-firma', b.firma || '');
-            tr.setAttribute('data-voen', b.voen || '');
-            tr.setAttribute('data-tarix', b.tarix_yazilma || '');
-            tr.setAttribute('data-dovr', b.tarix_borcdovru || '');
-            tr.setAttribute('data-melumat', b.melumat || '');
-            tr.setAttribute('data-nomre', b.bildiris_nomresi || '');
-
-            let safeFirma = (b.firma || '').replace(/"/g, '&quot;');
-            let melumatText = b.melumat || '';
-
-            if (isMissing) {
-                tr.innerHTML = `
-                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
-                    <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
-                    <td>
-                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
-                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
-                    </td>
-                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
-                    <td>
-                        <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
-                            <input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
-                            <button class="btn-primary" style="width:100%; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
-                                <i class="fa-solid fa-save"></i> Saxla
-                            </button>
-                        </div>
-                    </td>`;
-            } else {
-                tr.innerHTML = `
-                    <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
-                    <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
-                    <td>
-                        <div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div>
-                        <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
-                        <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
-                    </td>
-                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
-                    <td>
-                        <div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
-                            <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
-                            <div style="display:flex; gap:6px;">
-                                <button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
-                            <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
-                            <div style="display:flex; gap:6px; width:100%;">
-                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
-                                    <i class="fa-solid fa-save"></i> Saxla
-                                </button>
-                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">
-                                    <i class="fa-solid fa-xmark"></i> Ləğv
-                                </button>
-                            </div>
-                        </div>
-                    </td>`;
-            }
-            bildirisTbody.appendChild(tr);
-        });
-
-        renderBilPagination(totalPages);
-
-        if (highlightId) {
-            setTimeout(() => {
-                const targetRow = document.querySelector(`tr[data-id="${highlightId}"]`);
-                if (targetRow) {
-                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    const inputField = targetRow.querySelector('.modal-input[placeholder="Nömrə əlavə et..."]');
-                    if (inputField) {
-                        setTimeout(() => inputField.focus(), 500);
-                    }
-                }
-            }, 300);
+    if (highlightId) {
+        const targetIndex = sortedData.findIndex(item => item.id.toString() === highlightId.toString());
+        if (targetIndex !== -1) {
+            currentBilPage = Math.floor(targetIndex / bilRowsPerPage) + 1;
         }
     }
+
+    const totalPages = Math.ceil(sortedData.length / bilRowsPerPage) || 1;
+    if (currentBilPage > totalPages) currentBilPage = totalPages;
+
+    const startIndex = (currentBilPage - 1) * bilRowsPerPage;
+    const pageData = sortedData.slice(startIndex, startIndex + bilRowsPerPage);
+
+    bildirisTbody.innerHTML = '';
+    if (pageData.length === 0) {
+        bildirisTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Sistemdə heç bir bildiriş məlumatı tapılmadı.</td></tr>`;
+        renderBilPagination(totalPages);
+        return;
+    }
+    
+    pageData.forEach(b => {
+        const tr = document.createElement('tr');
+        if (highlightId && b.id.toString() === highlightId.toString()) {
+            tr.classList.add('highlight-row');
+        }
+
+        let isMissing = (!b.bildiris_nomresi || b.bildiris_nomresi.trim() === '');
+        
+        tr.setAttribute('data-id', b.id);
+        tr.setAttribute('data-orqan', b.gomruk_orqani || '');
+        tr.setAttribute('data-firma', b.firma || '');
+        tr.setAttribute('data-voen', b.voen || '');
+        tr.setAttribute('data-tarix', b.tarix_yazilma || '');
+        tr.setAttribute('data-dovr', b.tarix_borcdovru || '');
+        tr.setAttribute('data-melumat', b.melumat || '');
+        tr.setAttribute('data-nomre', b.bildiris_nomresi || '');
+
+        let safeFirma = (b.firma || '').replace(/"/g, '&quot;');
+        let melumatText = b.melumat || '';
+
+        if (isMissing) {
+            tr.innerHTML = `
+                <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
+                <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
+                <td>
+                    <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                    <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
+                </td>
+                <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
+                <td>
+                    <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
+                        <input type="text" class="modal-input edit-nomre-${b.id}" placeholder="Nömrə əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
+                        <div style="display:flex; gap:6px; width:100%;">
+                            <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
+                                <i class="fa-solid fa-save"></i> Saxla
+                            </button>
+                            <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#ef4444; color:white;" onclick="deleteBildiris(${b.id})">
+                                <i class="fa-solid fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                </td>`;
+        } else {
+            tr.innerHTML = `
+                <td style="font-size: 11px; color:#475569;">${b.gomruk_orqani || '—'}</td>
+                <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${b.voen || '—'}</div></td>
+                <td>
+                    <div class="view-tarix-${b.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${b.tarix_yazilma || '—'}</div>
+                    <input type="text" class="modal-input edit-tarix-${b.id}" value="${b.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                    <div style="font-size:11px; color:#64748b;">${b.tarix_borcdovru || '—'}</div>
+                </td>
+                <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
+                <td>
+                    <div class="view-panel-${b.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
+                        <span style="color:#166534; font-weight:700; font-size:13px;">${b.bildiris_nomresi}</span>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="enableEditMode(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Dəyişdir">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteBildiris(${b.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Sil">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="edit-panel-${b.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
+                        <input type="text" class="modal-input edit-nomre-${b.id}" value="${b.bildiris_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
+                        <div style="display:flex; gap:6px; width:100%;">
+                            <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateBildirisFromTable(${b.id})">
+                                <i class="fa-solid fa-save"></i> Saxla
+                            </button>
+                            <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#ef4444; color:white;" onclick="deleteBildiris(${b.id})">
+                                <i class="fa-solid fa-trash"></i> Sil
+                            </button>
+                            <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelEditMode(${b.id})">
+                                <i class="fa-solid fa-xmark"></i> Ləğv
+                            </button>
+                        </div>
+                    </div>
+                </td>`;
+        }
+        bildirisTbody.appendChild(tr);
+    });
+
+    renderBilPagination(totalPages);
+
+    if (highlightId) {
+        setTimeout(() => {
+            const targetRow = document.querySelector(`tr[data-id="${highlightId}"]`);
+            if (targetRow) {
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const inputField = targetRow.querySelector('.modal-input[placeholder="Nömrə əlavə et..."]');
+                if (inputField) {
+                    setTimeout(() => inputField.focus(), 500);
+                }
+            }
+        }, 300);
+    }
+}
 
     function renderBilPagination(totalPages) {
         let container = document.getElementById('bildiris-pagination-controls');
