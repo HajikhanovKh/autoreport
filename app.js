@@ -130,38 +130,75 @@ function saveCoverData() {
 function openCoverGenerateModal(e) {
     e.preventDefault();
     const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-    if (checkedFirms.length === 0) { alert("Zəhmət olmasa siyahıdan ən azı bir firma seçin!"); return; }
+    if (checkedFirms.length === 0) { 
+        alert("Zəhmət olmasa siyahıdan ən azı bir firma seçin!"); 
+        return; 
+    }
 
     let listHtml = "";
     window.pendingCovers = [];
 
     checkedFirms.forEach(cb => {
-        const voen = cb.getAttribute("data-voen");
-        const isFiziki = cb.getAttribute("data-isfiziki") === "true";
-        const firmaAdi = (cb.getAttribute("data-firma") || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-        const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {};
+        // Məlumatları alırıq və "undefined" sözünə qarşı qoruyuruq
+        let voen = cb.getAttribute("data-voen") || "";
+        if (voen === "undefined" || voen === "null") voen = "";
+
+        let isFiziki = cb.getAttribute("data-isfiziki") === "true";
         
-        const director = dbData.comp_director_name || "Qeyd edilməyib";
+        let rawFirma = cb.getAttribute("data-firma") || "";
+        if (rawFirma === "undefined" || rawFirma === "null") rawFirma = "";
+        const firmaAdi = rawFirma.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+        
+        let dbData = {};
+        if (typeof allCompaniesData !== "undefined" && Array.isArray(allCompaniesData)) {
+            dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {};
+        }
+        
+        let director = dbData.comp_director_name || "";
+        if (!director || director === "undefined" || director === "null") director = "Qeyd edilməyib";
+        
         let fullAddress = dbData.comp_adress || "";
+        if (!fullAddress || fullAddress === "undefined" || fullAddress === "null") fullAddress = "Ünvan qeyd edilməyib";
         
         let zipIndex = "";
         let cleanAddress = fullAddress;
+        
+        // İndeksi ayırmaq
         let match = fullAddress.match(/(AZ[-\s]?\d{4})/i);
-        if (match) {
+        if (match && match[1]) {
             zipIndex = match[1];
             cleanAddress = fullAddress.replace(match[1], '').replace(/^[,\s]+|[,\s]+$/g, '').trim();
         }
 
+        // Əgər təmizləndikdən sonra boş qalarsa
+        if (!cleanAddress) cleanAddress = "Ünvan qeyd edilməyib";
+
         const covername = director;
         const covercompany = isFiziki ? "" : firmaAdi;
+        
+        // Ekrana təmiz yazdırmaq üçün hazırlıq
+        const finalDisplayName = covercompany ? covercompany : covername;
+        const finalZipIndex = zipIndex ? zipIndex : "";
 
-        window.pendingCovers.push({ covername, covercompany, covercompanyadres: cleanAddress, index: zipIndex });
+        window.pendingCovers.push({ 
+            covername: covername, 
+            covercompany: covercompany, 
+            covercompanyadres: cleanAddress, 
+            index: finalZipIndex 
+        });
 
         listHtml += `<li style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:8px;">
-            <div style="font-weight:700; color:#1e293b; font-size:13px;">${covercompany || covername} <span style="color:#8b5cf6; float:right;">${zipIndex}</span></div>
+            <div style="font-weight:700; color:#1e293b; font-size:13px;">${finalDisplayName} <span style="color:#8b5cf6; float:right;">${finalZipIndex}</span></div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">${cleanAddress}</div>
         </li>`;
     });
+
+    const coverGenList = document.getElementById('cover-gen-list');
+    if (coverGenList) coverGenList.innerHTML = listHtml;
+    
+    const coverGenModal = document.getElementById('cover-gen-modal');
+    if (coverGenModal) coverGenModal.style.display = 'flex';
+}
 
     document.getElementById('cover-gen-list').innerHTML = listHtml;
     coverGenModal.style.display = 'flex';
