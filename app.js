@@ -959,6 +959,10 @@ async function executeCoverGenerate() {
     if (fileBtn && fileArea) {
         let fileInput = document.createElement('input'); 
         fileInput.type = 'file'; 
+        
+        // 1-Cİ QORUMA: Kompüterin fayl pəncərəsində yalnız Excel faylları görünsün
+        fileInput.accept = '.xlsx, .xls'; 
+        
         fileInput.style.display = 'none'; 
         document.body.appendChild(fileInput);
         
@@ -970,6 +974,19 @@ async function executeCoverGenerate() {
         fileInput.addEventListener('change', () => { 
             if (fileInput.files.length > 0) { 
                 selectedFile = fileInput.files[0]; 
+                
+                // 2-Cİ QORUMA: Kimsə zorla başqa fayl seçərsə, xəbərdarlıq ver və sıfırla
+                const fileName = selectedFile.name.toLowerCase();
+                if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+                    alert("Diqqət: Zəhmət olmasa, yalnız Excel (.xlsx və ya .xls) formatında fayl yükləyin!");
+                    fileInput.value = ''; // Seçimi təmizlə
+                    selectedFile = null;
+                    fileArea.innerText = "Faylı seçin...";
+                    fileArea.style.color = "#64748b";
+                    return;
+                }
+
+                // Əgər Excel-dirsə, adı ekrana yaz və mavi rəng et
                 fileArea.innerText = selectedFile.name; 
                 fileArea.style.color = "#3b82f6"; 
             } 
