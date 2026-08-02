@@ -69,6 +69,18 @@ async function initializeTables() {
             )
 
         `);
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS coverinfo (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                go VARCHAR(255),
+                adres VARCHAR(255)
+            )
+        `);
+        // Əgər cədvəl boşdursa, ilkin məlumatı əlavə et
+        const [coverRows] = await connection.execute('SELECT COUNT(*) as count FROM coverinfo');
+        if (coverRows[0].count === 0) {
+            await connection.execute('INSERT INTO coverinfo (go, adres) VALUES (?, ?)', ['Gömrük Orqanının Adı', 'Ünvan daxil edin']);
+        }
 
         await connection.execute(`
 
@@ -632,6 +644,74 @@ app.delete('/api/bildirisler/:id', async (req, res) => {
 
     }
 
+});
+
+// ==========================================
+// ZƏRF AYARLARI VƏ ÜZLÜK GENERASİYASI API
+// ==========================================
+app.get('/api/coverinfo', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT * FROM coverinfo ORDER BY id ASC LIMIT 1');
+        res.json(rows[0] || { go: '', adres: '' });
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
+});
+
+app.put('/api/coverinfo/:id', async (req, res) => {
+    let connection;
+    try {
+        const { go, adres } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute('UPDATE coverinfo SET go = ?, adres = ? WHERE id = ?', [go, adres, req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+    finally { if (connection) await connection.end(); }
+});
+
+app.post('/api/generate-cover', async (req, res) => {
+    let connection;
+    try {
+        const { selectedFirms } = req.body;
+        if (!selectedFirms || selectedFirms.length === 0) return res.status(400).json({ error: "Firma seçilməyib" });
+
+        connection = await mysql.createConnection(dbConfig);
+        const [cRows] = await connection.execute('SELECT * FROM coverinfo LIMIT 1');
+        const coverData = cRows.length > 0 ? cRows[0] : { go: '', adres: '' };
+
+        // GitHub-dan şablonu çəkirik
+        const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/convertsablon.docx";
+        const sablonRes = await axios.get(sablon_url, { responseType: 'arraybuffer' });
+
+        // Şablona göndəriləcək obyekt
+        const firmsForTemplate = selectedFirms.map(f => ({
+            covergo: coverData.go,
+            coveradres: coverData.adres,
+            covername: f.covername,
+            covercompany: f.covercompany,
+            covercompanyadres: f.covercompanyadres,
+            index: f.index
+        }));
+
+        const zip = new PizZip(sablonRes.data);
+        const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+        
+        // Şablona 'firms' arrayini ötürürük
+        doc.render({ firms: firmsForTemplate });
+
+        const buf = doc.getZip().generate({ type: "nodebuffer", compression: "STORE" });
+        
+        res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlugu.docx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        return res.send(buf);
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Sənəd yaradılarkən xəta: ' + err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
 });
 
 
