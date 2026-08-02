@@ -118,7 +118,7 @@ initializeTables();
 
 // ==========================================
 
-app.post('/api/companies/generate-docs', async (req, res) => {
+app.post('/api/generate-docs', async (req, res) => {
 
     let connection;
 
