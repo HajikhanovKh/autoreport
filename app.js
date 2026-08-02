@@ -215,18 +215,22 @@ async function executeCoverGenerate() {
         if (!response.ok) throw new Error("Server xətası yarandı");
 
         const arrayBuffer = await response.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        
+        // DƏYİŞİKLİK: Tipi 'application/zip' etdik
+        const blob = new Blob([arrayBuffer], { type: 'application/zip' });
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Zərf_Uzlükleri_${getTodayFormatted()}.docx`;
+        
+        // DƏYİŞİKLİK: Endirmə formatını .zip etdik
+        a.download = `Zerf_Uzlukleri_${getTodayFormatted()}.zip`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
 
-        coverGenModal.style.display = 'none';
+        document.getElementById('cover-gen-modal').style.display = 'none';
     } catch (error) {
         alert("Xəta: " + error.message);
     } finally {
