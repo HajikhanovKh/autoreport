@@ -67,7 +67,140 @@ document.addEventListener("DOMContentLoaded", function() {
         // ==================================================
     // ZƏRF AYARLARI VƏ HAZIRLANMASI (DİNAMİK UI VƏ MƏNTİQ)
     // ==================================================
+    // ==================================================
+// ZƏRF AYARLARI VƏ HAZIRLANMASI (MƏNTİQ)
+// ==================================================
+const COVER_API = 'https://autoreport-production.up.railway.app/api/coverinfo';
+let currentCoverId = 1;
+
+// Elementləri tapırıq
+const coverSettingsModal = document.getElementById('cover-settings-modal');
+const coverGenModal = document.getElementById('cover-gen-modal');
+const btnOpenCoverSettings = document.getElementById('btn-open-cover-settings');
+const btnOpenCoverGen = document.getElementById('btn-open-cover-gen');
+
+// Düymələrə klikləri bağlayırıq
+if(btnOpenCoverSettings) btnOpenCoverSettings.addEventListener('click', openCoverSettings);
+if(btnOpenCoverGen) btnOpenCoverGen.addEventListener('click', openCoverGenerateModal);
+
+document.getElementById('btn-cover-close').onclick = () => coverSettingsModal.style.display = 'none';
+document.getElementById('btn-cover-edit').onclick = () => toggleCoverMode(true);
+document.getElementById('btn-cover-cancel').onclick = () => toggleCoverMode(false);
+document.getElementById('btn-cover-save').onclick = saveCoverData;
+document.getElementById('btn-execute-cover').onclick = executeCoverGenerate;
+
+function openCoverSettings(e) {
+    e.preventDefault();
+    coverSettingsModal.style.display = 'flex';
+    fetchCoverData();
+}
+
+function toggleCoverMode(isEdit) {
+    document.getElementById('cover-view-mode').style.display = isEdit ? 'none' : 'block';
+    document.getElementById('cover-edit-mode').style.display = isEdit ? 'block' : 'none';
+    document.getElementById('btn-cover-edit').style.display = isEdit ? 'none' : 'inline-block';
+    document.getElementById('btn-cover-close').style.display = isEdit ? 'none' : 'inline-block';
+    document.getElementById('btn-cover-save').style.display = isEdit ? 'inline-block' : 'none';
+    document.getElementById('btn-cover-cancel').style.display = isEdit ? 'inline-block' : 'none';
+}
+
+function fetchCoverData() {
+    fetch(COVER_API).then(r => r.json()).then(data => {
+        currentCoverId = data.id || 1;
+        document.getElementById('cv-go').innerText = data.go || '-';
+        document.getElementById('cv-adres').innerText = data.adres || '-';
+        document.getElementById('ci-go').value = data.go || '';
+        document.getElementById('ci-adres').value = data.adres || '';
+    }).catch(err => console.error(err));
+}
+
+function saveCoverData() {
+    const payload = { go: document.getElementById('ci-go').value, adres: document.getElementById('ci-adres').value };
+    const btn = document.getElementById('btn-cover-save');
+    btn.innerText = "Gözləyin..."; btn.disabled = true;
     
+    fetch(`${COVER_API}/${currentCoverId}`, {
+        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+    }).then(() => {
+        fetchCoverData();
+        toggleCoverMode(false);
+    }).finally(() => { btn.innerText = "Saxla"; btn.disabled = false; });
+}
+
+function openCoverGenerateModal(e) {
+    e.preventDefault();
+    const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+    if (checkedFirms.length === 0) { alert("Zəhmət olmasa siyahıdan ən azı bir firma seçin!"); return; }
+
+    let listHtml = "";
+    window.pendingCovers = [];
+
+    checkedFirms.forEach(cb => {
+        const voen = cb.getAttribute("data-voen");
+        const isFiziki = cb.getAttribute("data-isfiziki") === "true";
+        const firmaAdi = (cb.getAttribute("data-firma") || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+        const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {};
+        
+        const director = dbData.comp_director_name || "Qeyd edilməyib";
+        let fullAddress = dbData.comp_adress || "";
+        
+        let zipIndex = "";
+        let cleanAddress = fullAddress;
+        let match = fullAddress.match(/(AZ[-\s]?\d{4})/i);
+        if (match) {
+            zipIndex = match[1];
+            cleanAddress = fullAddress.replace(match[1], '').replace(/^[,\s]+|[,\s]+$/g, '').trim();
+        }
+
+        const covername = director;
+        const covercompany = isFiziki ? "" : firmaAdi;
+
+        window.pendingCovers.push({ covername, covercompany, covercompanyadres: cleanAddress, index: zipIndex });
+
+        listHtml += `<li style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:8px;">
+            <div style="font-weight:700; color:#1e293b; font-size:13px;">${covercompany || covername} <span style="color:#8b5cf6; float:right;">${zipIndex}</span></div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">${cleanAddress}</div>
+        </li>`;
+    });
+
+    document.getElementById('cover-gen-list').innerHTML = listHtml;
+    coverGenModal.style.display = 'flex';
+}
+
+async function executeCoverGenerate() {
+    const btn = document.getElementById('btn-execute-cover');
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Hazırlanır...`;
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selectedFirms: window.pendingCovers })
+        });
+
+        if (!response.ok) throw new Error("Server xətası yarandı");
+
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Zərf_Uzlükleri_${getTodayFormatted()}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        coverGenModal.style.display = 'none';
+    } catch (error) {
+        alert("Xəta: " + error.message);
+    } finally {
+        btn.innerHTML = `<i class="fa-solid fa-file-word"></i> Hazırla və Yüklə`;
+        btn.disabled = false;
+    }
+}
     });
 
     const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
