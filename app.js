@@ -67,9 +67,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // ==================================================
     // ZƏRF AYARLARI VƏ HAZIRLANMASI (DİNAMİK UI VƏ MƏNTİQ)
     // ==================================================
-    // ==================================================
-// ZƏRF AYARLARI VƏ HAZIRLANMASI (MƏNTİQ)
-// ==================================================
+
 const COVER_API = 'https://autoreport-production.up.railway.app/api/coverinfo';
 let currentCoverId = 1;
 
@@ -200,9 +198,7 @@ function openCoverGenerateModal(e) {
     if (coverGenModal) coverGenModal.style.display = 'flex';
 }
 
-    document.getElementById('cover-gen-list').innerHTML = listHtml;
-    coverGenModal.style.display = 'flex';
-}
+
 
 async function executeCoverGenerate() {
     const btn = document.getElementById('btn-execute-cover');
