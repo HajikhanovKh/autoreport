@@ -1138,7 +1138,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                     }; 
                                 }
                                 
-                                // YENİ: I (İxrac, index 8) və M (İnvoys, index 12) Sütunları
                                 const ixracStr = row[8] ? row[8].toString().trim() : "";
                                 const invoysVal = parseFloat(row[12]) || 0;
 
@@ -1205,13 +1204,11 @@ document.addEventListener("DOMContentLoaded", function() {
                                     isVoenInDb = false; 
                                 }
 
-                                // BİLDİRİŞ DƏYİŞƏNLƏRİ
                                 let newDecls = [];
                                 let oldDecls = [];
                                 let newBorc = 0;
                                 let newTarixler = new Set();
                                 
-                                // RAPORT DƏYİŞƏNLƏRİ 
                                 let oldRaportDecls = [];
                                 let newRaportDecls = [];
                                 let newRaportBorc = 0;
@@ -1234,7 +1231,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                     let tarixleri = Array.from(item.decls[nomre].tarixler);
                                     let regex = new RegExp(`\\b${nomre}\\b`);
                                     
-                                    // BİLDİRİŞ YOXLANIŞI
                                     let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
                                     if (matchedRecord) {
                                         hasBildiris = true;
@@ -1248,7 +1244,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                         accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
                                     }
 
-                                    // RAPORT YOXLANIŞI 
                                     let matchedRaport = foundRaportsForFirm.find(r => r.melumat && regex.test(r.melumat));
                                     if (matchedRaport) {
                                         oldRaportDecls.push(nomre);
@@ -1650,7 +1645,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             }
 
-            // DİQQƏT: Backend-də raport sənədini formalaşdırmaq üçün "/api/generate-raports" adlı yol olmalıdır.
             const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
             
             const response = await fetch(generateDocsEndpoint, {
@@ -1737,7 +1731,8 @@ document.addEventListener("DOMContentLoaded", function() {
             let firmsToProcess = [];
             let warningHtml = "";
 
-            for (const checkbox of checkedFirms) {
+            for (let i=0; i<checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
                 let oldGb = checkbox.getAttribute("data-old-gb") || "";
                 let newGb = checkbox.getAttribute("data-new-gb") || "";
                 let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
@@ -1762,7 +1757,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // RAPORT QOŞMA ÜÇÜN HESABLAMALAR VƏ GÖRÜNÜŞ (DİNAMİK BİLDİRİŞ YOXLAMASI İLƏ)
     const raportQosmaBtn = document.getElementById("btn-raport-qosma");
     if (raportQosmaBtn) {
         raportQosmaBtn.addEventListener("click", function(e) {
@@ -1775,47 +1769,74 @@ document.addEventListener("DOMContentLoaded", function() {
             let firmsToProcess = [];
             let warningHtml = "";
 
-            for (const checkbox of checkedFirms) {
+            for (let i = 0; i < checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
                 let voen = checkbox.getAttribute("data-voen") || "";
+                let idare = checkbox.getAttribute("data-idare") || "";
                 let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
                 let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
                 let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
+                let oldRaportGb = checkbox.getAttribute("data-old-raport-gb") || "";
                 let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
                 let isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
                 let ixracList = checkbox.getAttribute("data-new-raport-ixrac") || "";
                 let invoysSum = checkbox.getAttribute("data-new-raport-invoys") || "0";
 
                 if (newRaportGb.trim() !== "") {
-                    let bildirisHtml = "";
+                    let bildirisHtml = `<div style="display:flex; flex-wrap:wrap; gap:10px; padding: 10px; background:#f8fafc; border-radius:8px; border:1px solid #cbd5e1;">`;
                     let gbArr = newRaportGb.split(',').map(s => s.trim()).filter(s => s);
-                    
+                    let hasMissingNomre = false;
+
                     gbArr.forEach(gb => {
                         let regex = new RegExp(`\\b${gb}\\b`);
-                        // Müvafiq Bildiriş Qeydini Tapırıq
                         let matchedRecord = allBildirislerData.find(b => b.melumat && regex.test(b.melumat) && ((voen && b.voen === voen) || (!voen && b.firma === firmaAdi)));
 
                         if (matchedRecord) {
                             if (matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "") {
-                                bildirisHtml += `<div style="margin-bottom:4px; font-size:11px;"><strong>${gb}:</strong> <span style="color:#166534;">${matchedRecord.tarix_yazilma} / № ${matchedRecord.bildiris_nomresi}</span></div>`;
-                            } else {
-                                // Bildiriş nömrəsi yoxdursa -> SARI XANA YARADIRIQ
-                                bildirisHtml += `<div style="margin-bottom:4px; font-size:11px; display:flex; align-items:center; gap:6px;">
+                                bildirisHtml += `<div style="flex: 1 1 45%; min-width: 200px; display:flex; align-items:center; gap:8px; font-size:12px;">
                                     <strong>${gb}:</strong> 
-                                    <input type="text" class="missing-bildiris-input" data-bil-id="${matchedRecord.id}" placeholder="Nömrə yaz" style="background:#fef08a; padding:4px 6px; font-size:11px; width:100px; border:1px solid #fde047; border-radius:4px; outline:none; color:#0f172a;">
+                                    <input type="text" class="missing-bildiris-input" data-bil-id="${matchedRecord.id}" value="${matchedRecord.bildiris_nomresi}" style="background:#f0fdf4; padding:6px; font-size:11px; width:100%; border:1px solid #bbf7d0; border-radius:4px; outline:none; color:#166534;" title="Tarix: ${matchedRecord.tarix_yazilma}">
+                                </div>`;
+                            } else {
+                                hasMissingNomre = true;
+                                bildirisHtml += `<div style="flex: 1 1 45%; min-width: 200px; display:flex; align-items:center; gap:8px; font-size:12px;">
+                                    <strong>${gb}:</strong> 
+                                    <input type="text" class="missing-bildiris-input" data-bil-id="${matchedRecord.id}" placeholder="Nömrə daxil edin..." style="background:#fef08a; padding:6px; font-size:11px; width:100%; border:1px solid #fde047; border-radius:4px; outline:none; color:#0f172a; box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.3);">
                                 </div>`;
                             }
                         } else {
-                            bildirisHtml += `<div style="margin-bottom:4px; font-size:11px; color:#ef4444;"><strong>${gb}:</strong> Bildiriş yoxdur</div>`;
+                            bildirisHtml += `<div style="flex: 1 1 45%; min-width: 200px; display:flex; align-items:center; gap:8px; font-size:12px; color:#ef4444;">
+                                <strong>${gb}:</strong> <span>Bazada yoxdur</span>
+                            </div>`;
                         }
                     });
+                    bildirisHtml += `</div>`;
 
-                    // Cədvəlin Sətri (Malın adı inputu da burada yerləşir)
-                    warningHtml += `<tr>
-                        <td><strong>${firmaAdi}</strong><br><span style="font-size:10px; color:#64748b;">VÖEN: ${voen || 'Yoxdur'}</span></td>
-                        <td style="color:#2563eb; font-weight:600; font-size:12px;">${newRaportGb}</td>
-                        <td>${bildirisHtml}</td>
-                        <td><input type="text" class="malin-adi-input" data-voen="${voen}" data-firma="${rawFirmaAdi}" placeholder="Malın adı" style="width:100%; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none;"></td>
+                    let warningBadge = hasMissingNomre ? `<div style="margin-top:6px; color:#ef4444; font-size:11px; font-weight:bold; display:inline-flex; align-items:center; gap:4px; background: #fee2e2; padding: 4px 8px; border-radius: 6px;"><i class="fa-solid fa-triangle-exclamation"></i> Məlumat əksikdir!</div>` : `<div style="margin-top:6px; color:#10b981; font-size:11px; font-weight:bold; display:inline-flex; align-items:center; gap:4px; background: #dcfce7; padding: 4px 8px; border-radius: 6px;"><i class="fa-solid fa-check-circle"></i> Tamamdır</div>`;
+
+                    let rowId = `raport-row-${i}`;
+
+                    warningHtml += `
+                    <tr style="background: ${hasMissingNomre ? '#fffbeb' : '#ffffff'}; border-bottom: none;">
+                        <td>
+                            <strong style="color:#0f172a;">${idare}</strong><br>
+                            <span style="font-size:11px; color:#475569;">${firmaAdi}</span><br>
+                            ${warningBadge}
+                        </td>
+                        <td style="color:#ef4444; font-size:11px;">${oldRaportGb || "Yoxdur"}</td>
+                        <td style="color:#10b981; font-weight:600; font-size:12px;">${newRaportGb}</td>
+                        <td>
+                            <input type="text" class="malin-adi-input" data-voen="${voen}" data-firma="${rawFirmaAdi}" placeholder="Malın adı..." style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                        </td>
                         <td style="font-weight:bold; color:#1e293b; white-space:nowrap;">${newRaportBorc} ABŞ</td>
+                        <td style="text-align:center;">
+                            <button class="btn-sec toggle-raport-details" data-target="${rowId}" style="padding:6px 10px; font-size:12px;"><i class="fa-solid fa-chevron-down"></i></button>
+                        </td>
+                    </tr>
+                    <tr id="${rowId}" style="display:none; background:#f8fafc; border-top:1px dashed #cbd5e1;">
+                        <td colspan="6" style="padding: 15px 20px;">
+                            ${bildirisHtml}
+                        </td>
                     </tr>`;
 
                     firmsToProcess.push({ 
@@ -1841,6 +1862,24 @@ document.addEventListener("DOMContentLoaded", function() {
             if (preraportTbody && preRaportPopup) {
                 preraportTbody.innerHTML = warningHtml;
                 preRaportPopup.style.display = "flex";
+
+                document.querySelectorAll('.toggle-raport-details').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('data-target');
+                        const targetRow = document.getElementById(targetId);
+                        const icon = this.querySelector('i');
+                        if (targetRow.style.display === 'none') {
+                            targetRow.style.display = 'table-row';
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-up');
+                        } else {
+                            targetRow.style.display = 'none';
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    });
+                });
             }
         });
     }
