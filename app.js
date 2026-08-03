@@ -18,7 +18,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 <button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button>
             </div>`;
         document.body.appendChild(overlay);
-        
+    
         const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
         const error = document.getElementById('sec-error');
