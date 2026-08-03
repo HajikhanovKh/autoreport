@@ -5,69 +5,44 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import JSZip from 'jszip';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-
+// ES Modules mühitində __dirname və __filename üçün xüsusi tənzimləmə
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-
 const port = process.env.PORT || 3000;
 
-
-
 app.use(express.json({ limit: '50mb' }));
-
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'PUT'] }));
 
-
-
 const dbConfig = process.env.MYSQL_URL || {
-
     host: 'ballast.proxy.rlwy.net',
-
     port: 55966,
-
     user: 'root',
-
     password: 'EkyWKEWfaarOVqBFEGPFhCQNVSnRrPtG',
-
     database: 'railway'
-
 };
 
-
-
 // ==========================================
-
 // CƏDVƏLLƏRİN AVTOMATİK YARADILMASI (UĞURLU QURAŞDIRMA ÜÇÜN)
-
 // ==========================================
-
 async function initializeTables() {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         await connection.execute(`
-
             CREATE TABLE IF NOT EXISTS mesulsexs (
-
                 id INT AUTO_INCREMENT PRIMARY KEY,
-
                 leaderperson VARCHAR(255),
-
                 leadername VARCHAR(255),
-
                 secondperson VARCHAR(255),
-
                 phone VARCHAR(50)
-
             )
-
         `);
         await connection.execute(`
             CREATE TABLE IF NOT EXISTS coverinfo (
@@ -76,6 +51,7 @@ async function initializeTables() {
                 adres VARCHAR(255)
             )
         `);
+        
         // Əgər cədvəl boşdursa, ilkin məlumatı əlavə et
         const [coverRows] = await connection.execute('SELECT COUNT(*) as count FROM coverinfo');
         if (coverRows[0].count === 0) {
@@ -83,567 +59,284 @@ async function initializeTables() {
         }
 
         await connection.execute(`
-
             CREATE TABLE IF NOT EXISTS bildirisler (
-
                 id INT AUTO_INCREMENT PRIMARY KEY,
-
                 gomruk_orqani VARCHAR(255),
-
                 firma VARCHAR(255),
-
                 voen VARCHAR(50),
-
                 tarix_yazilma VARCHAR(50),
-
                 tarix_borcdovru VARCHAR(100),
-
                 melumat TEXT,
-
                 bildiris_nomresi VARCHAR(100) DEFAULT ''
-
             )
-
         `);
-
         console.log("Cədvəllər uğurla yoxlanıldı/yaradıldı.");
-
     } catch (err) {
-
         console.error("Cədvəl yaratma xətası:", err);
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 }
-
 initializeTables();
 
-
-
 // ==========================================
-
 // ƏSAS API-LƏR (ZİP GENERATION)
-
 // ==========================================
-
 app.post('/api/generate-docs', async (req, res) => {
-
     let connection;
-
     try {
-
         const { selectedFirms } = req.body;
 
-
-
         if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
-
             return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
-
         }
-
-
 
         let signers = { leaderperson: "", leadername: "", secondperson: "", phone: "" };
-
         try {
-
             connection = await mysql.createConnection(dbConfig);
-
             const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
-
             if (rows.length > 0) {
-
                 signers = rows[0];
-
             }
-
         } catch (dbErr) {
-
             console.error("Mesulsexs çəkilərkən xəta:", dbErr);
-
         } finally {
-
             if (connection) await connection.end();
-
         }
-
-
 
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablon.docx";
-
         const qosma_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/sablonqosma.docx";
-
         
-
         const [sablonRes, qosmaRes] = await Promise.all([
-
             axios.get(sablon_url, { responseType: 'arraybuffer' }),
-
             axios.get(qosma_url, { responseType: 'arraybuffer' })
-
         ]);
 
-
-
         const sablonBuffer = sablonRes.data;
-
         const qosmaBuffer = qosmaRes.data;
-
-
-
         const zipOutput = new JSZip();
-
         let generatedCount = 0;
 
-
-
         for (let i = 0; i < selectedFirms.length; i++) {
-
             const firm = selectedFirms[i];
-
             const safeName = firm.safeFirmaAdi || firm.firma.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
-
-
             try {
-
                 const docSablonZip = new PizZip(sablonBuffer);
-
                 const docSablon = new Docxtemplater(docSablonZip, { paragraphLoop: true, linebreaks: true });
-
                 docSablon.render({
-    unvan: firm.unvan,
-    firma: firm.firma,
-    voen: firm.voen,
-    tarix: firm.tarixEsas,
-    uzatma: firm.uzatma, 
-    leaderperson: signers.leaderperson,
-    leadername: signers.leadername,
-    secondperson: signers.secondperson,
-    phone: signers.phone
-});
-
-                const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
-
-                zipOutput.file(`${safeName}_esas.docx`, outSablon);
-
-
-
-                const docQosmaZip = new PizZip(qosmaBuffer);
-
-                const docQosma = new Docxtemplater(docQosmaZip, { paragraphLoop: true, linebreaks: true });
-
-                docQosma.render({
-
-                    soyadiadi: firm.soyadiadi,
-
+                    unvan: firm.unvan,
+                    firma: firm.firma,
                     voen: firm.voen,
-
-                    gb: firm.gb,
-
-                    borc: firm.borc,
-
-                    tarix: firm.tarixQosma,
-
+                    tarix: firm.tarixEsas,
+                    uzatma: firm.uzatma, 
                     leaderperson: signers.leaderperson,
-
                     leadername: signers.leadername,
-
                     secondperson: signers.secondperson,
-
                     phone: signers.phone
-
                 });
 
-                const outQosma = docQosma.getZip().generate({ type: "nodebuffer" });
+                const outSablon = docSablon.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`${safeName}_esas.docx`, outSablon);
 
+                const docQosmaZip = new PizZip(qosmaBuffer);
+                const docQosma = new Docxtemplater(docQosmaZip, { paragraphLoop: true, linebreaks: true });
+                docQosma.render({
+                    soyadiadi: firm.soyadiadi,
+                    voen: firm.voen,
+                    gb: firm.gb,
+                    borc: firm.borc,
+                    tarix: firm.tarixQosma,
+                    leaderperson: signers.leaderperson,
+                    leadername: signers.leadername,
+                    secondperson: signers.secondperson,
+                    phone: signers.phone
+                });
+                const outQosma = docQosma.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`${safeName}_qosma.docx`, outQosma);
 
-
-
                 generatedCount += 2;
-
             } catch (docErr) {
-
                 console.error(`Sənəd yaratma xətası (${firm.firma}):`, docErr);
-
                 continue;
-
             }
-
         }
-
-
 
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
 
-
-
         res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Count');
-
         res.setHeader('X-Generated-Count', generatedCount);
-
         res.setHeader('Content-Type', 'application/zip');
-
         res.setHeader('Content-Disposition', 'attachment; filename=Senedler_Hesabati.zip');
-
         
-
         return res.send(zipBuffer);
-
     } catch (err) {
-
         console.error(err);
-
         return res.status(500).json({ error: 'Server emal xətası: ' + err.message });
-
     }
-
 });
-
-
-
-
 
 app.get('/api/companies', async (req, res) => {
-
     let connection;
-
     try { 
-
         connection = await mysql.createConnection(dbConfig); 
-
         const [rows] = await connection.execute('SELECT * FROM voen_info'); 
-
         res.json(rows); 
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
-
-
 
 app.post('/api/companies', async (req, res) => {
-
     const { voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date } = req.body;
-
     let connection;
-
     try { 
-
         connection = await mysql.createConnection(dbConfig); 
-
         const [existing] = await connection.execute('SELECT id FROM voen_info WHERE voen = ?', [voen]);
-
         if (existing.length > 0) { 
-
             await connection.execute('UPDATE voen_info SET comp_name=?, comp_director_name=?, comp_adress=?, pstatus=?, data_info_date=? WHERE voen=?', [comp_name, comp_director_name, comp_adress, pstatus, data_info_date, voen]); 
-
             return res.json({ success: true }); 
-
         } else { 
-
             await connection.execute('INSERT INTO voen_info (voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date) VALUES (?, ?, ?, ?, ?, ?)', [voen, comp_name, comp_director_name, comp_adress, pstatus, data_info_date]); 
-
             return res.json({ success: true }); 
-
         }
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
-
-
 
 app.delete('/api/companies/:id', async (req, res) => {
-
     let connection;
-
     try { 
-
         connection = await mysql.createConnection(dbConfig); 
-
         await connection.execute('DELETE FROM voen_info WHERE id = ?', [req.params.id]); 
-
         res.json({ success: true }); 
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
 
-
-
 // ==========================================
-
 // İMZALAYAN ŞƏXSLƏR (mesulsexs) API-ləri
-
 // ==========================================
-
 app.get('/api/mesulsexs', async (req, res) => {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
-
         res.json(rows);
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
-
-
 
 app.post('/api/mesulsexs', async (req, res) => {
-
     const { leaderperson, leadername, secondperson, phone } = req.body;
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         const [result] = await connection.execute(
-
             'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
-
             [leaderperson, leadername, secondperson, phone]
-
         );
-
         res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
-
-
 
 app.put('/api/mesulsexs/:id', async (req, res) => {
-
     const { id } = req.params;
-
     const { leaderperson, leadername, secondperson, phone } = req.body;
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         await connection.execute('UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
-
             [leaderperson, leadername, secondperson, phone, id]
-
         );
-
         res.json({ id, leaderperson, leadername, secondperson, phone });
-
     } catch (err) { res.status(500).json({ error: err.message }); } 
-
     finally { if (connection) await connection.end(); }
-
 });
 
-
-
 // ==========================================
-
-// 🔥 YENİ: BİLDİRİŞLƏR (bildirisler) API-ləri
-
+// BİLDİRİŞLƏR (bildirisler) API-ləri
 // ==========================================
-
-
-
-// ZIP yaranarkən toplu əlavə etmək üçün
-
 app.post('/api/bildirisler/bulk', async (req, res) => {
-
     const { bildirisler } = req.body;
-
     if (!bildirisler || bildirisler.length === 0) return res.json({ success: true });
-
     
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         for (const b of bildirisler) {
-
             const val1 = b.gomruk_orqani || "";
-
             const val2 = b.firma || "";
-
             const val3 = b.voen || "";
-
             const val4 = b.tarix_yazilma || "";
-
             const val5 = b.tarix_borcdovru || "";
-
             const val6 = b.melumat || "";
 
-
-
             await connection.execute(
-
                 'INSERT INTO bildirisler (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat, bildiris_nomresi) VALUES (?, ?, ?, ?, ?, ?, ?)',
-
                 [val1, val2, val3, val4, val5, val6, '']
-
             );
-
         }
-
         res.json({ success: true });
-
     } catch (err) {
-
         console.error('Bildirisler bulk xətası:', err);
-
         res.status(500).json({ error: err.message });
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 });
-
-
-
-// 🔥 YENİ: Bütün bildirişləri gətirmək (Analiz bölməsində yoxlamaq üçün)
 
 app.get('/api/bildirisler', async (req, res) => {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         const [rows] = await connection.execute("SELECT * FROM bildirisler");
-
         res.json(rows);
-
     } catch (err) {
-
         res.status(500).json({ error: err.message });
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 });
-
-
-
-// Nömrəsi olmayanları (boş olanları) gətir (Modal cədvəl üçün)
 
 app.get('/api/bildirisler/missing', async (req, res) => {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         const [rows] = await connection.execute("SELECT * FROM bildirisler WHERE bildiris_nomresi = '' OR bildiris_nomresi IS NULL");
-
         res.json(rows);
-
     } catch (err) {
-
         res.status(500).json({ error: err.message });
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 });
-
-
-
-// Bildiriş nömrəsini yeniləyib yadda saxlamaq
 
 app.put('/api/bildirisler/:id', async (req, res) => {
-
     const { bildiris_nomresi } = req.body;
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ? WHERE id = ?', [bildiris_nomresi, req.params.id]);
-
         res.json({ success: true });
-
     } catch (err) {
-
         res.status(500).json({ error: err.message });
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 });
 
-
-
-// Bildiriş qeydini silmək
-
 app.delete('/api/bildirisler/:id', async (req, res) => {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         await connection.execute('DELETE FROM bildirisler WHERE id = ?', [req.params.id]);
-
         res.json({ success: true });
-
     } catch (err) {
-
         res.status(500).json({ error: err.message });
-
     } finally {
-
         if (connection) await connection.end();
-
     }
-
 });
 
 // ==========================================
@@ -680,19 +373,14 @@ app.post('/api/generate-cover', async (req, res) => {
         const [cRows] = await connection.execute('SELECT * FROM coverinfo LIMIT 1');
         const coverData = cRows.length > 0 ? cRows[0] : { go: '', adres: '' };
 
-        // GitHub-dan şablonu çəkirik
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/convertsablon.docx";
         const sablonRes = await axios.get(sablon_url, { responseType: 'arraybuffer' });
         const sablonBuffer = sablonRes.data;
 
-        // Əsas ZIP obyekti yaradırıq (Bütün fərdi Word-lər bura yığılacaq)
         const zipOutput = new JSZip();
 
-        // Hər bir firma üçün fərdi Word sənədi yaradırıq
         for (let i = 0; i < selectedFirms.length; i++) {
             const f = selectedFirms[i];
-            
-            // Faylın adı üçün xüsusi simvolları təmizləyirik
             const rawName = f.covercompany || f.covername || `Firma_${i+1}`;
             const safeName = rawName.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
@@ -710,24 +398,19 @@ app.post('/api/generate-cover', async (req, res) => {
                 const doc = new Docxtemplater(docZip, { 
                     paragraphLoop: true, 
                     linebreaks: true,
-                    nullGetter: function(part) { return ""; } // "undefined" yazılmasının qarşısını alır
+                    nullGetter: function(part) { return ""; }
                 });
                 
                 doc.render(data);
-                
                 const outDocx = doc.getZip().generate({ type: "nodebuffer" });
-                
-                // Yaradılmış tək Word faylını ZIP-in içinə atırıq
                 zipOutput.file(`Zerf_${safeName}.docx`, outDocx);
             } catch (docErr) {
                 console.error(`Sənəd yaratma xətası:`, docErr);
             }
         }
 
-        // Yekun ZIP faylını hazırlayırıq
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
         
-        // ZIP olaraq client-ə göndəririk
         res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlukleri.zip');
         res.setHeader('Content-Type', 'application/zip');
         return res.send(zipBuffer);
@@ -740,42 +423,57 @@ app.post('/api/generate-cover', async (req, res) => {
     }
 });
 
-    // ==========================================
+// ==========================================
 // RAPORT AYARLARI (Məzənnə, Rəis, Məsul şəxs və s.)
 // ==========================================
-app.get('/api/raportayarlar', (req, res) => {
-    const query = 'SELECT * FROM raportayarlar LIMIT 1';
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/raportayarlar', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [results] = await connection.execute('SELECT * FROM raportayarlar LIMIT 1');
         res.json(results);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
 });
 
 // ==========================================
 // RAPORT İNFO (Məlumatların bazaya yazılması və oxunması)
 // ==========================================
-app.get('/api/raportinfo', (req, res) => {
-    const query = 'SELECT * FROM raportinfo';
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/raportinfo', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [results] = await connection.execute('SELECT * FROM raportinfo');
         res.json(results);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
 });
 
-app.post('/api/raportinfo/bulk', (req, res) => {
+app.post('/api/raportinfo/bulk', async (req, res) => {
     const raportlar = req.body.raportlar;
     if (!raportlar || raportlar.length === 0) return res.status(400).json({ error: "Məlumat yoxdur" });
 
-    // Çoxlu məlumatı birdən bazaya yazmaq üçün massivə çeviririk
     const values = raportlar.map(r => [
         r.gomruk_orqani, r.firma, r.voen, r.tarix_yazilma, r.tarix_borcdovru, r.melumat
     ]);
 
-    const query = 'INSERT INTO raportinfo (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat) VALUES ?';
-    db.query(query, [values], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        // values array of arrays olduğu üçün query istifadə edirik
+        const [results] = await connection.query('INSERT INTO raportinfo (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat) VALUES ?', [values]);
         res.json({ success: true, inserted: results.affectedRows });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
 });
 
 // ==========================================
@@ -789,8 +487,6 @@ app.post('/api/generate-raports', async (req, res) => {
             return res.status(400).json({ error: "Heç bir məlumat göndərilməyib." });
         }
 
-        // Şablon faylın (raportsablon.docx) qovluqdakı yolu
-        // QEYD: Faylın server.js ilə eyni qovluqda olduğuna əmin olun
         const templatePath = path.join(__dirname, 'raportsablon.docx'); 
         if (!fs.existsSync(templatePath)) {
              return res.status(500).json({ error: "raportsablon.docx faylı serverdə tapılmadı!" });
@@ -800,16 +496,12 @@ app.post('/api/generate-raports', async (req, res) => {
         const zip = new JSZip();
 
         selectedFirms.forEach((firm, index) => {
-            const PizZip = require('pizzip');
-            const Docxtemplater = require('docxtemplater');
-
             const docZip = new PizZip(content);
             const doc = new Docxtemplater(docZip, { 
                 paragraphLoop: true, 
                 linebreaks: true 
             });
 
-            // Frontend-dən gələn firm məlumatlarını Word-ə köçürürük
             doc.render({
                 idarereisivezifesi: firm.idarereisivezifesi,
                 idarereisi: firm.idarereisi,
@@ -829,7 +521,6 @@ app.post('/api/generate-raports', async (req, res) => {
 
             const buf = doc.getZip().generate({ type: 'nodebuffer', compression: "DEFLATE" });
             
-            // Fayl adını təhlükəsiz hala gətirib ZIP-ə əlavə edirik
             const safeName = firm.safeFirmaAdi || "Firma";
             zip.file(`${index + 1}_${safeName}_Raport.docx`, buf);
         });
@@ -849,5 +540,5 @@ app.post('/api/generate-raports', async (req, res) => {
         res.status(500).json({ error: "Sənədlər yaradılarkən xəta baş verdi: " + error.message });
     }
 });
-app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
 
+app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
