@@ -291,7 +291,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const bildirisTbody = document.getElementById('bildiris-tbody');
     const missingBadge = document.getElementById('missing-nomre-count');
 
-    // BILDIRIS MODAL VARIABLES
     const preZipPopup = document.getElementById('popup_pre_zip_warning');
     const closePrezipBtn = document.getElementById('close-prezip-popup');
     const cancelPrezipBtn = document.getElementById('cancel-prezip-btn');
@@ -305,7 +304,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const zipTbody = document.getElementById('zip-selection-tbody');
     const zipSelectAll = document.getElementById('zip-select-all');
 
-    // RAPORT MODAL VARIABLES
     const preRaportPopup = document.getElementById('popup_pre_raport_warning');
     const closePreRaportBtn = document.getElementById('close-preraport-popup');
     const cancelPreRaportBtn = document.getElementById('cancel-preraport-btn');
@@ -1849,7 +1847,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         isFiziki: isFiziki,
                         ixracList: ixracList,
                         invoysSum: parseFloat(invoysSum),
-                        rowIdx: i // ID bağını qurmaq üçün əlavə olundu
+                        rowIdx: i 
                     });
                 }
             }
