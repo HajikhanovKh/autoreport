@@ -740,6 +740,114 @@ app.post('/api/generate-cover', async (req, res) => {
     }
 });
 
+    // ==========================================
+// RAPORT AYARLARI (Məzənnə, Rəis, Məsul şəxs və s.)
+// ==========================================
+app.get('/api/raportayarlar', (req, res) => {
+    const query = 'SELECT * FROM raportayarlar LIMIT 1';
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
+    });
+});
 
+// ==========================================
+// RAPORT İNFO (Məlumatların bazaya yazılması və oxunması)
+// ==========================================
+app.get('/api/raportinfo', (req, res) => {
+    const query = 'SELECT * FROM raportinfo';
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
+    });
+});
+
+app.post('/api/raportinfo/bulk', (req, res) => {
+    const raportlar = req.body.raportlar;
+    if (!raportlar || raportlar.length === 0) return res.status(400).json({ error: "Məlumat yoxdur" });
+
+    // Çoxlu məlumatı birdən bazaya yazmaq üçün massivə çeviririk
+    const values = raportlar.map(r => [
+        r.gomruk_orqani, r.firma, r.voen, r.tarix_yazilma, r.tarix_borcdovru, r.melumat
+    ]);
+
+    const query = 'INSERT INTO raportinfo (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat) VALUES ?';
+    db.query(query, [values], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, inserted: results.affectedRows });
+    });
+});
+
+// ==========================================
+// RAPORT ÜÇÜN WORD SƏNƏDLƏRİ VƏ ZIP YARADILMASI
+// ==========================================
+app.post('/api/generate-raports', async (req, res) => {
+    try {
+        const { selectedFirms } = req.body;
+        
+        if (!selectedFirms || selectedFirms.length === 0) {
+            return res.status(400).json({ error: "Heç bir məlumat göndərilməyib." });
+        }
+
+        // Şablon faylın (raportsablon.docx) qovluqdakı yolu
+        // QEYD: Faylın server.js ilə eyni qovluqda olduğuna əmin olun
+        const templatePath = path.join(__dirname, 'raportsablon.docx'); 
+        if (!fs.existsSync(templatePath)) {
+             return res.status(500).json({ error: "raportsablon.docx faylı serverdə tapılmadı!" });
+        }
+
+        const content = fs.readFileSync(templatePath, 'binary');
+        const zip = new JSZip();
+
+        selectedFirms.forEach((firm, index) => {
+            const PizZip = require('pizzip');
+            const Docxtemplater = require('docxtemplater');
+
+            const docZip = new PizZip(content);
+            const doc = new Docxtemplater(docZip, { 
+                paragraphLoop: true, 
+                linebreaks: true 
+            });
+
+            // Frontend-dən gələn firm məlumatlarını Word-ə köçürürük
+            doc.render({
+                idarereisivezifesi: firm.idarereisivezifesi,
+                idarereisi: firm.idarereisi,
+                mesulsexsvezife: firm.mesulsexsvezife,
+                mesulsexs: firm.mesulsexs,
+                raportfirma: firm.raportfirma,
+                uzanti: firm.uzanti,
+                raportgbnomresi: firm.raportgbnomresi,
+                ixracolke: firm.ixracolke,
+                invoysmebleg: firm.invoysmebleg,
+                manatinvoysmebleg: firm.manatinvoysmebleg,
+                cevirme: firm.cevirme,
+                malinadi: firm.malinadi,
+                borc: firm.borc,
+                manatborc: firm.manatborc
+            });
+
+            const buf = doc.getZip().generate({ type: 'nodebuffer', compression: "DEFLATE" });
+            
+            // Fayl adını təhlükəsiz hala gətirib ZIP-ə əlavə edirik
+            const safeName = firm.safeFirmaAdi || "Firma";
+            zip.file(`${index + 1}_${safeName}_Raport.docx`, buf);
+        });
+
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+        res.set({
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="Raportlar.zip"',
+            'Content-Length': zipBuffer.length
+        });
+        
+        res.send(zipBuffer);
+
+    } catch (error) {
+        console.error("Raport ZIP xətası:", error);
+        res.status(500).json({ error: "Sənədlər yaradılarkən xəta baş verdi: " + error.message });
+    }
+});
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
 
