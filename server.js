@@ -503,7 +503,7 @@ app.post('/api/generate-raports', async (req, res) => {
             });
 
             doc.render({
-                idarereisivezifesi: firm.idarereisivezifesi,
+                idarerereisivezifesi: firm.idarereisivezifesi,
                 idarereisi: firm.idarereisi,
                 mesulsexsvezife: firm.mesulsexsvezife,
                 mesulsexs: firm.mesulsexs,
