@@ -1263,7 +1263,7 @@ async function executeCoverGenerate() {
                                                 <div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
                                                 <div class="firm-badges">
                                                     <div class="badge-pill" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${newDecls.join(', ')}"><strong>Yeni Bəyannamələr:</strong> ${newDecls.length > 0 ? newDecls.join(', ') : 'Yoxdur'}</div>
-                                                    <div class="badge-pill badge-danger-pill">Yeni Borc: ${newBorc.toFixed(2)} ABŞ</div>
+                                                    <div class="badge-pill badge-danger-pill">Ümumi Borc: ${item.toplamBorc.toFixed(2)} ABŞ</div>
                                                     ${statusBadge}
                                                 </div>
                                                 ${missingAlertHtml}
