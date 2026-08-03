@@ -1412,7 +1412,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 400px; width: 90%; border: 1px solid #cbd5e1;">
                     <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
                     <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
-                    <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifəni bağlamayın...</p>
+                    <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifə bağlamayın...</p>
                     <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
                         <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
                     </div>
@@ -1555,7 +1555,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
     // ==========================================
     const executeRaportZipProcess = async () => {
-        // ƏVVƏLCƏ: Bütün boş qalan (sarı) bildiriş xanalarını bazaya yaz
         const missingInputs = document.querySelectorAll('.missing-bildiris-input');
         const updatePromises = [];
         
@@ -1578,7 +1577,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (updatePromises.length > 0) {
             try {
                 await Promise.all(updatePromises);
-                loadAllBildirisler(); // Yeni nomreleri geri al
+                loadAllBildirisler(); 
             } catch (err) {
                 console.error("Bildiriş nömrələrini yeniləyərkən xəta: ", err);
             }
@@ -1606,11 +1605,11 @@ document.addEventListener("DOMContentLoaded", function() {
             const payload = [];
             pendingRaportDbSavePayload = [];
             const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
-            let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; // Gəlməsə 1.7 default olacaq
+            let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
 
             for (const item of window.pendingFirmsToRaportZip) {
-                // Hər firma üzrə yazılmış Malın adını tapırıq
-                let malinAdiInput = document.querySelector(`.malin-adi-input[data-voen="${item.voen}"][data-firma="${item.rawFirmaAdi}"]`);
+                // XƏTANIN QARŞISI ALINDI: İD ƏSASLI AXTARIŞ EDİLİR
+                let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
                 let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
 
                 let totalInvoys = parseFloat(item.invoysSum) || 0;
@@ -1632,7 +1631,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     cevirme: mezenne.toString(),
                     malinadi: malinAdiValue,
                     borc: borc.toFixed(2),
-                    manatborc: manatBorc.toFixed(2)
+                    manatborc: manatBorc.toFixed(2),
+                    safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma"
                 });
 
                 pendingRaportDbSavePayload.push({
@@ -1826,7 +1826,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <td style="color:#ef4444; font-size:11px;">${oldRaportGb || "Yoxdur"}</td>
                         <td style="color:#10b981; font-weight:600; font-size:12px;">${newRaportGb}</td>
                         <td>
-                            <input type="text" class="malin-adi-input" data-voen="${voen}" data-firma="${rawFirmaAdi}" placeholder="Malın adı..." style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                            <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adı..." style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
                         </td>
                         <td style="font-weight:bold; color:#1e293b; white-space:nowrap;">${newRaportBorc} ABŞ</td>
                         <td style="text-align:center;">
@@ -1848,7 +1848,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         voen: voen,
                         isFiziki: isFiziki,
                         ixracList: ixracList,
-                        invoysSum: parseFloat(invoysSum)
+                        invoysSum: parseFloat(invoysSum),
+                        rowIdx: i // ID bağını qurmaq üçün əlavə olundu
                     });
                 }
             }
