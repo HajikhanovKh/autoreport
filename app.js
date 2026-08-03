@@ -18,7 +18,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 <button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button>
             </div>`;
         document.body.appendChild(overlay);
-    
+        
         const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
         const error = document.getElementById('sec-error');
@@ -234,7 +234,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
     const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
     const BIL_API_URL = 'https://autoreport-production.up.railway.app/api/bildirisler';
-    const RAPORT_API_URL = 'https://autoreport-production.up.railway.app/api/raportinfo'; // RAPORT ÜÇÜN YENİ APİ
+    const RAPORT_API_URL = 'https://autoreport-production.up.railway.app/api/raportinfo';
+    const RAPORT_AYAR_API_URL = 'https://autoreport-production.up.railway.app/api/raportayarlar';
 
     let allCompaniesData = [];
     let currentFilteredData = [];
@@ -248,7 +249,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let minAmountFilter = 0; 
     let currentSignerId = null;
     let allBildirislerData = []; 
-    let allRaportData = []; // RAPORT ÜÇÜN BAZA VERİLƏNLƏRİ
+    let allRaportData = [];
+    let raportAyarlarData = {};
 
     const addVoenBtn = document.getElementById("add-voen-data");
     const closePopupBtn = document.getElementById("close-popup");
@@ -318,7 +320,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const raportZipSelectAll = document.getElementById('raport-zip-select-all');
 
     let pendingDbSavePayload = [];
-    let pendingRaportDbSavePayload = []; // RAPORT ÜÇÜN PAYLOAD
+    let pendingRaportDbSavePayload = []; 
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
@@ -391,6 +393,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
     
+    function loadRaportAyarlar() {
+        fetch(RAPORT_AYAR_API_URL).then(r => r.json()).then(data => {
+            if(data && data.length > 0) raportAyarlarData = data[0];
+        }).catch(e => console.error("Raport Ayar Xətası:", e));
+    }
+
     if (signerBtn && popupSigners) { 
         signerBtn.addEventListener('click', e => { 
             e.preventDefault(); 
@@ -451,7 +459,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(err => console.error(err));
     }
 
-    // RAPORT VERİLƏNLƏRİNİ ÇƏKƏN YENİ FUNKSİYA
     function loadAllRaports(callback) {
         fetch(RAPORT_API_URL).then(r => r.json()).then(data => {
             allRaportData = data || [];
@@ -702,7 +709,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     loadSigners(); 
     loadAllBildirisler();
-    loadAllRaports(); // RAPORT BAZASINI YÜKLƏMƏK ÜÇÜN ÇAĞIRIRIQ
+    loadAllRaports();
+    loadRaportAyarlar(); 
 
     function handleRadioChange() {
         if (radioPerson2 && radioPerson2.checked) {
@@ -1130,11 +1138,18 @@ document.addEventListener("DOMContentLoaded", function() {
                                     }; 
                                 }
                                 
+                                // YENİ: I (İxrac, index 8) və M (İnvoys, index 12) Sütunları
+                                const ixracStr = row[8] ? row[8].toString().trim() : "";
+                                const invoysVal = parseFloat(row[12]) || 0;
+
                                 let firmObj = groupedResults[idareAdi][groupKey];
-                                if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set() };
+                                if(!firmObj.decls[bNo]) firmObj.decls[bNo] = { borc: 0, tarixler: new Set(), ixrac: "", invoys: 0 };
                                 
                                 firmObj.decls[bNo].borc += qaliqBorc;
                                 firmObj.decls[bNo].tarixler.add(tarixStr);
+                                if (ixracStr && !firmObj.decls[bNo].ixrac) firmObj.decls[bNo].ixrac = ixracStr;
+                                firmObj.decls[bNo].invoys += invoysVal;
+
                                 firmObj.toplamBorc += qaliqBorc; 
                                 firmObj.qeydSayi += 1;
                             }
@@ -1196,10 +1211,12 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let newBorc = 0;
                                 let newTarixler = new Set();
                                 
-                                // RAPORT DƏYİŞƏNLƏRİ (YENİ)
+                                // RAPORT DƏYİŞƏNLƏRİ 
                                 let oldRaportDecls = [];
                                 let newRaportDecls = [];
                                 let newRaportBorc = 0;
+                                let newRaportIxracList = new Set();
+                                let newRaportInvoysSum = 0;
 
                                 let accordionListHtml = ``;
                                 let hasBildiris = false;
@@ -1215,7 +1232,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 for(const nomre in item.decls) {
                                     let borcu = item.decls[nomre].borc;
                                     let tarixleri = Array.from(item.decls[nomre].tarixler);
-                                    
                                     let regex = new RegExp(`\\b${nomre}\\b`);
                                     
                                     // BİLDİRİŞ YOXLANIŞI
@@ -1224,7 +1240,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                         hasBildiris = true;
                                         oldDecls.push(nomre);
                                         let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
-
                                         accordionListHtml += `<li><span><i class="fa-solid fa-file-invoice" style="color:#94a3b8; margin-right:5px;"></i> ${nomre}</span><span>${mainBildirisNo ? `<span style="color: #166534; font-weight:700;"><i class="fa-solid fa-check"></i> Bildiriş №: ${mainBildirisNo}</span>` : `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 10px; font-size:11px; color:#f59e0b; border-color:#f59e0b; background:#fffbeb; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Nömrə artır</button>`}</span></li>`;
                                     } else {
                                         newDecls.push(nomre);
@@ -1233,13 +1248,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                         accordionListHtml += `<li><span style="color: #2563eb;"><i class="fa-solid fa-file-invoice" style="margin-right:5px;"></i> <strong>${nomre}</strong></span><span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni</span></li>`;
                                     }
 
-                                    // RAPORT YOXLANIŞI (YENİ)
+                                    // RAPORT YOXLANIŞI 
                                     let matchedRaport = foundRaportsForFirm.find(r => r.melumat && regex.test(r.melumat));
                                     if (matchedRaport) {
                                         oldRaportDecls.push(nomre);
                                     } else {
                                         newRaportDecls.push(nomre);
                                         newRaportBorc += borcu;
+                                        if (item.decls[nomre].ixrac) newRaportIxracList.add(item.decls[nomre].ixrac);
+                                        newRaportInvoysSum += item.decls[nomre].invoys;
                                     }
                                 }
 
@@ -1248,16 +1265,13 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let statusBadge = "";
                                 
                                 if (oldDecls.length > 0 && newDecls.length > 0) {
-                                    bgStyle = "#fffbeb"; 
-                                    cardBorder = "1px solid #fde68a";
+                                    bgStyle = "#fffbeb"; cardBorder = "1px solid #fde68a";
                                     statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
                                 } else if (oldDecls.length > 0 && newDecls.length === 0) {
-                                    bgStyle = "#f8fafc";
-                                    cardBorder = "1px solid #e2e8f0";
+                                    bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
                                     statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Tamamilə Bildiriş Yazılıb</div>`;
                                 } else {
-                                    bgStyle = "#f0fdf4";
-                                    cardBorder = "1px solid #bbf7d0";
+                                    bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
                                     statusBadge = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
                                 }
 
@@ -1269,11 +1283,10 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let newTarixStr = Array.from(newTarixler).join(", ");
                                 let accordionToggleBtn = hasBildiris ? `<button class="toggle-btn" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>` : '';
 
-                                // ƏLAVƏ EDİLDİ: Raport məlumatları DOM-a (HTML-ə) atribut olaraq ötürülür
                                 htmlContent += `
                                     <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle};">
                                         <div class="firm-main-row">
-                                            <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}" data-new-raport-gb="${newRaportDecls.join(', ')}" data-old-raport-gb="${oldRaportDecls.join(', ')}" data-new-raport-borc="${newRaportBorc.toFixed(2)}">
+                                            <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}" data-new-raport-gb="${newRaportDecls.join(', ')}" data-old-raport-gb="${oldRaportDecls.join(', ')}" data-new-raport-borc="${newRaportBorc.toFixed(2)}" data-new-raport-ixrac="${Array.from(newRaportIxracList).join(', ')}" data-new-raport-invoys="${newRaportInvoysSum.toFixed(2)}">
                                             <div class="firm-info">
                                                 <div class="firm-name">${item.firma} <span class="firm-voen">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
                                                 <div class="firm-badges">
@@ -1287,7 +1300,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                         </div>
                                         ${hasBildiris ? `<div class="details-panel"><ul>${accordionListHtml}</ul></div>` : ''}
                                     </div>`;
-                                
                                 firmaIdx++;
                             });
                             htmlContent += `</div>`; 
@@ -1308,7 +1320,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const voen = this.getAttribute('data-voen'); 
                                 const firmaName = this.getAttribute('data-firma'); 
                                 const isFiziki = this.getAttribute('data-isfiziki') === 'true';
-
                                 popupDiv.style.display = "flex"; 
                                 clearFormFields();
                                 if (inputVoen) { inputVoen.value = voen; inputVoen.dispatchEvent(new Event('input')); }
@@ -1330,11 +1341,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const panel = parentItem.querySelector('.details-panel');
                                 const icon = this.querySelector('i');
                                 if (panel.style.display === 'block') { 
-                                    panel.style.display = 'none'; 
-                                    icon.className = 'fa-solid fa-chevron-down';
+                                    panel.style.display = 'none'; icon.className = 'fa-solid fa-chevron-down';
                                 } else { 
-                                    panel.style.display = 'block'; 
-                                    icon.className = 'fa-solid fa-chevron-up'; 
+                                    panel.style.display = 'block'; icon.className = 'fa-solid fa-chevron-up'; 
                                 }
                             });
                         });
@@ -1343,9 +1352,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             btn.addEventListener('click', function(e) {
                                 e.preventDefault();
                                 if (bildirisPopup) { 
-                                    bildirisPopup.style.display = 'flex'; 
-                                    currentBilPage = 1; 
-                                    renderBildirisTable(); 
+                                    bildirisPopup.style.display = 'flex'; currentBilPage = 1; renderBildirisTable(); 
                                 }
                             });
                         });
@@ -1370,18 +1377,18 @@ document.addEventListener("DOMContentLoaded", function() {
                         });
                     } catch (err) {
                         alert("Analiz zamanı xəta baş verdi: " + err.message);
-                        console.error(err);
                     }
                 }, 500); 
             };
         });
     }
 
-    // MODAL BAĞLAMA DÜYMƏLƏRİ
     if(closePrezipBtn) closePrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; });
     if(cancelPrezipBtn) cancelPrezipBtn.addEventListener('click', () => { preZipPopup.style.display = 'none'; });
     if(closeZipPopupBtn) closeZipPopupBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; });
     if(cancelZipSaveBtn) cancelZipSaveBtn.addEventListener('click', () => { zipPopup.style.display = 'none'; });
+    
+    // RAPORT BUTTON BAĞLAMALARI
     if(closePreRaportBtn) closePreRaportBtn.addEventListener('click', () => { preRaportPopup.style.display = 'none'; });
     if(cancelPreRaportBtn) cancelPreRaportBtn.addEventListener('click', () => { preRaportPopup.style.display = 'none'; });
     if(closeRaportZipPopupBtn) closeRaportZipPopupBtn.addEventListener('click', () => { raportZipPopup.style.display = 'none'; });
@@ -1406,13 +1413,11 @@ document.addEventListener("DOMContentLoaded", function() {
             overlay = document.createElement('div');
             overlay.id = 'zip-loading-overlay';
             overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999999; display: flex; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s; pointer-events: none;";
-            
             overlay.innerHTML = `
                 <div style="background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 400px; width: 90%; border: 1px solid #cbd5e1;">
                     <i class="fa-solid fa-file-zipper fa-bounce" style="font-size: 50px; color: #3b82f6; margin-bottom: 20px;"></i>
                     <h3 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Sənədlər Hazırlanır</h3>
                     <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Bu proses məlumatın həcmindən asılı olaraq bir neçə saniyə çəkə bilər, zəhmət olmasa səhifəni bağlamayın...</p>
-                    
                     <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
                         <div id="zip-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #4f46e5); transition: width 0.4s ease;"></div>
                     </div>
@@ -1505,16 +1510,8 @@ document.addEventListener("DOMContentLoaded", function() {
             };
 
             const response = await fetch(generateDocsEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
             });
-
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                const errData = await response.json();
-                throw new Error(errData.error || errData.message || "Server xətası baş verdi.");
-            }
 
             if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
 
@@ -1550,15 +1547,11 @@ document.addEventListener("DOMContentLoaded", function() {
         } catch (error) {
             clearInterval(progressInterval);
             alert("XƏTA: " + error.message);
-            console.error("ZIP Error:", error);
         } finally {
             overlay.style.opacity = '0';
             overlay.style.pointerEvents = 'none';
             setTimeout(() => {
-                overlay.style.display = 'none';
-                progressBar.style.width = '0%';
-                progressText.innerText = '0%';
-                progressText.style.color = '#3b82f6';
+                overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
             }, 300);
         }
     };
@@ -1567,6 +1560,35 @@ document.addEventListener("DOMContentLoaded", function() {
     // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
     // ==========================================
     const executeRaportZipProcess = async () => {
+        // ƏVVƏLCƏ: Bütün boş qalan (sarı) bildiriş xanalarını bazaya yaz
+        const missingInputs = document.querySelectorAll('.missing-bildiris-input');
+        const updatePromises = [];
+        
+        missingInputs.forEach(inp => {
+            let val = inp.value.trim();
+            if (val !== "") {
+                let bilId = inp.getAttribute('data-bil-id');
+                let oldObj = allBildirislerData.find(b => b.id.toString() === bilId);
+                if (oldObj) {
+                    let updatePayload = { ...oldObj, bildiris_nomresi: val };
+                    updatePromises.push(
+                        fetch(`${BIL_API_URL}/${bilId}`, { 
+                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
+                        })
+                    );
+                }
+            }
+        });
+
+        if (updatePromises.length > 0) {
+            try {
+                await Promise.all(updatePromises);
+                loadAllBildirisler(); // Yeni nomreleri geri al
+            } catch (err) {
+                console.error("Bildiriş nömrələrini yeniləyərkən xəta: ", err);
+            }
+        }
+
         const overlay = createLoadingOverlay();
         const progressBar = document.getElementById('zip-progress-bar');
         const progressText = document.getElementById('zip-progress-text');
@@ -1589,60 +1611,51 @@ document.addEventListener("DOMContentLoaded", function() {
             const payload = [];
             pendingRaportDbSavePayload = [];
             const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
+            let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; // Gəlməsə 1.7 default olacaq
 
             for (const item of window.pendingFirmsToRaportZip) {
-                const checkbox = item.checkbox;
-                const voen = checkbox.getAttribute("data-voen");
-                const rawFirma = checkbox.getAttribute("data-firma") || "";
-                const firmaAdi = rawFirma.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-                const isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
-                const dbData = allCompaniesData.find(c => c.voen && c.voen.toString() === voen) || {};
-                const rehberAdi = dbData.comp_director_name || "Qeyd edilməyib";
+                // Hər firma üzrə yazılmış Malın adını tapırıq
+                let malinAdiInput = document.querySelector(`.malin-adi-input[data-voen="${item.voen}"][data-firma="${item.rawFirmaAdi}"]`);
+                let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
+
+                let totalInvoys = parseFloat(item.invoysSum) || 0;
+                let manatInvoys = totalInvoys * mezenne;
+                let borc = parseFloat(item.newBorc) || 0;
+                let manatBorc = borc * mezenne;
 
                 payload.push({
-                    unvan: dbData.comp_adress || "Qeyd edilməyib",
-                    firma: isFiziki ? rehberAdi : firmaAdi,
-                    voen: voen || "Qeyd edilməyib",
-                    tarixEsas: getMinMaxDate(checkbox.getAttribute("data-new-tarixler")),
-                    soyadiadi: rehberAdi,
-                    gb: item.newGb || "",
-                    borc: item.newBorc || "0.00",
-                    tarixQosma: getTodayFormatted(),
-                    safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
-                    uzatma: isFiziki ? "na" : "yə" 
+                    idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
+                    idarereisi: raportAyarlarData.idarereisi || "",
+                    mesulsexsvezife: raportAyarlarData.mesulsexsvezife || "",
+                    mesulsexs: raportAyarlarData.mesulsexs || "",
+                    raportfirma: item.firmaAdi,
+                    uzanti: item.isFiziki ? "na" : "nin",
+                    raportgbnomresi: item.newGb,
+                    ixracolke: item.ixracList,
+                    invoysmebleg: totalInvoys.toFixed(2),
+                    manatinvoysmebleg: manatInvoys.toFixed(2),
+                    cevirme: mezenne.toString(),
+                    malinadi: malinAdiValue,
+                    borc: borc.toFixed(2),
+                    manatborc: manatBorc.toFixed(2)
                 });
 
-                // RAPORT BAZASI ÜÇÜN PAYLOAD
                 pendingRaportDbSavePayload.push({
-                    gomruk_orqani: checkbox.getAttribute("data-idare") || "",
-                    firma: isFiziki ? rehberAdi : firmaAdi,
-                    voen: voen || "",
+                    gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
+                    firma: item.firmaAdi,
+                    voen: item.voen || "",
                     tarix_yazilma: getTodayFormatted(),
                     tarix_borcdovru: targetPeriod || "",
                     melumat: `Bəyannamələr: ${item.newGb}`
                 });
             }
 
-            // DİQQƏT: Arxa planda raport üçün ayrıca API varsa buranı dəyişdirin
+            // DİQQƏT: Backend-də raport sənədini formalaşdırmaq üçün "/api/generate-raports" adlı yol olmalıdır.
             const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
-            const signerData = {
-                leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
-                leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
-                secondperson: document.getElementById('sign-second-person')?.value.trim() || '',
-                phone: document.getElementById('sign-phone')?.value.trim() || ''
-            };
-
+            
             const response = await fetch(generateDocsEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: payload, mesulsexs: signerData })
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
             });
-
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                const errData = await response.json();
-                throw new Error(errData.error || errData.message || "Server xətası baş verdi.");
-            }
 
             if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
 
@@ -1678,21 +1691,16 @@ document.addEventListener("DOMContentLoaded", function() {
         } catch (error) {
             clearInterval(progressInterval);
             alert("XƏTA: " + error.message);
-            console.error("ZIP Error:", error);
         } finally {
             overlay.style.opacity = '0';
             overlay.style.pointerEvents = 'none';
             setTimeout(() => {
-                overlay.style.display = 'none';
-                progressBar.style.width = '0%';
-                progressText.innerText = '0%';
-                progressText.style.color = '#3b82f6';
+                overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
             }, 300);
         }
     };
 
 
-    // BİLDİRİŞ PRE-ZIP
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
             if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
@@ -1705,7 +1713,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // RAPORT PRE-ZIP
     if(confirmRaportZipBtn) {
         confirmRaportZipBtn.addEventListener("click", () => {
             if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
@@ -1724,8 +1731,7 @@ document.addEventListener("DOMContentLoaded", function() {
             e.preventDefault();
             const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
             if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); 
-                return; 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
             }
 
             let firmsToProcess = [];
@@ -1745,10 +1751,8 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb!"); 
-                return; 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb!"); return; 
             }
-
             window.pendingFirmsToZip = firmsToProcess;
 
             if (prezipTbody && preZipPopup) {
@@ -1758,35 +1762,78 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // RAPORT QOŞMA ÜÇÜN HESABLAMALAR VƏ GÖRÜNÜŞ (DİNAMİK BİLDİRİŞ YOXLAMASI İLƏ)
     const raportQosmaBtn = document.getElementById("btn-raport-qosma");
     if (raportQosmaBtn) {
         raportQosmaBtn.addEventListener("click", function(e) {
             e.preventDefault();
             const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
             if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); 
-                return; 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
             }
 
             let firmsToProcess = [];
             let warningHtml = "";
 
             for (const checkbox of checkedFirms) {
-                let oldRaportGb = checkbox.getAttribute("data-old-raport-gb") || "";
-                let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
-                let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
+                let voen = checkbox.getAttribute("data-voen") || "";
                 let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
                 let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+                let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
+                let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
+                let isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
+                let ixracList = checkbox.getAttribute("data-new-raport-ixrac") || "";
+                let invoysSum = checkbox.getAttribute("data-new-raport-invoys") || "0";
 
                 if (newRaportGb.trim() !== "") {
-                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldRaportGb.trim() !== "" ? oldRaportGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newRaportGb}</td><td style="font-weight:bold; color:#1e293b;">${newRaportBorc} ABŞ</td></tr>`;
-                    firmsToProcess.push({ checkbox: checkbox, newGb: newRaportGb, newBorc: newRaportBorc });
+                    let bildirisHtml = "";
+                    let gbArr = newRaportGb.split(',').map(s => s.trim()).filter(s => s);
+                    
+                    gbArr.forEach(gb => {
+                        let regex = new RegExp(`\\b${gb}\\b`);
+                        // Müvafiq Bildiriş Qeydini Tapırıq
+                        let matchedRecord = allBildirislerData.find(b => b.melumat && regex.test(b.melumat) && ((voen && b.voen === voen) || (!voen && b.firma === firmaAdi)));
+
+                        if (matchedRecord) {
+                            if (matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "") {
+                                bildirisHtml += `<div style="margin-bottom:4px; font-size:11px;"><strong>${gb}:</strong> <span style="color:#166534;">${matchedRecord.tarix_yazilma} / № ${matchedRecord.bildiris_nomresi}</span></div>`;
+                            } else {
+                                // Bildiriş nömrəsi yoxdursa -> SARI XANA YARADIRIQ
+                                bildirisHtml += `<div style="margin-bottom:4px; font-size:11px; display:flex; align-items:center; gap:6px;">
+                                    <strong>${gb}:</strong> 
+                                    <input type="text" class="missing-bildiris-input" data-bil-id="${matchedRecord.id}" placeholder="Nömrə yaz" style="background:#fef08a; padding:4px 6px; font-size:11px; width:100px; border:1px solid #fde047; border-radius:4px; outline:none; color:#0f172a;">
+                                </div>`;
+                            }
+                        } else {
+                            bildirisHtml += `<div style="margin-bottom:4px; font-size:11px; color:#ef4444;"><strong>${gb}:</strong> Bildiriş yoxdur</div>`;
+                        }
+                    });
+
+                    // Cədvəlin Sətri (Malın adı inputu da burada yerləşir)
+                    warningHtml += `<tr>
+                        <td><strong>${firmaAdi}</strong><br><span style="font-size:10px; color:#64748b;">VÖEN: ${voen || 'Yoxdur'}</span></td>
+                        <td style="color:#2563eb; font-weight:600; font-size:12px;">${newRaportGb}</td>
+                        <td>${bildirisHtml}</td>
+                        <td><input type="text" class="malin-adi-input" data-voen="${voen}" data-firma="${rawFirmaAdi}" placeholder="Malın adı" style="width:100%; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none;"></td>
+                        <td style="font-weight:bold; color:#1e293b; white-space:nowrap;">${newRaportBorc} ABŞ</td>
+                    </tr>`;
+
+                    firmsToProcess.push({ 
+                        checkbox: checkbox, 
+                        newGb: newRaportGb, 
+                        newBorc: newRaportBorc,
+                        firmaAdi: firmaAdi,
+                        rawFirmaAdi: rawFirmaAdi,
+                        voen: voen,
+                        isFiziki: isFiziki,
+                        ixracList: ixracList,
+                        invoysSum: parseFloat(invoysSum)
+                    });
                 }
             }
 
             if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq raport yazılıb!"); 
-                return; 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq raport yazılıb!"); return; 
             }
 
             window.pendingFirmsToRaportZip = firmsToProcess;
@@ -1845,7 +1892,6 @@ document.addEventListener("DOMContentLoaded", function() {
             saveRaportSelectionsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yazılır...`; 
             saveRaportSelectionsBtn.disabled = true;
 
-            // RAPORT TOPLU YAZILMA API-si
             fetch(RAPORT_API_URL + '/bulk', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ raportlar: finalPayload })
             })
