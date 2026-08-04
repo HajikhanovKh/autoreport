@@ -1189,169 +1189,182 @@ document.addEventListener("DOMContentLoaded", function() {
                                     </div>`;
 
                             idaredəkiFirmalar.forEach(item => {
-    let isVoenInDb = true; 
-    let missingAlertHtml = ""; 
-    let safeFirmaAdi = item.firma ? item.firma.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+                                let isVoenInDb = true; 
+                                let missingAlertHtml = ""; 
+                                let safeFirmaAdi = item.firma ? item.firma.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
 
-    if (item.voen) {
-        isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
-        if (!isVoenInDb) { 
-            missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" style="margin-top:6px; background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
-        }
-    } else { 
-        isVoenInDb = false; 
-    }
+                                if (item.voen) {
+                                    isVoenInDb = allCompaniesData.some(c => c.voen && c.voen.toString() === item.voen.toString());
+                                    if (!isVoenInDb) { 
+                                        missingAlertHtml = `<button class="add-missing-voen-btn" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" style="margin-top:6px; background:none; border:none; color:#ef4444; font-size:12px; cursor:pointer; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> VÖEN bazada yoxdur - Əlavə etmək üçün klikləyin</button>`; 
+                                    }
+                                } else { 
+                                    isVoenInDb = false; 
+                                }
 
-    let newDecls = [];
-    let oldDecls = [];
-    let newBorc = 0;
-    let newTarixler = new Set();
-    
-    let oldRaportDecls = [];
-    let newRaportDecls = [];
-    let newRaportBorc = 0;
-    let newRaportIxracList = new Set();
-    let newRaportInvoysSum = 0;
+                                let newDecls = [];
+                                let oldDecls = [];
+                                let newBorc = 0;
+                                let newTarixler = new Set();
+                                
+                                let oldRaportDecls = [];
+                                let newRaportDecls = [];
+                                let newRaportBorc = 0;
+                                let newRaportIxracList = new Set();
+                                let newRaportInvoysSum = 0;
 
-    let accordionListHtml = ``;
-    
-    let foundRecordsForFirm = allBildirislerData.filter(b => 
-        (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)
-    );
-    
-    let foundRaportsForFirm = allRaportData.filter(r => 
-        (item.voen && r.voen === item.voen.toString()) || (!item.voen && r.firma === item.firma)
-    );
+                                let accordionListHtml = ``;
+                                
+                                let foundRecordsForFirm = allBildirislerData.filter(b => 
+                                    (item.voen && b.voen === item.voen.toString()) || (!item.voen && b.firma === item.firma)
+                                );
+                                
+                                let foundRaportsForFirm = allRaportData.filter(r => 
+                                    (item.voen && r.voen === item.voen.toString()) || (!item.voen && r.firma === item.firma)
+                                );
 
-    let totalDecls = Object.keys(item.decls).length;
-    let completedDecls = 0;
-    let allDeclsHaveBildirisNo = true; // Yalnızca tüm beyannamelerin bildiriş numarası tam ise
+                                let totalDecls = Object.keys(item.decls).length;
+                                let completedDecls = 0;
 
-    for(const nomre in item.decls) {
-        let borcu = item.decls[nomre].borc;
-        let tarixleri = Array.from(item.decls[nomre].tarixler);
-        let regex = new RegExp(`\\b${nomre}\\b`);
-        
-        let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
-        let matchedRaport = foundRaportsForFirm.find(r => r.melumat && regex.test(r.melumat));
+                                for(const nomre in item.decls) {
+                                    let borcu = item.decls[nomre].borc;
+                                    let tarixleri = Array.from(item.decls[nomre].tarixler);
+                                    let regex = new RegExp(`\\b${nomre}\\b`);
+                                    
+                                    let matchedRecord = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
+                                    let matchedRaport = foundRaportsForFirm.find(r => r.melumat && regex.test(r.melumat));
 
-        let bildirisStatus = "";
-        let raportStatus = "";
-        let hasFullBildiris = false;
-        let hasFullRaport = false;
+                                    let bildirisStatus = "";
+                                    let raportStatus = "";
+                                    let hasFullBildiris = false;
+                                    let hasFullRaport = false;
 
-        // Bildiriş Kontrolü
-        if (matchedRecord) {
-            oldDecls.push(nomre);
-            let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
-            if (mainBildirisNo) {
-                // Bildiriş numarası MAVİ renkte gösterilir
-                bildirisStatus = `<span style="color: #2563eb; font-size:11px; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-check"></i> Bil. №: ${mainBildirisNo}</span>`;
-                hasFullBildiris = true;
-            } else {
-                allDeclsHaveBildirisNo = false;
-                bildirisStatus = `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700; margin-right: 12px;" title="Bildiriş nömrəsi artır"><i class="fa-solid fa-plus"></i> Bil. Nömrəsi</button>`;
-            }
-        } else {
-            allDeclsHaveBildirisNo = false;
-            newDecls.push(nomre);
-            newBorc += borcu; 
-            tarixleri.forEach(t => newTarixler.add(t));
-            bildirisStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-circle-plus"></i> Yeni Bildiriş</span>`;
-        }
+                                    // Bildirişin Yoxlanması
+                                    if (matchedRecord) {
+                                        oldDecls.push(nomre);
+                                        let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
+                                        if (mainBildirisNo) {
+                                            bildirisStatus = `<span style="color: #2563eb; font-size:11px; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-check"></i> Bil. №: ${mainBildirisNo}</span>`;
+                                            hasFullBildiris = true;
+                                        } else {
+                                            bildirisStatus = `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700; margin-right: 12px;" title="Bildiriş nömrəsi artır"><i class="fa-solid fa-plus"></i> Bil. Nömrəsi</button>`;
+                                        }
+                                    } else {
+                                        newDecls.push(nomre);
+                                        newBorc += borcu; 
+                                        tarixleri.forEach(t => newTarixler.add(t));
+                                        bildirisStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-circle-plus"></i> Yeni Bildiriş</span>`;
+                                    }
 
-        // Raport Kontrolü
-        if (matchedRaport) {
-            oldRaportDecls.push(nomre);
-            let mainRaportNo = matchedRaport.raport_nomresi && matchedRaport.raport_nomresi.trim() !== "" ? matchedRaport.raport_nomresi : null;
-            if (mainRaportNo) {
-                raportStatus = `<span style="color: #166534; font-size:11px; font-weight:700;"><i class="fa-solid fa-check"></i> Raport №: ${mainRaportNo}</span>`;
-                hasFullRaport = true;
-            } else {
-                raportStatus = `<button class="btn-sec" onclick="typeof openRaportPanelAndHighlight === 'function' ? openRaportPanelAndHighlight('${matchedRaport.id}') : alert('Raport nömrəsi əlavə etmə paneli hələ qoşulmayıb')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700;" title="Raport nömrəsi artır"><i class="fa-solid fa-plus"></i> Raport Nömrəsi</button>`;
-            }
-        } else {
-            newRaportDecls.push(nomre);
-            newRaportBorc += borcu;
-            if (item.decls[nomre].ixrac) newRaportIxracList.add(item.decls[nomre].ixrac);
-            newRaportInvoysSum += item.decls[nomre].invoys;
-            raportStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni Raport</span>`;
-        }
+                                    // Raportun Yoxlanması
+                                    if (matchedRaport) {
+                                        oldRaportDecls.push(nomre);
+                                        let mainRaportNo = matchedRaport.raport_nomresi && matchedRaport.raport_nomresi.trim() !== "" ? matchedRaport.raport_nomresi : null;
+                                        if (mainRaportNo) {
+                                            raportStatus = `<span style="color: #166534; font-size:11px; font-weight:700;"><i class="fa-solid fa-check"></i> Raport №: ${mainRaportNo}</span>`;
+                                            hasFullRaport = true;
+                                        } else {
+                                            raportStatus = `<button class="btn-sec" onclick="typeof openRaportPanelAndHighlight === 'function' ? openRaportPanelAndHighlight('${matchedRaport.id}') : alert('Raport nömrəsi əlavə etmə paneli hələ qoşulmayıb')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700;" title="Raport nömrəsi artır"><i class="fa-solid fa-plus"></i> Raport Nömrəsi</button>`;
+                                        }
+                                    } else {
+                                        newRaportDecls.push(nomre);
+                                        newRaportBorc += borcu;
+                                        if (item.decls[nomre].ixrac) newRaportIxracList.add(item.decls[nomre].ixrac);
+                                        newRaportInvoysSum += item.decls[nomre].invoys;
+                                        raportStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700;"><i class="fa-solid fa-circle-plus"></i> Yeni Raport</span>`;
+                                    }
 
-        if (hasFullBildiris && hasFullRaport) completedDecls++;
+                                    if (hasFullBildiris && hasFullRaport) completedDecls++;
 
-        accordionListHtml += `<li style="display:flex; justify-content:space-between; align-items:center; padding: 10px 14px; border: 1px solid #cbd5e1; background:#ffffff; margin-bottom:6px; border-radius:6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-            <span style="color: #2563eb; font-size:13px;"><i class="fa-solid fa-file-invoice" style="margin-right:6px;"></i> <strong>${nomre}</strong></span>
-            <div style="display:flex; align-items:center;">${bildirisStatus} ${raportStatus}</div>
-        </li>`;
-    }
+                                    accordionListHtml += `<li style="display:flex; justify-content:space-between; align-items:center; padding: 10px 14px; border: 1px solid #cbd5e1; background:#ffffff; margin-bottom:6px; border-radius:6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                        <span style="color: #2563eb; font-size:13px;"><i class="fa-solid fa-file-invoice" style="margin-right:6px;"></i> <strong>${nomre}</strong></span>
+                                        <div style="display:flex; align-items:center;">${bildirisStatus} ${raportStatus}</div>
+                                    </li>`;
+                                }
 
-    // Yalnızca TÜM beyannamelerde bildiriş numarası varsa "Raporta tam hazırdır" verilir
-    let canRaport = allDeclsHaveBildirisNo && totalDecls > 0;
+                                // ---------------- RAPORT ŞƏRTLƏRİ ----------------
+                                let canRaport = true;
+                                let hasEmptyBildirisNomreForNewRaport = false;
 
-    let raportBadgeHtml = "";
-    if (!canRaport) {
-        raportBadgeHtml = `<div class="badge-pill" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;"><i class="fa-solid fa-ban"></i> Raport qadağandır (Bildiriş yoxdur)</div>`;
-    } else {
-        raportBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Raporta tam hazırdır</div>`;
-    }
+                                newRaportDecls.forEach(gb => {
+                                    let regex = new RegExp(`\\b${gb}\\b`);
+                                    let matched = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
+                                    
+                                    if (!matched) {
+                                        // Əgər bazada ümumiyyətlə bildiriş yoxdursa
+                                        canRaport = false; 
+                                    } else if (!matched.bildiris_nomresi || matched.bildiris_nomresi.trim() === "") {
+                                        // Əgər bazada bildiriş varsa, amma nömrəsi boşdursa
+                                        hasEmptyBildirisNomreForNewRaport = true; 
+                                    }
+                                });
 
-    let bgStyle = "#ffffff";
-    let cardBorder = "1px solid #cbd5e1";
-    let statusBadge = "";
-    let fullCompletedBadgeHtml = "";
-    
-    if (completedDecls === totalDecls && totalDecls > 0) {
-        // Diğer rozetler boyutunda badge
-        fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-circle-check"></i> Bütün Bildiriş və Raportlar qeydə alınıb</div>`;
-        bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
-    } else if (oldDecls.length > 0 && newDecls.length > 0) {
-        bgStyle = "#fffbeb"; cardBorder = "1px solid #fde68a";
-        statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
-    } else if (oldDecls.length > 0 && newDecls.length === 0) {
-        bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
-        statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Bildirişlər Yazılıb</div>`;
-    } else {
-        bgStyle = "#ffffff"; cardBorder = "1px solid #e2e8f0";
-        // "Yeni qeyd" yerine "Yeni Bildiriş"
-        statusBadge = `<div class="badge-pill" style="background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
-    }
+                                let raportBadgeHtml = "";
+                                if (newRaportDecls.length > 0) {
+                                    if (!canRaport) {
+                                        raportBadgeHtml = `<div class="badge-pill" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;"><i class="fa-solid fa-ban"></i> Raport qadağandır (Bildiriş yoxdur)</div>`;
+                                    } else if (hasEmptyBildirisNomreForNewRaport) {
+                                        raportBadgeHtml = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-triangle-exclamation"></i> Raport yazıla bilər (Bil. nömrəsi yoxdur)</div>`;
+                                    } else {
+                                        raportBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Raporta tam hazırdır</div>`;
+                                    }
+                                }
+                                // -------------------------------------------------
 
-    let canCreateNew = isVoenInDb;
-    let checkboxAttr = canCreateNew ? "checked" : "disabled";
-    let opacityStyle = canCreateNew ? "1" : "0.5"; 
+                                let bgStyle = "#ffffff";
+                                let cardBorder = "1px solid #cbd5e1";
+                                let statusBadge = "";
+                                let fullCompletedBadgeHtml = "";
+                                
+                                if (completedDecls === totalDecls && totalDecls > 0) {
+                                    fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-circle-check"></i> Bütün Bildiriş və Raportlar qeydə alınıb</div>`;
+                                    bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
+                                } else if (oldDecls.length > 0 && newDecls.length > 0) {
+                                    bgStyle = "#fffbeb"; cardBorder = "1px solid #fde68a";
+                                    statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
+                                } else if (oldDecls.length > 0 && newDecls.length === 0) {
+                                    bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
+                                    statusBadge = `<div class="badge-pill" style="background:#e2e8f0; color:#475569; border-color:#cbd5e1;"><i class="fa-solid fa-database"></i> Bildirişlər Yazılıb</div>`;
+                                } else {
+                                    bgStyle = "#ffffff"; cardBorder = "1px solid #e2e8f0";
+                                    statusBadge = `<div class="badge-pill" style="background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe;"><i class="fa-solid fa-sparkles"></i> Yeni Bildiriş</div>`;
+                                }
 
-    let byNoStr = Object.keys(item.decls).join(", ");
-    let newTarixStr = Array.from(newTarixler).join(", ");
-    let accordionToggleBtn = `<button class="toggle-btn" style="background:transparent; border:none; cursor:pointer; font-size:18px; color:#64748b;" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>`;
+                                let canCreateNew = isVoenInDb;
+                                let checkboxAttr = canCreateNew ? "checked" : "disabled";
+                                let opacityStyle = canCreateNew ? "1" : "0.5"; 
 
-    htmlContent += `
-        <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle}; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div class="firm-main-row" style="display:flex; justify-content:space-between; align-items:flex-start; padding: 16px;">
-                <div style="display:flex; gap:12px; align-items:flex-start; flex:1;">
-                    <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-can-raport="${canRaport}" data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}" data-new-raport-gb="${newRaportDecls.join(', ')}" data-old-raport-gb="${oldRaportDecls.join(', ')}" data-new-raport-borc="${newRaportBorc.toFixed(2)}" data-new-raport-ixrac="${Array.from(newRaportIxracList).join(', ')}" data-new-raport-invoys="${newRaportInvoysSum.toFixed(2)}" style="margin-top:6px;">
-                    <div class="firm-info" style="flex:1;">
-                        <div class="firm-name" style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:6px;">${item.firma} <span class="firm-voen" style="color:#64748b; font-size:13px; font-weight:500;">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
-                        <div class="firm-badges" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
-                            <div class="badge-pill badge-danger-pill" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Ümumi Borc: ${item.toplamBorc.toFixed(2)} USD</div>
-                            ${statusBadge}
-                            ${raportBadgeHtml}
-                            ${fullCompletedBadgeHtml}
-                        </div>
-                        ${missingAlertHtml}
-                    </div>
-                </div>
-                <div>${accordionToggleBtn}</div>
-            </div>
-            <div class="details-panel" style="display:none; padding: 16px; background: #f1f5f9; border-top: 1px solid #e2e8f0;">
-                <h5 style="margin:0 0 10px 0; font-size:12px; color:#475569; text-transform:uppercase; font-weight:700;">Bəyannamələr Üzrə Detallar</h5>
-                <ul style="list-style:none; padding:0; margin:0;">
-                    ${accordionListHtml}
-                </ul>
-            </div>
-        </div>`;
-    firmaIdx++;
-});
+                                let byNoStr = Object.keys(item.decls).join(", ");
+                                let newTarixStr = Array.from(newTarixler).join(", ");
+                                let accordionToggleBtn = `<button class="toggle-btn" style="background:transparent; border:none; cursor:pointer; font-size:18px; color:#64748b;" title="Bəyannamələri göstər"><i class="fa-solid fa-chevron-down"></i></button>`;
+
+                                htmlContent += `
+                                    <div class="firm-item" style="background: ${bgStyle}; border: ${cardBorder}; opacity: ${opacityStyle}; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                        <div class="firm-main-row" style="display:flex; justify-content:space-between; align-items:flex-start; padding: 16px;">
+                                            <div style="display:flex; gap:12px; align-items:flex-start; flex:1;">
+                                                <input type="checkbox" class="custom-checkbox firma-check2" ${checkboxAttr} data-can-raport="${canRaport}" data-idare="${safeIdare}" data-voen="${item.voen}" data-firma="${safeFirmaAdi}" data-isfiziki="${item.isFiziki}" data-gb="${byNoStr}" data-new-gb="${newDecls.join(', ')}" data-old-gb="${oldDecls.join(', ')}" data-borc="${item.toplamBorc.toFixed(2)}" data-new-borc="${newBorc.toFixed(2)}" data-new-tarixler="${newTarixStr}" data-new-raport-gb="${newRaportDecls.join(', ')}" data-old-raport-gb="${oldRaportDecls.join(', ')}" data-new-raport-borc="${newRaportBorc.toFixed(2)}" data-new-raport-ixrac="${Array.from(newRaportIxracList).join(', ')}" data-new-raport-invoys="${newRaportInvoysSum.toFixed(2)}" style="margin-top:6px;">
+                                                <div class="firm-info" style="flex:1;">
+                                                    <div class="firm-name" style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:6px;">${item.firma} <span class="firm-voen" style="color:#64748b; font-size:13px; font-weight:500;">(VÖEN: ${item.voen || "Yoxdur"})</span></div>
+                                                    <div class="firm-badges" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+                                                        <div class="badge-pill badge-danger-pill" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">Ümumi Borc: ${item.toplamBorc.toFixed(2)} USD</div>
+                                                        ${statusBadge}
+                                                        ${raportBadgeHtml}
+                                                        ${fullCompletedBadgeHtml}
+                                                    </div>
+                                                    ${missingAlertHtml}
+                                                </div>
+                                            </div>
+                                            <div>${accordionToggleBtn}</div>
+                                        </div>
+                                        <div class="details-panel" style="display:none; padding: 16px; background: #f1f5f9; border-top: 1px solid #e2e8f0;">
+                                            <h5 style="margin:0 0 10px 0; font-size:12px; color:#475569; text-transform:uppercase; font-weight:700;">Bəyannamələr Üzrə Detallar</h5>
+                                            <ul style="list-style:none; padding:0; margin:0;">
+                                                ${accordionListHtml}
+                                            </ul>
+                                        </div>
+                                    </div>`;
+                                firmaIdx++;
+                            });
                             htmlContent += `</div>`; 
                             idareIdx++;
                         }
