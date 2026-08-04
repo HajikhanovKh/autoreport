@@ -378,196 +378,44 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // ==========================================
-    // İMZALAYAN ŞƏXSLƏR PƏNCƏRƏSİ (DİNAMİK VƏ 2 BÖLMƏLİ)
-    // ==========================================
-    const signerBtn = document.getElementById('signer-btn');
-    const popupSigners = document.getElementById('popup_signers');
-    
-    // Pəncərənin daxilini 2 bölməli xüsusi dizaynla JS vasitəsilə sıfırdan qururuq
-    if (popupSigners) {
-        popupSigners.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
-            <div style="background: white; border-radius: 16px; width: 90%; max-width: 650px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
-                <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top-left-radius: 16px; border-top-right-radius: 16px;">
-                    <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-users-gear" style="color: #3b82f6; margin-right: 8px;"></i>İmzalayan Şəxslərin Tənzimlənməsi</h2>
-                    <button id="close-signer-popup-btn" style="background: transparent; border: none; font-size: 24px; color: #64748b; cursor: pointer; transition: 0.2s;">&times;</button>
-                </div>
-
-                <div style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-                    
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 10px; margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #1e40af; border-bottom: 1px dashed #93c5fd; padding-bottom: 10px;"><i class="fa-solid fa-file-signature" style="margin-right: 6px;"></i>1. Bildirişlərin hazırlanmasında məsul şəxslər</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayan şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-sign-leader-person" placeholder="Məs: İdarə rəisinin müavini..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İcra edən şəxsin Soyadı, adı</label>
-                                <input type="text" id="dyn-sign-second-person" placeholder="Məs: Həsənov Həsən..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Telefon nömrəsi</label>
-                                <input type="text" id="dyn-sign-phone" placeholder="Məs: 050 123 45 67..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <input type="hidden" id="dyn-sign-leader-name" value="">
-                        </div>
-                    </div>
-
-                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 10px;">
-                        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #166534; border-bottom: 1px dashed #86efac; padding-bottom: 10px;"><i class="fa-solid fa-file-contract" style="margin-right: 6px;"></i>2. Raportun hazırlanması üçün məlumatlar</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportun yazıldığı şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-rap-reisi-vezifesi" placeholder="Məs: Gömrük İdarəsinin Rəisinə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Həmin şəxsin Soyadı, adı</label>
-                                <input type="text" id="dyn-rap-reisi-adi" placeholder="Məs: cənab Vəli Əliyevə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportu imzalayacaq şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-rap-mesul-vezife" placeholder="Məs: Gömrük Əməliyyatları Bölməsinin rəisi..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                            <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayacaq şəxsin Soyadı, adı</label>
-                                <input type="text" id="dyn-rap-mesul-adi" placeholder="Məs: Həsən Həsənov..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
-                    <span id="dyn-signer-status-msg" style="font-size: 13px; font-weight: 700; display: none;"></span>
-                    <button id="dyn-save-signers-btn" style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-save" style="margin-right: 6px;"></i> Yadda Saxla</button>
-                </div>
-            </div>
-        </div>
-        `;
-        popupSigners.style.background = 'transparent'; // Webflow-un mövcud arxa fonu ləğv edilir
-    }
-
+   //----------------------------------------------------
     function loadSigners() {
         fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
             if (data && data.length > 0) {
                 const s = data[0]; 
                 currentSignerId = s.id; 
-                let el1 = document.getElementById('dyn-sign-leader-person'); if(el1) el1.value = s.leaderperson || ''; 
-                let el2 = document.getElementById('dyn-sign-leader-name'); if(el2) el2.value = s.leadername || ''; // Gizli dəyər
-                let el3 = document.getElementById('dyn-sign-second-person'); if(el3) el3.value = s.secondperson || ''; 
-                let el4 = document.getElementById('dyn-sign-phone'); if(el4) el4.value = s.phone || '';
+                iLeaderPerson.value = s.leaderperson || ''; 
+                iLeaderName.value = s.leadername || '';
+                iSecondPerson.value = s.secondperson || ''; 
+                iPhone.value = s.phone || '';
             }
         }).catch(err => console.error(err));
     }
-
+    
     function loadRaportAyarlar() {
         fetch(RAPORT_AYAR_API_URL).then(r => r.json()).then(data => {
-            if(data && data.length > 0) {
-                raportAyarlarData = data[0];
-                let r1 = document.getElementById('dyn-rap-reisi-vezifesi'); if(r1) r1.value = raportAyarlarData.idarereisivezifesi || '';
-                let r2 = document.getElementById('dyn-rap-reisi-adi'); if(r2) r2.value = raportAyarlarData.idarereisi || '';
-                let r3 = document.getElementById('dyn-rap-mesul-vezife'); if(r3) r3.value = raportAyarlarData.mesulsexsvezifesi || raportAyarlarData.mesulsexsvezife || '';
-                let r4 = document.getElementById('dyn-rap-mesul-adi'); if(r4) r4.value = raportAyarlarData.mesulsexs || '';
-            }
+            if(data && data.length > 0) raportAyarlarData = data[0];
         }).catch(e => console.error("Raport Ayar Xətası:", e));
     }
 
     if (signerBtn && popupSigners) { 
         signerBtn.addEventListener('click', e => { 
             e.preventDefault(); 
-            popupSigners.style.display = 'block'; 
-            let msg = document.getElementById('dyn-signer-status-msg');
-            if(msg) msg.style.display = 'none'; 
-            
-            // Pəncərə açılanda dərhal 2 cədvəldən də məlumatları çəkir
-            loadSigners();
-            loadRaportAyarlar();
+            popupSigners.style.display = 'flex'; 
+            signerStatusMsg.style.display = 'none'; 
+        }); 
+    }
+    
+    if (closeSignerBtn && popupSigners) { 
+        closeSignerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'none'; 
         }); 
     }
 
-    // Modalın düymələri dinamik yaradıldığı üçün EventListener-ləri xüsusi formada bağlayırıq
-    document.addEventListener('click', async function(e) {
-        // Pəncərəni bağlama düyməsi
-        if (e.target && (e.target.id === 'close-signer-popup-btn' || e.target.closest('#close-signer-popup-btn'))) {
-            e.preventDefault();
-            if (popupSigners) popupSigners.style.display = 'none';
-        }
 
-        // Məlumatları Yadda Saxlama düyməsi
-        if (e.target && (e.target.id === 'dyn-save-signers-btn' || e.target.closest('#dyn-save-signers-btn'))) {
-            e.preventDefault();
-            const btn = document.getElementById('dyn-save-signers-btn');
-            const msg = document.getElementById('dyn-signer-status-msg');
-
-            // 1-ci bölmə: Bildirişlər üçün paket
-            const payloadMesul = { 
-                leaderperson: document.getElementById('dyn-sign-leader-person').value.trim(), 
-                leadername: document.getElementById('dyn-sign-leader-name').value.trim(), 
-                secondperson: document.getElementById('dyn-sign-second-person').value.trim(), 
-                phone: document.getElementById('dyn-sign-phone').value.trim() 
-            };
-            
-            // 2-ci bölmə: Raportlar üçün paket
-            const payloadRaport = {
-                idarereisivezifesi: document.getElementById('dyn-rap-reisi-vezifesi').value.trim(),
-                idarereisi: document.getElementById('dyn-rap-reisi-adi').value.trim(),
-                mesulsexsvezifesi: document.getElementById('dyn-rap-mesul-vezife').value.trim(),
-                mesulsexsvezife: document.getElementById('dyn-rap-mesul-vezife').value.trim(), 
-                mesulsexs: document.getElementById('dyn-rap-mesul-adi').value.trim()
-            };
-
-            let methodMesul = currentSignerId ? 'PUT' : 'POST'; 
-            let urlMesul = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            
-            let methodRaport = (raportAyarlarData && raportAyarlarData.id) ? 'PUT' : 'POST';
-            let urlRaport = (raportAyarlarData && raportAyarlarData.id) ? `${RAPORT_AYAR_API_URL}/${raportAyarlarData.id}` : RAPORT_AYAR_API_URL;
-
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> Yadda Saxlanılır...`; 
-            btn.disabled = true;
-
-            try {
-                // Hər iki bazaya eyni anda sinxron müraciət edirik
-                const [resMesul, resRaport] = await Promise.all([
-                    fetch(urlMesul, { method: methodMesul, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadMesul) }),
-                    fetch(urlRaport, { method: methodRaport, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadRaport) })
-                ]);
-
-                if (!resMesul.ok || !resRaport.ok) throw new Error("Server xətası baş verdi");
-
-                const dataMesul = await resMesul.json();
-                const dataRaport = await resRaport.json();
-
-                // Əgər bazada ilk dəfə yaradılıbsa ID-ləri proqrama tanıtdırırıq
-                if (!currentSignerId && dataMesul && dataMesul.id) currentSignerId = dataMesul.id;
-                if (!raportAyarlarData.id && dataRaport && dataRaport.id) raportAyarlarData.id = dataRaport.id;
-
-                if (msg) {
-                    msg.innerText = "Hər iki məlumat uğurla yadda saxlanıldı! ✅"; 
-                    msg.style.color = "#166534"; 
-                    msg.style.display = "block";
-                }
-                
-                // Məlumatlar yeniləndikdən sonra fona da çəkirik
-                loadSigners();
-                loadRaportAyarlar();
-
-                setTimeout(() => { if (popupSigners) popupSigners.style.display = 'none'; }, 2000);
-
-            } catch(err) {
-                if (msg) {
-                    msg.innerText = "Xəta baş verdi, interneti yoxlayın!"; 
-                    msg.style.color = "#ef4444"; 
-                    msg.style.display = "block";
-                }
-            } finally {
-                btn.innerHTML = `<i class="fa-solid fa-save" style="margin-right: 6px;"></i> Yadda Saxla`; 
-                btn.disabled = false; 
-            }
-        }
-    });
     
+    //---------------------------------------------------
     if (saveSignersBtn) {
         saveSignersBtn.addEventListener('click', e => {
             e.preventDefault();
