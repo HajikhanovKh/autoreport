@@ -541,4 +541,45 @@ app.get('/api/raportayarlar', async (req, res) => {
     }
 });
 
+// YENİ RAPORT AYARLARI ƏLAVƏ ETMƏK ÜÇÜN (POST)
+app.post('/api/raportayarlar', async (req, res) => {
+    let connection;
+    try {
+        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        
+        const [result] = await connection.execute(
+            'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?, ?)',
+            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '']
+        );
+        res.json({ id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
+    } catch (error) {
+        console.error("Raport ayarları əlavə edilərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// MÖVCUD RAPORT AYARLARINI YENİLƏMƏK ÜÇÜN (PUT)
+app.put('/api/raportayarlar/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        
+        await connection.execute(
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
+            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '', id]
+        );
+        res.json({ message: "Raport ayarları uğurla yeniləndi" });
+    } catch (error) {
+        console.error("Raport ayarları yenilənərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
