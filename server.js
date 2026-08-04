@@ -9,7 +9,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ES Modules mühitində __dirname və __filename üçün xüsusi tənzimləmə
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,6 +19,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'PUT'] }));
 
+// Mütləq öz məlumatlarınızı qeyd edin!
 const dbConfig = process.env.MYSQL_URL || {
     host: 'ballast.proxy.rlwy.net',
     port: 55966,
@@ -29,7 +29,7 @@ const dbConfig = process.env.MYSQL_URL || {
 };
 
 // ==========================================
-// CƏDVƏLLƏRİN AVTOMATİK YARADILMASI (UĞURLU QURAŞDIRMA ÜÇÜN)
+// CƏDVƏLLƏRİN AVTOMATİK YARADILMASI
 // ==========================================
 async function initializeTables() {
     let connection;
@@ -52,7 +52,6 @@ async function initializeTables() {
             )
         `);
         
-        // Əgər cədvəl boşdursa, ilkin məlumatı əlavə et
         const [coverRows] = await connection.execute('SELECT COUNT(*) as count FROM coverinfo');
         if (coverRows[0].count === 0) {
             await connection.execute('INSERT INTO coverinfo (go, adres) VALUES (?, ?)', ['Gömrük Orqanının Adı', 'Ünvan daxil edin']);
@@ -70,6 +69,44 @@ async function initializeTables() {
                 bildiris_nomresi VARCHAR(100) DEFAULT ''
             )
         `);
+
+        // Əsas əlavə olunan cədvəl (Yaddaşdakı xətanın səbəbi idi)
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS raportayarlar (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                idarereisivezifesi VARCHAR(255),
+                idarereisi VARCHAR(255),
+                mesulsexsvezifesi VARCHAR(255),
+                mesulsexsvezife VARCHAR(255),
+                mesulsexs VARCHAR(255)
+            )
+        `);
+
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS raportinfo (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                gomruk_orqani VARCHAR(255),
+                firma VARCHAR(255),
+                voen VARCHAR(50),
+                tarix_yazilma VARCHAR(50),
+                tarix_borcdovru VARCHAR(100),
+                melumat TEXT,
+                raport_nomresi VARCHAR(100) DEFAULT ''
+            )
+        `);
+
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS voen_info (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                voen VARCHAR(50),
+                comp_name VARCHAR(255),
+                comp_director_name VARCHAR(255),
+                comp_adress TEXT,
+                pstatus INT,
+                data_info_date VARCHAR(50)
+            )
+        `);
+        
         console.log("Cədvəllər uğurla yoxlanıldı/yaradıldı.");
     } catch (err) {
         console.error("Cədvəl yaratma xətası:", err);
@@ -80,13 +117,12 @@ async function initializeTables() {
 initializeTables();
 
 // ==========================================
-// ƏSAS API-LƏR (ZİP GENERATION)
+// ƏSAS API-LƏR (ZİP GENERATION BİLDİRİŞ)
 // ==========================================
 app.post('/api/generate-docs', async (req, res) => {
     let connection;
     try {
         const { selectedFirms } = req.body;
-
         if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
             return res.status(400).json({ error: 'Məlumat serverə çatmadı!' });
         }
@@ -233,7 +269,7 @@ app.post('/api/mesulsexs', async (req, res) => {
         connection = await mysql.createConnection(dbConfig);
         const [result] = await connection.execute(
             'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
-            [leaderperson, leadername, secondperson, phone]
+            [leaderperson || '', leadername || '', secondperson || '', phone || '']
         );
         res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
     } catch (err) { res.status(500).json({ error: err.message }); } 
@@ -247,7 +283,7 @@ app.put('/api/mesulsexs/:id', async (req, res) => {
     try {
         connection = await mysql.createConnection(dbConfig);
         await connection.execute('UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
-            [leaderperson, leadername, secondperson, phone, id]
+            [leaderperson || '', leadername || '', secondperson || '', phone || '', id]
         );
         res.json({ id, leaderperson, leadername, secondperson, phone });
     } catch (err) { res.status(500).json({ error: err.message }); } 
@@ -299,25 +335,17 @@ app.get('/api/bildirisler', async (req, res) => {
     }
 });
 
-app.get('/api/bildirisler/missing', async (req, res) => {
-    let connection;
-    try {
-        connection = await mysql.createConnection(dbConfig);
-        const [rows] = await connection.execute("SELECT * FROM bildirisler WHERE bildiris_nomresi = '' OR bildiris_nomresi IS NULL");
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    } finally {
-        if (connection) await connection.end();
-    }
-});
-
 app.put('/api/bildirisler/:id', async (req, res) => {
-    const { bildiris_nomresi } = req.body;
+    const { bildiris_nomresi, tarix_yazilma } = req.body;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ? WHERE id = ?', [bildiris_nomresi, req.params.id]);
+        // Həm nömrəni, həm də tarixi yeniləmək üçün
+        if (tarix_yazilma !== undefined) {
+             await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ?, tarix_yazilma = ? WHERE id = ?', [bildiris_nomresi, tarix_yazilma, req.params.id]);
+        } else {
+             await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ? WHERE id = ?', [bildiris_nomresi, req.params.id]);
+        }
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -398,7 +426,7 @@ app.post('/api/generate-cover', async (req, res) => {
                 const doc = new Docxtemplater(docZip, { 
                     paragraphLoop: true, 
                     linebreaks: true,
-                    nullGetter: function(part) { return ""; }
+                    nullGetter: function() { return ""; }
                 });
                 
                 doc.render(data);
@@ -424,7 +452,7 @@ app.post('/api/generate-cover', async (req, res) => {
 });
 
 // ==========================================
-// RAPORT AYARLARI (Məzənnə, Rəis, Məsul şəxs və s.)
+// RAPORT AYARLARI (GET, POST, PUT)
 // ==========================================
 app.get('/api/raportayarlar', async (req, res) => {
     let connection;
@@ -434,6 +462,45 @@ app.get('/api/raportayarlar', async (req, res) => {
         res.json(results);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+app.post('/api/raportayarlar', async (req, res) => {
+    let connection;
+    try {
+        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        
+        const [result] = await connection.execute(
+            'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?, ?)',
+            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '']
+        );
+        res.json({ id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
+    } catch (error) {
+        console.error("Raport ayarları əlavə edilərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+app.put('/api/raportayarlar/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        
+        await connection.execute(
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
+            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '', id]
+        );
+        res.json({ message: "Raport ayarları uğurla yeniləndi" });
+    } catch (error) {
+        console.error("Raport ayarları yenilənərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
     } finally {
         if (connection) await connection.end();
     }
@@ -466,7 +533,6 @@ app.post('/api/raportinfo/bulk', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        // values array of arrays olduğu üçün query istifadə edirik
         const [results] = await connection.query('INSERT INTO raportinfo (gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat) VALUES ?', [values]);
         res.json({ success: true, inserted: results.affectedRows });
     } catch (err) {
@@ -479,7 +545,6 @@ app.post('/api/raportinfo/bulk', async (req, res) => {
 // ==========================================
 // RAPORT ÜÇÜN WORD SƏNƏDLƏRİ VƏ ZIP YARADILMASI
 // ==========================================
-// RAPORTLAR ÜÇÜN ZİP GENERASİYASI
 app.post('/api/generate-raports', async (req, res) => {
     try {
         const { selectedFirms } = req.body;
@@ -488,8 +553,13 @@ app.post('/api/generate-raports', async (req, res) => {
         }
 
         const zip = new JSZip();
-        // Şablon faylınızın adı raportsablon.docx olmalıdır
+        // Şablon faylınızın adı raportsablon.docx olmalıdır. (Hərf böyüklüyünə diqqət)
         const templatePath = path.join(__dirname, 'raportsablon.docx'); 
+        
+        if (!fs.existsSync(templatePath)) {
+            return res.status(500).json({ error: "raportsablon.docx faylı serverdə tapılmadı!" });
+        }
+        
         const content = fs.readFileSync(templatePath, 'binary');
 
         selectedFirms.forEach((firm, index) => {
@@ -499,9 +569,13 @@ app.post('/api/generate-raports', async (req, res) => {
                 linebreaks: true,
             });
 
-            // ƏN VACİB HİSSƏ: Bütün məlumatları (Frontenddən gələn hər şeyi) 
-            // birbaşa docxtemplater-ə göndəririk ki, undefined xətası yaranmasın
-            doc.render(firm);
+            // Frontend-dən nə gəlirsə birbaşa renderə atırıq ki undefined verməsin
+            const renderData = {};
+            for (const key in firm) {
+                renderData[key] = firm[key] ? firm[key] : ''; 
+            }
+
+            doc.render(renderData);
 
             const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
             
@@ -522,63 +596,6 @@ app.post('/api/generate-raports', async (req, res) => {
     } catch (error) {
         console.error("Raport ZIP yaradılarkən xəta:", error);
         res.status(500).json({ error: "Sənədlər yaradılarkən xəta baş verdi: " + error.message });
-    }
-});
-
-    // Cədvəldən Raport Ayarlarını çəkmək üçün API
-app.get('/api/raportayarlar', async (req, res) => {
-    let connection;
-    try {
-        connection = await mysql.createConnection(dbConfig);
-        // raportayarlar cədvəlindən 1-ci sətri çəkirik
-        const [rows] = await connection.execute('SELECT * FROM raportayarlar LIMIT 1');
-        res.json(rows);
-    } catch (error) {
-        console.error("Raport ayarları çəkilərkən xəta:", error);
-        res.status(500).json({ error: "Baza xətası" });
-    } finally {
-        if (connection) await connection.end();
-    }
-});
-
-// YENİ RAPORT AYARLARI ƏLAVƏ ETMƏK ÜÇÜN (POST)
-app.post('/api/raportayarlar', async (req, res) => {
-    let connection;
-    try {
-        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
-        connection = await mysql.createConnection(dbConfig);
-        
-        const [result] = await connection.execute(
-            'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?, ?)',
-            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '']
-        );
-        res.json({ id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
-    } catch (error) {
-        console.error("Raport ayarları əlavə edilərkən xəta:", error);
-        res.status(500).json({ error: "Baza xətası" });
-    } finally {
-        if (connection) await connection.end();
-    }
-});
-
-// MÖVCUD RAPORT AYARLARINI YENİLƏMƏK ÜÇÜN (PUT)
-app.put('/api/raportayarlar/:id', async (req, res) => {
-    let connection;
-    try {
-        const { id } = req.params;
-        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
-        connection = await mysql.createConnection(dbConfig);
-        
-        await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
-            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '', id]
-        );
-        res.json({ message: "Raport ayarları uğurla yeniləndi" });
-    } catch (error) {
-        console.error("Raport ayarları yenilənərkən xəta:", error);
-        res.status(500).json({ error: "Baza xətası" });
-    } finally {
-        if (connection) await connection.end();
     }
 });
 
