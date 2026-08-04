@@ -275,16 +275,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const applyMeblegBtn = document.getElementById('apply-mebleg-btn');
     const minAmountInput = document.getElementById('min-amount-input');
 
-    const signerBtn = document.getElementById('signer-btn');
-    const popupSigners = document.getElementById('popup_signers');
-    const closeSignerBtn = document.getElementById('close-signer-popup');
-    const saveSignersBtn = document.getElementById('save-signers-btn');
-    const iLeaderPerson = document.getElementById('sign-leader-person');
-    const iLeaderName = document.getElementById('sign-leader-name');
-    const iSecondPerson = document.getElementById('sign-second-person');
-    const iPhone = document.getElementById('sign-phone');
-    const signerStatusMsg = document.getElementById('signer-status-msg');
-
     const bildirisBtn = document.getElementById('bildiris-nomre-btn');
     const bildirisPopup = document.getElementById('popup_bildirisler');
     const closeBildirisBtn = document.getElementById('close-bildiris-popup');
@@ -322,6 +312,183 @@ document.addEventListener("DOMContentLoaded", function() {
     let selectedFile = null; 
     const analizBtn = document.getElementById('analiz-start'); 
 
+    // ==========================================
+    // İMZALAYAN ŞƏXSLƏR PƏNCƏRƏSİ (DİNAMİK VƏ 2 BÖLMƏLİ)
+    // ==========================================
+    const signerBtn = document.getElementById('signer-btn');
+    const popupSigners = document.getElementById('popup_signers');
+    
+    if (popupSigners) {
+        popupSigners.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
+            <div style="background: white; border-radius: 16px; width: 90%; max-width: 650px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+                <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                    <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-users-gear" style="color: #3b82f6; margin-right: 8px;"></i>İmzalayan Şəxslərin Tənzimlənməsi</h2>
+                    <button id="close-signer-popup-btn" style="background: transparent; border: none; font-size: 24px; color: #64748b; cursor: pointer; transition: 0.2s;">&times;</button>
+                </div>
+                <div style="padding: 24px; max-height: 70vh; overflow-y: auto;">
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 10px; margin-bottom: 24px;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #1e40af; border-bottom: 1px dashed #93c5fd; padding-bottom: 10px;"><i class="fa-solid fa-file-signature" style="margin-right: 6px;"></i>1. Bildirişlərin hazırlanmasında məsul şəxslər</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayan şəxsin vəzifəsi</label>
+                                <input type="text" id="dyn-sign-leader-person" placeholder="Məs: İdarə rəisinin müavini..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İcra edən şəxsin Soyadı, adı</label>
+                                <input type="text" id="dyn-sign-second-person" placeholder="Məs: Həsənov Həsən..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Telefon nömrəsi</label>
+                                <input type="text" id="dyn-sign-phone" placeholder="Məs: 050 123 45 67..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <input type="hidden" id="dyn-sign-leader-name" value="">
+                        </div>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 10px;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #166534; border-bottom: 1px dashed #86efac; padding-bottom: 10px;"><i class="fa-solid fa-file-contract" style="margin-right: 6px;"></i>2. Raportun hazırlanması üçün məlumatlar</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportun yazıldığı şəxsin vəzifəsi</label>
+                                <input type="text" id="dyn-rap-reisi-vezifesi" placeholder="Məs: Gömrük İdarəsinin Rəisinə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Həmin şəxsin Soyadı, adı</label>
+                                <input type="text" id="dyn-rap-reisi-adi" placeholder="Məs: cənab Vəli Əliyevə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportu imzalayacaq şəxsin vəzifəsi</label>
+                                <input type="text" id="dyn-rap-mesul-vezife" placeholder="Məs: Gömrük Əməliyyatları Bölməsinin rəisi..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayacaq şəxsin Soyadı, adı</label>
+                                <input type="text" id="dyn-rap-mesul-adi" placeholder="Məs: Həsən Həsənov..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
+                    <span id="dyn-signer-status-msg" style="font-size: 13px; font-weight: 700; display: none;"></span>
+                    <button id="dyn-save-signers-btn" style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-save" style="margin-right: 6px;"></i> Yadda Saxla</button>
+                </div>
+            </div>
+        </div>
+        `;
+        popupSigners.style.background = 'transparent'; 
+    }
+
+    function loadSigners() {
+        fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
+            if (data && data.length > 0) {
+                const s = data[0]; 
+                currentSignerId = s.id; 
+                let el1 = document.getElementById('dyn-sign-leader-person'); if(el1) el1.value = s.leaderperson || ''; 
+                let el2 = document.getElementById('dyn-sign-leader-name'); if(el2) el2.value = s.leadername || ''; 
+                let el3 = document.getElementById('dyn-sign-second-person'); if(el3) el3.value = s.secondperson || ''; 
+                let el4 = document.getElementById('dyn-sign-phone'); if(el4) el4.value = s.phone || '';
+            }
+        }).catch(err => console.error(err));
+    }
+
+    function loadRaportAyarlar() {
+        fetch(RAPORT_AYAR_API_URL).then(r => r.json()).then(data => {
+            if(data && data.length > 0) {
+                raportAyarlarData = data[0];
+                let r1 = document.getElementById('dyn-rap-reisi-vezifesi'); if(r1) r1.value = raportAyarlarData.idarereisivezifesi || '';
+                let r2 = document.getElementById('dyn-rap-reisi-adi'); if(r2) r2.value = raportAyarlarData.idarereisi || '';
+                let r3 = document.getElementById('dyn-rap-mesul-vezife'); if(r3) r3.value = raportAyarlarData.mesulsexsvezifesi || raportAyarlarData.mesulsexsvezife || '';
+                let r4 = document.getElementById('dyn-rap-mesul-adi'); if(r4) r4.value = raportAyarlarData.mesulsexs || '';
+            }
+        }).catch(e => console.error("Raport Ayar Xətası:", e));
+    }
+
+    if (signerBtn && popupSigners) { 
+        signerBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            popupSigners.style.display = 'block'; 
+            let msg = document.getElementById('dyn-signer-status-msg');
+            if(msg) msg.style.display = 'none'; 
+            loadSigners();
+            loadRaportAyarlar();
+        }); 
+    }
+
+    document.addEventListener('click', async function(e) {
+        if (e.target && (e.target.id === 'close-signer-popup-btn' || e.target.closest('#close-signer-popup-btn'))) {
+            e.preventDefault();
+            if (popupSigners) popupSigners.style.display = 'none';
+        }
+
+        if (e.target && (e.target.id === 'dyn-save-signers-btn' || e.target.closest('#dyn-save-signers-btn'))) {
+            e.preventDefault();
+            const btn = document.getElementById('dyn-save-signers-btn');
+            const msg = document.getElementById('dyn-signer-status-msg');
+
+            const payloadMesul = { 
+                leaderperson: document.getElementById('dyn-sign-leader-person').value.trim(), 
+                leadername: document.getElementById('dyn-sign-leader-name').value.trim(), 
+                secondperson: document.getElementById('dyn-sign-second-person').value.trim(), 
+                phone: document.getElementById('dyn-sign-phone').value.trim() 
+            };
+            
+            const payloadRaport = {
+                idarereisivezifesi: document.getElementById('dyn-rap-reisi-vezifesi').value.trim(),
+                idarereisi: document.getElementById('dyn-rap-reisi-adi').value.trim(),
+                mesulsexsvezifesi: document.getElementById('dyn-rap-mesul-vezife').value.trim(),
+                mesulsexsvezife: document.getElementById('dyn-rap-mesul-vezife').value.trim(), 
+                mesulsexs: document.getElementById('dyn-rap-mesul-adi').value.trim()
+            };
+
+            let methodMesul = currentSignerId ? 'PUT' : 'POST'; 
+            let urlMesul = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
+            
+            let methodRaport = (raportAyarlarData && raportAyarlarData.id) ? 'PUT' : 'POST';
+            let urlRaport = (raportAyarlarData && raportAyarlarData.id) ? `${RAPORT_AYAR_API_URL}/${raportAyarlarData.id}` : RAPORT_AYAR_API_URL;
+
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> Yadda Saxlanılır...`; 
+            btn.disabled = true;
+
+            try {
+                const [resMesul, resRaport] = await Promise.all([
+                    fetch(urlMesul, { method: methodMesul, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadMesul) }),
+                    fetch(urlRaport, { method: methodRaport, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadRaport) })
+                ]);
+
+                if (!resMesul.ok || !resRaport.ok) throw new Error("Server xətası baş verdi");
+
+                const dataMesul = await resMesul.json();
+                const dataRaport = await resRaport.json();
+
+                if (!currentSignerId && dataMesul && dataMesul.id) currentSignerId = dataMesul.id;
+                if (!raportAyarlarData.id && dataRaport && dataRaport.id) raportAyarlarData.id = dataRaport.id;
+
+                if (msg) {
+                    msg.innerText = "Hər iki məlumat uğurla yadda saxlanıldı! ✅"; 
+                    msg.style.color = "#166534"; 
+                    msg.style.display = "block";
+                }
+                
+                loadSigners();
+                loadRaportAyarlar();
+
+                setTimeout(() => { if (popupSigners) popupSigners.style.display = 'none'; }, 2000);
+
+            } catch(err) {
+                if (msg) {
+                    msg.innerText = "Xəta baş verdi, interneti yoxlayın!"; 
+                    msg.style.color = "#ef4444"; 
+                    msg.style.display = "block";
+                }
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-save" style="margin-right: 6px;"></i> Yadda Saxla`; 
+                btn.disabled = false; 
+            }
+        }
+    });
+
+    // ==========================================
+    // YARDIMÇI FUNKSİYALAR VƏ LOAD
+    // ==========================================
     function normStr(str) {
         if(!str) return "";
         return str.toString().toLowerCase().replace(/ü/g, 'u').replace(/i̇/g, 'i').replace(/ı/g, 'i').replace(/\s+/g, '');
@@ -378,79 +545,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-   //----------------------------------------------------
-    function loadSigners() {
-        fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
-            if (data && data.length > 0) {
-                const s = data[0]; 
-                currentSignerId = s.id; 
-                iLeaderPerson.value = s.leaderperson || ''; 
-                iLeaderName.value = s.leadername || '';
-                iSecondPerson.value = s.secondperson || ''; 
-                iPhone.value = s.phone || '';
-            }
-        }).catch(err => console.error(err));
-    }
-    
-    function loadRaportAyarlar() {
-        fetch(RAPORT_AYAR_API_URL).then(r => r.json()).then(data => {
-            if(data && data.length > 0) raportAyarlarData = data[0];
-        }).catch(e => console.error("Raport Ayar Xətası:", e));
-    }
-
-    if (signerBtn && popupSigners) { 
-        signerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'flex'; 
-            signerStatusMsg.style.display = 'none'; 
-        }); 
-    }
-    
-    if (closeSignerBtn && popupSigners) { 
-        closeSignerBtn.addEventListener('click', e => { 
-            e.preventDefault(); 
-            popupSigners.style.display = 'none'; 
-        }); 
-    }
-
-
-    
-    //---------------------------------------------------
-    if (saveSignersBtn) {
-        saveSignersBtn.addEventListener('click', e => {
-            e.preventDefault();
-            const payload = { 
-                leaderperson: iLeaderPerson.value.trim(), 
-                leadername: iLeaderName.value.trim(), 
-                secondperson: iSecondPerson.value.trim(), 
-                phone: iPhone.value.trim() 
-            };
-            let method = currentSignerId ? 'PUT' : 'POST'; 
-            let url = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
-            saveSignersBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...`; 
-            saveSignersBtn.disabled = true;
-
-            fetch(url, { 
-                method: method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(payload)
-            }).then(res => res.json()).then(data => {
-                signerStatusMsg.innerText = "Uğurla yadda saxlanıldı! ✅"; 
-                signerStatusMsg.style.color = "#10b981"; 
-                signerStatusMsg.style.display = "block";
-                if (!currentSignerId && data && data.id) currentSignerId = data.id;
-                setTimeout(() => { popupSigners.style.display = 'none'; }, 1500);
-            }).catch(err => {
-                signerStatusMsg.innerText = "Xəta baş verdi!"; 
-                signerStatusMsg.style.color = "#ef4444"; 
-                signerStatusMsg.style.display = "block";
-            }).finally(() => { 
-                saveSignersBtn.innerHTML = `<i class="fa-solid fa-save"></i> Yadda Saxla`; 
-                saveSignersBtn.disabled = false; 
-            });
-        });
-    }
-    
     function loadAllBildirisler(callback) {
         fetch(BIL_API_URL).then(r => r.json()).then(data => {
             allBildirislerData = data || [];
@@ -1230,8 +1324,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let totalDecls = Object.keys(item.decls).length;
                                 let completedDecls = 0;
                                 let allDeclsHaveBildirisNo = true;
-                                let allDeclsHaveRaportRecord = true; // Bütün bəyannamələrin Raport qeydi varmı?
-                                let allDeclsHaveRaportNo = true;     // Bütün Raportların nömrəsi varmı?
+                                let allDeclsHaveRaportRecord = true; 
+                                let allDeclsHaveRaportNo = true;    
 
                                 for(const nomre in item.decls) {
                                     let borcu = item.decls[nomre].borc;
@@ -1246,7 +1340,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                     let hasFullBildiris = false;
                                     let hasFullRaport = false;
 
-                                    // Bildirişin Yoxlanması
                                     if (matchedRecord) {
                                         oldDecls.push(nomre);
                                         let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
@@ -1265,7 +1358,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                         bildirisStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-circle-plus"></i> Yeni Bildiriş</span>`;
                                     }
 
-                                    // Raportun Yoxlanması
                                     if (matchedRaport) {
                                         oldRaportDecls.push(nomre);
                                         let mainRaportNo = matchedRaport.raport_nomresi && matchedRaport.raport_nomresi.trim() !== "" ? matchedRaport.raport_nomresi : null;
@@ -1294,7 +1386,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                     </li>`;
                                 }
 
-                                // ---------------- RAPORT ŞƏRTLƏRİ ----------------
                                 let canRaport = true;
                                 let hasEmptyBildirisNomreForNewRaport = false;
 
@@ -1319,20 +1410,16 @@ document.addEventListener("DOMContentLoaded", function() {
                                         raportBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Raporta tam hazırdır</div>`;
                                     }
                                 }
-                                // -------------------------------------------------
 
                                 let bgStyle = "#ffffff";
                                 let cardBorder = "1px solid #cbd5e1";
                                 let statusBadge = "";
                                 let fullCompletedBadgeHtml = "";
                                 
-                                // BÜTÜN MƏLUMATLARIN (TAM YAXUD QİSMƏN) YOXLANMASI
                                 if (completedDecls === totalDecls && totalDecls > 0) {
-                                    // Hər şey tamdır (Bildiriş və Raport nömrələri var)
                                     fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-circle-check"></i> Bütün Bildiriş və Raportlar qeydə alınıb</div>`;
                                     bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
                                 } else if (allDeclsHaveRaportRecord && !allDeclsHaveRaportNo && totalDecls > 0) {
-                                    // Bütün Raportlar bazada var, amma nömrəsi yoxdur
                                     fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-circle-info"></i> Bütün Bildiriş və Raportlar qeydə alınıb (Raport nömrəsi yoxdur)</div>`;
                                     bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
                                 } else if (oldDecls.length > 0 && newDecls.length > 0) {
@@ -1567,7 +1654,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     borc: item.newBorc || "0.00",
                     tarixQosma: getTodayFormatted(),
                     safeFirmaAdi: firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
-                    uzatma: isFiziki ? "na" : "yə" 
+                    uzanti: isFiziki ? "na" : "yə" 
                 });
 
                 pendingDbSavePayload.push({
@@ -1582,10 +1669,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-docs';
             const signerData = {
-                leaderperson: document.getElementById('sign-leader-person')?.value.trim() || '',
-                leadername: document.getElementById('sign-leader-name')?.value.trim() || '',
-                secondperson: document.getElementById('sign-second-person')?.value.trim() || '',
-                phone: document.getElementById('sign-phone')?.value.trim() || ''
+                leaderperson: document.getElementById('dyn-sign-leader-person')?.value.trim() || '',
+                leadername: document.getElementById('dyn-sign-leader-name')?.value.trim() || '',
+                secondperson: document.getElementById('dyn-sign-second-person')?.value.trim() || '',
+                phone: document.getElementById('dyn-sign-phone')?.value.trim() || ''
             };
 
             const response = await fetch(generateDocsEndpoint, {
@@ -1635,9 +1722,153 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
-    // ==========================================
-    // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
-    // ==========================================
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+
+            for (let i=0; i<checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
+                let oldGb = checkbox.getAttribute("data-old-gb") || "";
+                let newGb = checkbox.getAttribute("data-new-gb") || "";
+                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (newGb.trim() !== "") {
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
+                    firmsToProcess.push({ checkbox: checkbox, newGb: newGb, newBorc: newBorc });
+                }
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb!"); return; 
+            }
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (prezipTbody && preZipPopup) {
+                prezipTbody.innerHTML = warningHtml;
+                preZipPopup.style.display = "flex";
+            }
+        });
+    }
+
+    const raportQosmaBtn = document.getElementById("btn-raport-qosma");
+    if (raportQosmaBtn) {
+        raportQosmaBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
+            }
+
+            let firmsToProcess = [];
+            
+            let warningHtml = `
+            <tr style="background:#f8fafc; border-bottom:2px solid #cbd5e1; text-align:left;">
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Gömrük orqanı və Firma</th>
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Köhnə Bəyannamələr<br><span style="font-size:10px; font-weight:400; color:#64748b;">(Əgər varsa)</span></th>
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Yeni Yazılacaq Bəyannamələr</th>
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Bildiriş Nömrəsi və Tarixi</th>
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Malın Adı</th>
+                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Borc</th>
+            </tr>`;
+
+            for (let i = 0; i < checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
+                let canRaport = checkbox.getAttribute("data-can-raport") === "true";
+
+                if (!canRaport) continue;
+
+                let voen = checkbox.getAttribute("data-voen") || "";
+                let idare = checkbox.getAttribute("data-idare") || "";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+                let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
+                let oldRaportGb = checkbox.getAttribute("data-old-raport-gb") || "";
+                let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
+                let isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
+                let ixracList = checkbox.getAttribute("data-new-raport-ixrac") || "";
+                let invoysSum = checkbox.getAttribute("data-new-raport-invoys") || "0";
+
+                if (newRaportGb.trim() !== "") {
+                    let gbArr = newRaportGb.split(',').map(s => s.trim()).filter(s => s);
+                    
+                    let matchedRecords = [];
+                    gbArr.forEach(gb => {
+                        let regex = new RegExp(`\\b${gb}\\b`);
+                        let rec = allBildirislerData.find(b => b.melumat && regex.test(b.melumat) && ((voen && b.voen === voen) || (!voen && b.firma === firmaAdi)));
+                        if (rec && !matchedRecords.some(r => r.id === rec.id)) {
+                            matchedRecords.push(rec);
+                        }
+                    });
+
+                    let bilInputsHtml = '';
+                    if (matchedRecords.length > 0) {
+                        matchedRecords.forEach((rec) => {
+                            let nomre = rec.bildiris_nomresi || "";
+                            let tarix = rec.tarix_yazilma || "";
+                            bilInputsHtml += `
+                                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                                    <input type="text" class="rap-bil-nomre-${i}" data-bil-id="${rec.id}" value="${nomre}" placeholder="Nömrə" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:${nomre ? '#f8fafc' : '#fef08a'};">
+                                    <input type="text" class="rap-bil-tarix-${i}" data-bil-id="${rec.id}" value="${tarix}" placeholder="Tarix" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:${tarix ? '#f8fafc' : '#fef08a'};">
+                                </div>`;
+                        });
+                    } else {
+                        bilInputsHtml = `
+                            <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+                                <input type="text" class="rap-bil-nomre-${i}" value="" placeholder="Nömrə" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:#fef08a;">
+                                <input type="text" class="rap-bil-tarix-${i}" value="" placeholder="Tarix" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:#fef08a;">
+                            </div>`;
+                    }
+
+                    warningHtml += `
+                    <tr style="background: #ffffff; border-bottom: 1px solid #e2e8f0; vertical-align: middle;">
+                        <td style="padding:12px 10px;">
+                            <input type="checkbox" class="custom-checkbox raport-modal-check" data-idx="${i}" checked style="display:none;">
+                            <strong style="color:#0f172a; font-size:13px; display:block; margin-bottom:4px;">${idare}</strong>
+                            <span style="font-size:11px; color:#475569; font-weight:500;">${firmaAdi}</span>
+                        </td>
+                        <td style="padding:12px 10px; color:#ef4444; font-size:12px; font-weight:500;">${oldRaportGb || "Yoxdur"}</td>
+                        <td style="padding:12px 10px; color:#10b981; font-weight:700; font-size:12px;">${newRaportGb}</td>
+                        <td style="padding:12px 10px;">${bilInputsHtml}</td>
+                        <td style="padding:12px 10px;">
+                            <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adı..." style="width:100%; min-width:140px; padding:8px 10px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                        </td>
+                        <td style="padding:12px 10px; font-weight:700; color:#1e293b; white-space:nowrap; font-size:13px;">${newRaportBorc} ABŞ</td>
+                    </tr>`;
+
+                    firmsToProcess.push({ 
+                        checkbox: checkbox, newGb: newRaportGb, newBorc: newRaportBorc, firmaAdi: firmaAdi,
+                        rawFirmaAdi: rawFirmaAdi, voen: voen, isFiziki: isFiziki, ixracList: ixracList,
+                        invoysSum: parseFloat(invoysSum), rowIdx: i
+                    });
+                }
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmalar ya tam raportlanıb, ya da bildirişi olmadığı üçün raport blokuna salınıb."); return; 
+            }
+
+            window.pendingFirmsToRaportZip = firmsToProcess;
+
+            if (preraportTbody && preRaportPopup) {
+                let thead = preraportTbody.closest('table').querySelector('thead');
+                if (thead) { thead.style.display = 'none'; }
+                
+                preraportTbody.innerHTML = warningHtml;
+                preRaportPopup.style.display = "flex";
+            }
+        });
+    }
+
     const executeRaportZipProcess = async () => {
         const updatePromises = [];
         const payload = [];
@@ -1794,232 +2025,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }, 300);
         }
     };
-
-    if(confirmPrezipBtn) {
-        confirmPrezipBtn.addEventListener("click", () => {
-            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
-                if (preZipPopup) preZipPopup.style.display = "none";
-                return;
-            }
-            if (preZipPopup) preZipPopup.style.display = "none";
-            executeZipProcess();
-        });
-    }
-
-    if(confirmRaportZipBtn) {
-        confirmRaportZipBtn.addEventListener("click", () => {
-            if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
-                if (preRaportPopup) preRaportPopup.style.display = "none";
-                return;
-            }
-            if (preRaportPopup) preRaportPopup.style.display = "none";
-            executeRaportZipProcess();
-        });
-    }
-
-    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
-    if (bildirisQosmaBtn) {
-        bildirisQosmaBtn.addEventListener("click", function(e) {
-            e.preventDefault();
-            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-            if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
-            }
-
-            let firmsToProcess = [];
-            let warningHtml = "";
-
-            for (let i=0; i<checkedFirms.length; i++) {
-                const checkbox = checkedFirms[i];
-                let oldGb = checkbox.getAttribute("data-old-gb") || "";
-                let newGb = checkbox.getAttribute("data-new-gb") || "";
-                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
-                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
-                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
-
-                if (newGb.trim() !== "") {
-                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
-                    firmsToProcess.push({ checkbox: checkbox, newGb: newGb, newBorc: newBorc });
-                }
-            }
-
-            if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb!"); return; 
-            }
-            window.pendingFirmsToZip = firmsToProcess;
-
-            if (prezipTbody && preZipPopup) {
-                prezipTbody.innerHTML = warningHtml;
-                preZipPopup.style.display = "flex";
-            }
-        });
-    }
-
-    const raportQosmaBtn = document.getElementById("btn-raport-qosma");
-    if (raportQosmaBtn) {
-        raportQosmaBtn.addEventListener("click", function(e) {
-            e.preventDefault();
-            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
-            if (checkedFirms.length === 0) { 
-                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
-            }
-
-            let firmsToProcess = [];
-            let warningHtml = "";
-
-            for (let i = 0; i < checkedFirms.length; i++) {
-                const checkbox = checkedFirms[i];
-                let canRaport = checkbox.getAttribute("data-can-raport") === "true";
-
-                if (!canRaport) continue;
-
-                let voen = checkbox.getAttribute("data-voen") || "";
-                let idare = checkbox.getAttribute("data-idare") || "";
-                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
-                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
-                let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
-                let oldRaportGb = checkbox.getAttribute("data-old-raport-gb") || "";
-                let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
-                let isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
-                let ixracList = checkbox.getAttribute("data-new-raport-ixrac") || "";
-                let invoysSum = checkbox.getAttribute("data-new-raport-invoys") || "0";
-
-                if (newRaportGb.trim() !== "") {
-                    let gbArr = newRaportGb.split(',').map(s => s.trim()).filter(s => s);
-                    
-                    let matchedRecords = [];
-                    gbArr.forEach(gb => {
-                        let regex = new RegExp(`\\b${gb}\\b`);
-                        let rec = allBildirislerData.find(b => b.melumat && regex.test(b.melumat) && ((voen && b.voen === voen) || (!voen && b.firma === firmaAdi)));
-                        if (rec && !matchedRecords.some(r => r.id === rec.id)) {
-                            matchedRecords.push(rec);
-                        }
-                    });
-
-                    let bilInputsHtml = '';
-                    let hasMissingNomre = false;
-
-                    if (matchedRecords.length > 0) {
-                        matchedRecords.forEach((rec) => {
-                            let nomre = rec.bildiris_nomresi || "";
-                            let tarix = rec.tarix_yazilma || "";
-                            if (!nomre || !tarix) hasMissingNomre = true;
-                            
-                            bilInputsHtml += `
-                                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; flex: 1 1 45%; min-width: 250px;">
-                                    <strong style="font-size:11px; color:#475569; width:40px;"><i class="fa-solid fa-file-invoice"></i></strong>
-                                    <input type="text" class="rap-bil-nomre-${i}" data-bil-id="${rec.id}" value="${nomre}" placeholder="Bildiriş Nömrəsi" style="flex:1; padding:6px 10px; font-size:12px; border:1px solid ${nomre ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${nomre ? '#ffffff' : '#fef2f2'};">
-                                    <input type="text" class="rap-bil-tarix-${i}" data-bil-id="${rec.id}" value="${tarix}" placeholder="Tarix" style="width:90px; padding:6px 10px; font-size:12px; border:1px solid ${tarix ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${tarix ? '#ffffff' : '#fef2f2'};">
-                                </div>`;
-                        });
-                    } else {
-                        hasMissingNomre = true;
-                        bilInputsHtml = `
-                            <div style="display:flex; gap:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; width:100%;">
-                                <strong style="font-size:11px; color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Bazada yoxdur:</strong>
-                                <input type="text" class="rap-bil-nomre-${i}" value="" placeholder="Bildiriş Nömrəsi..." style="flex:1; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
-                                <input type="text" class="rap-bil-tarix-${i}" value="" placeholder="Tarix..." style="width:100px; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
-                            </div>`;
-                    }
-
-                    let warningBadge = hasMissingNomre 
-                        ? `<div style="margin-top:6px; color:#b91c1c; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #fee2e2; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> Bildiriş məlumatı əksikdir! Aşağı oxa basın</div>` 
-                        : `<div style="margin-top:6px; color:#166534; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #dcfce7; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-check-circle"></i> Bildiriş tamdır</div>`;
-
-                    warningHtml += `
-                    <tr>
-                        <td style="padding: 0; border: none; padding-bottom: 12px;">
-                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                                
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
-                                    
-                                    <div style="display:flex; gap:12px; align-items:flex-start; flex:1; min-width:250px;">
-                                        <input type="checkbox" class="custom-checkbox raport-modal-check" data-idx="${i}" checked style="margin-top:4px;">
-                                        <div>
-                                            <strong style="color:#0f172a; font-size:14px; display:block; margin-bottom:2px;">${idare}</strong>
-                                            <span style="font-size:12px; color:#475569; display:block;">${firmaAdi}</span>
-                                            ${warningBadge}
-                                        </div>
-                                    </div>
-
-                                    <div style="display:flex; gap:15px; align-items:center; background:#f8fafc; padding:8px 16px; border-radius:8px; border:1px solid #e2e8f0;">
-                                        <div>
-                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Köhnə Bəy.</div>
-                                            <div style="color:#ef4444; font-size:12px; font-weight:600;">${oldRaportGb || "Yoxdur"}</div>
-                                        </div>
-                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
-                                        <div>
-                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Yeni Bəy.</div>
-                                            <div style="color:#10b981; font-weight:800; font-size:13px;">${newRaportGb}</div>
-                                        </div>
-                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
-                                        <div>
-                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Borc</div>
-                                            <div style="font-weight:800; color:#1e293b; font-size:13px;">${newRaportBorc} USD</div>
-                                        </div>
-                                        <button class="btn-sec toggle-raport-details" data-target="raport-details-${i}" style="padding:6px 10px; font-size:12px; border-radius:6px; margin-left:8px;" title="Bildiriş məlumatlarını göstər"><i class="fa-solid fa-chevron-down"></i></button>
-                                    </div>
-                                </div>
-
-                                <div id="raport-details-${i}" style="display:none; margin-top:16px; padding-top:16px; border-top:1px dashed #cbd5e1;">
-                                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                                        ${bilInputsHtml}
-                                    </div>
-                                </div>
-
-                                <div style="margin-top:16px;">
-                                    <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adını bura daxil edin..." style="width:100%; padding:10px 14px; font-size:13px; border:1px solid #cbd5e1; border-radius:6px; outline:none; background:#f8fafc; transition:0.2s;">
-                                </div>
-
-                            </div>
-                        </td>
-                    </tr>`;
-
-                    firmsToProcess.push({ 
-                        checkbox: checkbox, newGb: newRaportGb, newBorc: newRaportBorc, firmaAdi: firmaAdi,
-                        rawFirmaAdi: rawFirmaAdi, voen: voen, isFiziki: isFiziki, ixracList: ixracList,
-                        invoysSum: parseFloat(invoysSum), rowIdx: i
-                    });
-                }
-            }
-
-            if (firmsToProcess.length === 0) { 
-                alert("Diqqət: Seçdiyiniz firmalar ya tam raportlanıb, ya da bildirişi olmadığı üçün raport blokuna salınıb."); return; 
-            }
-
-            window.pendingFirmsToRaportZip = firmsToProcess;
-
-            if (preraportTbody && preRaportPopup) {
-                // Cədvəlin ənənəvi başlıqlarını gizlədirik ki, tam Kart dizaynı olsun
-                let thead = preraportTbody.closest('table').querySelector('thead');
-                if (thead) { thead.style.display = 'none'; }
-                
-                preraportTbody.innerHTML = warningHtml;
-                preRaportPopup.style.display = "flex";
-
-                // Ox (Accordion) düyməsi üçün Event Listener
-                document.querySelectorAll('.toggle-raport-details').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const targetId = this.getAttribute('data-target');
-                        const targetRow = document.getElementById(targetId);
-                        const icon = this.querySelector('i');
-                        if (targetRow.style.display === 'none') {
-                            targetRow.style.display = 'block';
-                            icon.classList.remove('fa-chevron-down');
-                            icon.classList.add('fa-chevron-up');
-                        } else {
-                            targetRow.style.display = 'none';
-                            icon.classList.remove('fa-chevron-up');
-                            icon.classList.add('fa-chevron-down');
-                        }
-                    });
-                });
-            }
-        });
-    }
 
     if(saveZipSelectionsBtn) {
         saveZipSelectionsBtn.addEventListener('click', function() {
