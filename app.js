@@ -1,3 +1,4 @@
+<script>
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*";
@@ -2090,3 +2091,4 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
+</script>
