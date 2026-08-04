@@ -479,50 +479,34 @@ app.post('/api/raportinfo/bulk', async (req, res) => {
 // ==========================================
 // RAPORT ÜÇÜN WORD SƏNƏDLƏRİ VƏ ZIP YARADILMASI
 // ==========================================
+// RAPORTLAR ÜÇÜN ZİP GENERASİYASI
 app.post('/api/generate-raports', async (req, res) => {
     try {
         const { selectedFirms } = req.body;
-        
-        if (!selectedFirms || selectedFirms.length === 0) {
-            return res.status(400).json({ error: "Heç bir məlumat göndərilməyib." });
+        if (!selectedFirms || !Array.isArray(selectedFirms) || selectedFirms.length === 0) {
+            return res.status(400).json({ error: "Heç bir firma məlumatı göndərilməyib." });
         }
 
-        const templatePath = path.join(__dirname, 'raportsablon.docx'); 
-        if (!fs.existsSync(templatePath)) {
-             return res.status(500).json({ error: "raportsablon.docx faylı serverdə tapılmadı!" });
-        }
-
-        const content = fs.readFileSync(templatePath, 'binary');
         const zip = new JSZip();
+        // Şablon faylınızın adı raportsablon.docx olmalıdır
+        const templatePath = path.join(__dirname, 'raportsablon.docx'); 
+        const content = fs.readFileSync(templatePath, 'binary');
 
         selectedFirms.forEach((firm, index) => {
-            const docZip = new PizZip(content);
-            const doc = new Docxtemplater(docZip, { 
-                paragraphLoop: true, 
-                linebreaks: true 
+            const zipDoc = new PizZip(content);
+            const doc = new Docxtemplater(zipDoc, {
+                paragraphLoop: true,
+                linebreaks: true,
             });
 
-            doc.render({
-                idarerereisivezifesi: firm.idarereisivezifesi,
-                idarereisi: firm.idarereisi,
-                mesulsexsvezife: firm.mesulsexsvezife,
-                mesulsexs: firm.mesulsexs,
-                raportfirma: firm.raportfirma,
-                uzanti: firm.uzanti,
-                raportgbnomresi: firm.raportgbnomresi,
-                ixracolke: firm.ixracolke,
-                invoysmebleg: firm.invoysmebleg,
-                manatinvoysmebleg: firm.manatinvoysmebleg,
-                cevirme: firm.cevirme,
-                malinadi: firm.malinadi,
-                borc: firm.borc,
-                manatborc: firm.manatborc
-            });
+            // ƏN VACİB HİSSƏ: Bütün məlumatları (Frontenddən gələn hər şeyi) 
+            // birbaşa docxtemplater-ə göndəririk ki, undefined xətası yaranmasın
+            doc.render(firm);
 
-            const buf = doc.getZip().generate({ type: 'nodebuffer', compression: "DEFLATE" });
+            const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
             
-            const safeName = firm.safeFirmaAdi || "Firma";
-            zip.file(`${index + 1}_${safeName}_Raport.docx`, buf);
+            let safeFirmaAdi = firm.safeFirmaAdi || `Firma_${index + 1}`;
+            zip.file(`Raport_${safeFirmaAdi}.docx`, buf);
         });
 
         const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
@@ -536,8 +520,24 @@ app.post('/api/generate-raports', async (req, res) => {
         res.send(zipBuffer);
 
     } catch (error) {
-        console.error("Raport ZIP xətası:", error);
+        console.error("Raport ZIP yaradılarkən xəta:", error);
         res.status(500).json({ error: "Sənədlər yaradılarkən xəta baş verdi: " + error.message });
+    }
+});
+
+    // Cədvəldən Raport Ayarlarını çəkmək üçün API
+app.get('/api/raportayarlar', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        // raportayarlar cədvəlindən 1-ci sətri çəkirik
+        const [rows] = await connection.execute('SELECT * FROM raportayarlar LIMIT 1');
+        res.json(rows);
+    } catch (error) {
+        console.error("Raport ayarları çəkilərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
     }
 });
 
