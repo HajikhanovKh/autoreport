@@ -1225,6 +1225,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
                                 let totalDecls = Object.keys(item.decls).length;
                                 let completedDecls = 0;
+                                let allDeclsHaveBildirisNo = true;
+                                let allDeclsHaveRaportRecord = true; // Bütün bəyannamələrin Raport qeydi varmı?
+                                let allDeclsHaveRaportNo = true;     // Bütün Raportların nömrəsi varmı?
 
                                 for(const nomre in item.decls) {
                                     let borcu = item.decls[nomre].borc;
@@ -1247,9 +1250,11 @@ document.addEventListener("DOMContentLoaded", function() {
                                             bildirisStatus = `<span style="color: #2563eb; font-size:11px; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-check"></i> Bil. №: ${mainBildirisNo}</span>`;
                                             hasFullBildiris = true;
                                         } else {
+                                            allDeclsHaveBildirisNo = false;
                                             bildirisStatus = `<button class="btn-sec" onclick="openBildirisPanelAndHighlight('${matchedRecord.id}')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700; margin-right: 12px;" title="Bildiriş nömrəsi artır"><i class="fa-solid fa-plus"></i> Bil. Nömrəsi</button>`;
                                         }
                                     } else {
+                                        allDeclsHaveBildirisNo = false;
                                         newDecls.push(nomre);
                                         newBorc += borcu; 
                                         tarixleri.forEach(t => newTarixler.add(t));
@@ -1264,9 +1269,12 @@ document.addEventListener("DOMContentLoaded", function() {
                                             raportStatus = `<span style="color: #166534; font-size:11px; font-weight:700;"><i class="fa-solid fa-check"></i> Raport №: ${mainRaportNo}</span>`;
                                             hasFullRaport = true;
                                         } else {
+                                            allDeclsHaveRaportNo = false;
                                             raportStatus = `<button class="btn-sec" onclick="typeof openRaportPanelAndHighlight === 'function' ? openRaportPanelAndHighlight('${matchedRaport.id}') : alert('Raport nömrəsi əlavə etmə paneli hələ qoşulmayıb')" style="padding: 4px 8px; font-size:10px; color:#f59e0b; border:1px solid #fcd34d; border-radius:4px; background:#fffbeb; cursor:pointer; font-weight:700;" title="Raport nömrəsi artır"><i class="fa-solid fa-plus"></i> Raport Nömrəsi</button>`;
                                         }
                                     } else {
+                                        allDeclsHaveRaportRecord = false;
+                                        allDeclsHaveRaportNo = false;
                                         newRaportDecls.push(nomre);
                                         newRaportBorc += borcu;
                                         if (item.decls[nomre].ixrac) newRaportIxracList.add(item.decls[nomre].ixrac);
@@ -1291,10 +1299,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                     let matched = foundRecordsForFirm.find(b => b.melumat && regex.test(b.melumat));
                                     
                                     if (!matched) {
-                                        // Əgər bazada ümumiyyətlə bildiriş yoxdursa
                                         canRaport = false; 
                                     } else if (!matched.bildiris_nomresi || matched.bildiris_nomresi.trim() === "") {
-                                        // Əgər bazada bildiriş varsa, amma nömrəsi boşdursa
                                         hasEmptyBildirisNomreForNewRaport = true; 
                                     }
                                 });
@@ -1316,9 +1322,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let statusBadge = "";
                                 let fullCompletedBadgeHtml = "";
                                 
+                                // BÜTÜN MƏLUMATLARIN (TAM YAXUD QİSMƏN) YOXLANMASI
                                 if (completedDecls === totalDecls && totalDecls > 0) {
+                                    // Hər şey tamdır (Bildiriş və Raport nömrələri var)
                                     fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-circle-check"></i> Bütün Bildiriş və Raportlar qeydə alınıb</div>`;
                                     bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
+                                } else if (allDeclsHaveRaportRecord && !allDeclsHaveRaportNo && totalDecls > 0) {
+                                    // Bütün Raportlar bazada var, amma nömrəsi yoxdur
+                                    fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-circle-info"></i> Bütün Bildiriş və Raportlar qeydə alınıb (Raport nömrəsi yoxdur)</div>`;
+                                    bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
                                 } else if (oldDecls.length > 0 && newDecls.length > 0) {
                                     bgStyle = "#fffbeb"; cardBorder = "1px solid #fde68a";
                                     statusBadge = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-code-merge"></i> Qismən Yeni</div>`;
