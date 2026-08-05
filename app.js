@@ -1335,8 +1335,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                 let totalDecls = Object.keys(item.decls).length;
                                 let completedDecls = 0;
                                 let allDeclsHaveBildirisNo = true;
-                                let allDeclsHaveRaportRecord = true; 
-                                let allDeclsHaveRaportNo = true;    
+                                let allDeclsHaveRaportRecord = true; // Bütün bəyannamələrin Raport qeydi varmı?
+                                let allDeclsHaveRaportNo = true;     // Bütün Raportların nömrəsi varmı?
 
                                 for(const nomre in item.decls) {
                                     let borcu = item.decls[nomre].borc;
@@ -1351,6 +1351,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     let hasFullBildiris = false;
                                     let hasFullRaport = false;
 
+                                    // Bildirişin Yoxlanması
                                     if (matchedRecord) {
                                         oldDecls.push(nomre);
                                         let mainBildirisNo = matchedRecord.bildiris_nomresi && matchedRecord.bildiris_nomresi.trim() !== "" ? matchedRecord.bildiris_nomresi : null;
@@ -1369,6 +1370,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                         bildirisStatus = `<span style="font-size: 11px; color: #ef4444; font-weight:700; margin-right: 12px;"><i class="fa-solid fa-circle-plus"></i> Yeni Bildiriş</span>`;
                                     }
 
+                                    // Raportun Yoxlanması
                                     if (matchedRaport) {
                                         oldRaportDecls.push(nomre);
                                         let mainRaportNo = matchedRaport.raport_nomresi && matchedRaport.raport_nomresi.trim() !== "" ? matchedRaport.raport_nomresi : null;
@@ -1397,6 +1399,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     </li>`;
                                 }
 
+                                // ---------------- RAPORT ŞƏRTLƏRİ ----------------
                                 let canRaport = true;
                                 let hasEmptyBildirisNomreForNewRaport = false;
 
@@ -1421,16 +1424,20 @@ document.addEventListener("DOMContentLoaded", function() {
                                         raportBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-check-double"></i> Raporta tam hazırdır</div>`;
                                     }
                                 }
+                                // -------------------------------------------------
 
                                 let bgStyle = "#ffffff";
                                 let cardBorder = "1px solid #cbd5e1";
                                 let statusBadge = "";
                                 let fullCompletedBadgeHtml = "";
                                 
+                                // BÜTÜN MƏLUMATLARIN (TAM YAXUD QİSMƏN) YOXLANMASI
                                 if (completedDecls === totalDecls && totalDecls > 0) {
+                                    // Hər şey tamdır (Bildiriş və Raport nömrələri var)
                                     fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#dcfce7; color:#166534; border-color:#86efac;"><i class="fa-solid fa-circle-check"></i> Bütün Bildiriş və Raportlar qeydə alınıb</div>`;
                                     bgStyle = "#f0fdf4"; cardBorder = "1px solid #bbf7d0";
                                 } else if (allDeclsHaveRaportRecord && !allDeclsHaveRaportNo && totalDecls > 0) {
+                                    // Bütün Raportlar bazada var, amma nömrəsi yoxdur
                                     fullCompletedBadgeHtml = `<div class="badge-pill" style="background:#fef3c7; color:#d97706; border-color:#fcd34d;"><i class="fa-solid fa-circle-info"></i> Bütün Bildiriş və Raportlar qeydə alınıb (Raport nömrəsi yoxdur)</div>`;
                                     bgStyle = "#f8fafc"; cardBorder = "1px solid #e2e8f0";
                                 } else if (oldDecls.length > 0 && newDecls.length > 0) {
