@@ -1989,7 +1989,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 tarix_borcdovru: targetPeriod || "",
                 melumat: `Bəyannamələr: ${item.newGb}`
             });
-        }
+        })
 
         if (payload.length === 0) {
             alert("Seçilmiş və ya aktiv firma tapılmadı!"); return;
