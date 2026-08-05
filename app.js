@@ -2058,7 +2058,388 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
+const executeRaportZipProcess = async () => {
+        const updatePromises = [];
+        const payload = [];
+        pendingRaportDbSavePayload = [];
+        const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
+        let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
 
+        for (const item of window.pendingFirmsToRaportZip) {
+            let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
+            if (!rowCheck || !rowCheck.checked) continue; 
+
+            let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
+            let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
+
+            let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
+            let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
+
+            let nomreVals = [];
+            let tarixVals = [];
+
+            nomreInputs.forEach((inp, idx) => {
+                let nVal = inp.value.trim();
+                let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
+                let bId = inp.getAttribute("data-bil-id");
+
+                if (nVal) nomreVals.push(nVal);
+                if (tVal) tarixVals.push(tVal);
+
+                if (bId && (nVal || tVal)) {
+                    let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
+                    if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
+                        let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
+                        updatePromises.push(
+                            fetch(`${BIL_API_URL}/${bId}`, { 
+                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
+                            })
+                        );
+                    }
+                }
+            });
+
+            let finalNomre = Array.from(new Set(nomreVals)).join(", ");
+            let finalTarix = Array.from(new Set(tarixVals)).join(", ");
+
+            if (!malinAdiValue) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); return;
+            }
+            if (!finalNomre) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş nömrəsi daxil edilməyib!`); return;
+            }
+            if (!finalTarix) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş tarixi daxil edilməyib!`); return;
+            }
+
+            let totalInvoys = parseFloat(item.invoysSum) || 0;
+            let manatInvoys = totalInvoys * mezenne;
+            let borc = parseFloat(item.newBorc) || 0;
+            let manatBorc = borc * mezenne;
+
+            payload.push({
+                idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
+                idarereisi: raportAyarlarData.idarereisi || "",
+                mesulsexsvezifesi: raportAyarlarData.mesulsexsvezifesi || "",
+                mesulsexs: raportAyarlarData.mesulsexs || "",
+                raportfirma: item.firmaAdi,
+                uzanti: item.isFiziki ? "na" : "nin",
+                raportgbnomresi: item.newGb,
+                ixracolke: item.ixracList,
+                invoysmebleg: totalInvoys.toFixed(2),
+                manatinvoysmebleg: manatInvoys.toFixed(2),
+                cevirme: mezenne.toString(),
+                malinadi: malinAdiValue,
+                borc: borc.toFixed(2),
+                manatborc: manatBorc.toFixed(2),
+                safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
+                bildiristarix: finalTarix,
+                bildirisnomresi: finalNomre,
+                tarixyazilma: getTodayFormatted()
+            });
+
+            pendingRaportDbSavePayload.push({
+                gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
+                firma: item.firmaAdi,
+                voen: item.voen || "",
+                tarix_yazilma: getTodayFormatted(),
+                tarix_borcdovru: targetPeriod || "",
+                melumat: `Bəyannamələr: ${item.newGb}`
+            });
+        }
+
+        if (payload.length === 0) {
+            alert("Seçilmiş və ya aktiv firma tapılmadı!"); return;
+        }
+
+        if (updatePromises.length > 0) {
+            try { await Promise.all(updatePromises); loadAllBildirisler(); } 
+            catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
+        }
+
+        const overlay = createLoadingOverlay();
+        const progressBar = document.getElementById('zip-progress-bar');
+        const progressText = document.getElementById('zip-progress-text');
+        
+        overlay.style.display = 'flex'; overlay.style.pointerEvents = 'auto';
+        setTimeout(() => overlay.style.opacity = '1', 10);
+
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if(progress > 90) progress = 90;
+                progressBar.style.width = `${progress}%`;
+                progressText.innerText = `${progress}%`;
+            }
+        }, 600);
+
+        try {
+            const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
+            const response = await fetch(generateDocsEndpoint, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
+            });
+
+            if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
+
+            const arrayBuffer = await response.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+            
+            clearInterval(progressInterval);
+            progressBar.style.width = `100%`;
+            progressText.style.color = `#10b981`; progressText.innerText = `100% - Yüklənir!`;
+            await new Promise(r => setTimeout(r, 600));
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `Raportlar_${getTodayFormatted()}.zip`;
+            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+
+            if (raportZipTbody) {
+                raportZipTbody.innerHTML = '';
+                pendingRaportDbSavePayload.forEach((obj, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox raport-zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Raport hazırlanacaq</td>`;
+                    raportZipTbody.appendChild(tr);
+                });
+            }
+            if (raportZipPopup) raportZipPopup.style.display = 'flex';
+
+        } catch (error) {
+            clearInterval(progressInterval); alert("XƏTA: " + error.message);
+        } finally {
+            overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
+            setTimeout(() => {
+                overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
+            }, 300);
+        }
+    };
+
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
+                if (preZipPopup) preZipPopup.style.display = "none";
+                return;
+            }
+            if (preZipPopup) preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
+
+    if(confirmRaportZipBtn) {
+        confirmRaportZipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
+                if (preRaportPopup) preRaportPopup.style.display = "none";
+                return;
+            }
+            if (preRaportPopup) preRaportPopup.style.display = "none";
+            executeRaportZipProcess();
+        });
+    }
+
+    const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
+    if (bildirisQosmaBtn) {
+        bildirisQosmaBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+
+            for (let i=0; i<checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
+                let oldGb = checkbox.getAttribute("data-old-gb") || "";
+                let newGb = checkbox.getAttribute("data-new-gb") || "";
+                let newBorc = checkbox.getAttribute("data-new-borc") || "0.00";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+
+                if (newGb.trim() !== "") {
+                    warningHtml += `<tr><td><strong>${firmaAdi}</strong></td><td style="color:#ef4444; font-size:12px;">${oldGb.trim() !== "" ? oldGb : "Yoxdur"}</td><td style="color:#10b981; font-weight:bold; font-size:12px;">${newGb}</td><td style="font-weight:bold; color:#1e293b;">${newBorc} ABŞ</td></tr>`;
+                    firmsToProcess.push({ checkbox: checkbox, newGb: newGb, newBorc: newBorc });
+                }
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmaların bütün bəyannamələrinə artıq bildiriş yazılıb!"); return; 
+            }
+            window.pendingFirmsToZip = firmsToProcess;
+
+            if (prezipTbody && preZipPopup) {
+                prezipTbody.innerHTML = warningHtml;
+                preZipPopup.style.display = "flex";
+            }
+        });
+    }
+
+    const raportQosmaBtn = document.getElementById("btn-raport-qosma");
+    if (raportQosmaBtn) {
+        raportQosmaBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const checkedFirms = document.querySelectorAll(".firma-check2:checked:not([disabled])");
+            if (checkedFirms.length === 0) { 
+                alert("Diqqət: Zəhmət olmasa ən azı bir firma seçin!"); return; 
+            }
+
+            let firmsToProcess = [];
+            let warningHtml = "";
+
+            for (let i = 0; i < checkedFirms.length; i++) {
+                const checkbox = checkedFirms[i];
+                let canRaport = checkbox.getAttribute("data-can-raport") === "true";
+
+                if (!canRaport) continue;
+
+                let voen = checkbox.getAttribute("data-voen") || "";
+                let idare = checkbox.getAttribute("data-idare") || "";
+                let rawFirmaAdi = checkbox.getAttribute("data-firma") || "";
+                let firmaAdi = rawFirmaAdi.replace(/&quot;/g, '"').replace(/&#39;/g, "'"); 
+                let newRaportGb = checkbox.getAttribute("data-new-raport-gb") || "";
+                let oldRaportGb = checkbox.getAttribute("data-old-raport-gb") || "";
+                let newRaportBorc = checkbox.getAttribute("data-new-raport-borc") || "0.00";
+                let isFiziki = checkbox.getAttribute("data-isfiziki") === "true";
+                let ixracList = checkbox.getAttribute("data-new-raport-ixrac") || "";
+                let invoysSum = checkbox.getAttribute("data-new-raport-invoys") || "0";
+
+                if (newRaportGb.trim() !== "") {
+                    let gbArr = newRaportGb.split(',').map(s => s.trim()).filter(s => s);
+                    
+                    let matchedRecords = [];
+                    gbArr.forEach(gb => {
+                        let regex = new RegExp(`\\b${gb}\\b`);
+                        let rec = allBildirislerData.find(b => b.melumat && regex.test(b.melumat) && ((voen && b.voen === voen) || (!voen && b.firma === firmaAdi)));
+                        if (rec && !matchedRecords.some(r => r.id === rec.id)) {
+                            matchedRecords.push(rec);
+                        }
+                    });
+
+                    let bilInputsHtml = '';
+                    let hasMissingNomre = false;
+
+                    if (matchedRecords.length > 0) {
+                        matchedRecords.forEach((rec) => {
+                            let nomre = rec.bildiris_nomresi || "";
+                            let tarix = rec.tarix_yazilma || "";
+                            if (!nomre || !tarix) hasMissingNomre = true;
+                            
+                            bilInputsHtml += `
+                                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; flex: 1 1 45%; min-width: 250px;">
+                                    <strong style="font-size:11px; color:#475569; width:40px;"><i class="fa-solid fa-file-invoice"></i></strong>
+                                    <input type="text" class="rap-bil-nomre-${i}" data-bil-id="${rec.id}" value="${nomre}" placeholder="Bildiriş Nömrəsi" style="flex:1; padding:6px 10px; font-size:12px; border:1px solid ${nomre ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${nomre ? '#ffffff' : '#fef2f2'};">
+                                    <input type="text" class="rap-bil-tarix-${i}" data-bil-id="${rec.id}" value="${tarix}" placeholder="Tarix" style="width:90px; padding:6px 10px; font-size:12px; border:1px solid ${tarix ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${tarix ? '#ffffff' : '#fef2f2'};">
+                                </div>`;
+                        });
+                    } else {
+                        hasMissingNomre = true;
+                        bilInputsHtml = `
+                            <div style="display:flex; gap:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; width:100%;">
+                                <strong style="font-size:11px; color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Bazada yoxdur:</strong>
+                                <input type="text" class="rap-bil-nomre-${i}" value="" placeholder="Bildiriş Nömrəsi..." style="flex:1; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
+                                <input type="text" class="rap-bil-tarix-${i}" value="" placeholder="Tarix..." style="width:100px; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
+                            </div>`;
+                    }
+
+                    let warningBadge = hasMissingNomre 
+                        ? `<div style="margin-top:6px; color:#b91c1c; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #fee2e2; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> Bildiriş məlumatı əksikdir! Aşağı oxa basın</div>` 
+                        : `<div style="margin-top:6px; color:#166534; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #dcfce7; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-check-circle"></i> Bildiriş tamdır</div>`;
+
+                    warningHtml += `
+                    <tr>
+                        <td style="padding: 0; border: none; padding-bottom: 12px;">
+                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                                    
+                                    <div style="display:flex; gap:12px; align-items:flex-start; flex:1; min-width:250px;">
+                                        <input type="checkbox" class="custom-checkbox raport-modal-check" data-idx="${i}" checked style="margin-top:4px;">
+                                        <div>
+                                            <strong style="color:#0f172a; font-size:14px; display:block; margin-bottom:2px;">${idare}</strong>
+                                            <span style="font-size:12px; color:#475569; display:block;">${firmaAdi}</span>
+                                            ${warningBadge}
+                                        </div>
+                                    </div>
+
+                                    <div style="display:flex; gap:15px; align-items:center; background:#f8fafc; padding:8px 16px; border-radius:8px; border:1px solid #e2e8f0;">
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Köhnə Bəy.</div>
+                                            <div style="color:#ef4444; font-size:12px; font-weight:600;">${oldRaportGb || "Yoxdur"}</div>
+                                        </div>
+                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Yeni Bəy.</div>
+                                            <div style="color:#10b981; font-weight:800; font-size:13px;">${newRaportGb}</div>
+                                        </div>
+                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Borc</div>
+                                            <div style="font-weight:800; color:#1e293b; font-size:13px;">${newRaportBorc} USD</div>
+                                        </div>
+                                        <button class="btn-sec toggle-raport-details" data-target="raport-details-${i}" style="padding:6px 10px; font-size:12px; border-radius:6px; margin-left:8px;" title="Bildiriş məlumatlarını göstər"><i class="fa-solid fa-chevron-down"></i></button>
+                                    </div>
+                                </div>
+
+                                <div id="raport-details-${i}" style="display:none; margin-top:16px; padding-top:16px; border-top:1px dashed #cbd5e1;">
+                                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                                        ${bilInputsHtml}
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:16px;">
+                                    <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adını bura daxil edin..." style="width:100%; padding:10px 14px; font-size:13px; border:1px solid #cbd5e1; border-radius:6px; outline:none; background:#f8fafc; transition:0.2s;">
+                                </div>
+
+                            </div>
+                        </td>
+                    </tr>`;
+
+                    firmsToProcess.push({ 
+                        checkbox: checkbox, newGb: newRaportGb, newBorc: newRaportBorc, firmaAdi: firmaAdi,
+                        rawFirmaAdi: rawFirmaAdi, voen: voen, isFiziki: isFiziki, ixracList: ixracList,
+                        invoysSum: parseFloat(invoysSum), rowIdx: i
+                    });
+                }
+            }
+
+            if (firmsToProcess.length === 0) { 
+                alert("Diqqət: Seçdiyiniz firmalar ya tam raportlanıb, ya da bildirişi olmadığı üçün raport blokuna salınıb."); return; 
+            }
+
+            window.pendingFirmsToRaportZip = firmsToProcess;
+
+            if (preraportTbody && preRaportPopup) {
+                // Cədvəlin ənənəvi başlıqlarını gizlədirik ki, tam Kart dizaynı olsun
+                let thead = preraportTbody.closest('table').querySelector('thead');
+                if (thead) { thead.style.display = 'none'; }
+                
+                preraportTbody.innerHTML = warningHtml;
+                preRaportPopup.style.display = "flex";
+
+                // Ox (Accordion) düyməsi üçün Event Listener
+                document.querySelectorAll('.toggle-raport-details').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('data-target');
+                        const targetRow = document.getElementById(targetId);
+                        const icon = this.querySelector('i');
+                        if (targetRow.style.display === 'none') {
+                            targetRow.style.display = 'block';
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-up');
+                        } else {
+                            targetRow.style.display = 'none';
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    });
+                });
+            }
+        });
+    }
 
 
 
