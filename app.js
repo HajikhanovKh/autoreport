@@ -512,12 +512,20 @@ document.addEventListener("DOMContentLoaded", function() {
             };
             
             // 2-ci bölmə: Raportlar üçün paket
-            const payloadRaport = {
-                idarereisivezifesi: document.getElementById('dyn-rap-reisi-vezifesi').value.trim(),
-                idarereisi: document.getElementById('dyn-rap-reisi-adi').value.trim(),
-                mesulsexsvezifesi: document.getElementById('dyn-rap-mesul-vezife').value.trim(), // YALNIZ BU QALMALI İDİ
-                mesulsexs: document.getElementById('dyn-rap-mesul-adi').value.trim()
-            };
+            // 1. Bazadan gələn bütün köhnə məlumatları (mezenne və s.) qoruyuruq
+            let payloadRaport = { ...raportAyarlarData };
+            
+            // 2. Yeni yazılan məlumatları aidiyyatı üzrə yeniləyirik
+            payloadRaport.idarereisivezifesi = document.getElementById('dyn-rap-reisi-vezifesi').value.trim();
+            payloadRaport.idarereisi = document.getElementById('dyn-rap-reisi-adi').value.trim();
+            payloadRaport.mesulsexs = document.getElementById('dyn-rap-mesul-adi').value.trim();
+
+            // 3. Sütun adı xətası üçün ağıllı yoxlama:
+            if (payloadRaport.hasOwnProperty('mesulsexsvezife')) {
+                payloadRaport.mesulsexsvezife = document.getElementById('dyn-rap-mesul-vezife').value.trim();
+            } else {
+                payloadRaport.mesulsexsvezifesi = document.getElementById('dyn-rap-mesul-vezife').value.trim();
+            }
 
             let methodMesul = currentSignerId ? 'PUT' : 'POST'; 
             let urlMesul = currentSignerId ? `${SIGNER_API_URL}/${currentSignerId}` : SIGNER_API_URL;
