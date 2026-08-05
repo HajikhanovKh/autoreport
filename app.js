@@ -60,9 +60,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
+        // Bu düymələri heç vaxt kilidləmə:
+        const excludedIds = [
+            'btn-open-cover-settings', 
+            'bildiris-nomre-btn',
+            'raport-nomre-btn', // YENİ ƏLAVƏ EDİLƏN DÜYMƏ
+            'bildiris-qosma', 
+            'btn-raport-qosma', 
+            'btn-open-cover-gen'
+        ];
+        
+        if (!excludedIds.includes(btn.id)) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
     });
 
     const COVER_API = 'https://autoreport-production.up.railway.app/api/coverinfo';
@@ -870,6 +882,235 @@ document.addEventListener("DOMContentLoaded", function() {
         if (bildirisPopup) {
             bildirisPopup.style.display = 'flex';
             renderBildirisTable(bilId);
+        }
+    }
+
+    // ========================================================
+    // BURADAN AŞAĞIYA SİZİN GÖNDƏRDİYİNİZ YENİ KODU YAPIŞDIRIN
+    // ========================================================
+
+    let currentRapPage = 1;
+    const rapRowsPerPage = 30;
+
+    const raportBtn = document.getElementById('raport-nomre-btn');
+    const raportNomrePopup = document.getElementById('popup_raport_nomreleri');
+    const closeRaportNomreBtn = document.getElementById('close-raport-nomre-popup');
+    const raportTbody = document.getElementById('raport-tbody');
+    const missingRaportBadge = document.getElementById('missing-raport-count');
+
+    // Raport məlumatlarının yüklənməsi və badge-in yenilənməsi
+    function loadAllRaports(callback) {
+        fetch(RAPORT_API_URL).then(r => r.json()).then(data => {
+            allRaportData = data || [];
+            const missingCount = allRaportData.filter(r => !r.raport_nomresi || r.raport_nomresi.trim() === "").length;
+            if(missingRaportBadge) missingRaportBadge.innerText = missingCount;
+            if(callback) callback();
+        }).catch(err => console.error("Raport xətası:", err));
+    }
+
+    // Raport cədvəlinin ekrana çıxarılması
+    function renderRaportTable(highlightId = null) {
+        if (!raportTbody) return;
+        
+        let sortedData = [...allRaportData].sort((a, b) => {
+            const aEmpty = (!a.raport_nomresi || a.raport_nomresi.trim() === '');
+            const bEmpty = (!b.raport_nomresi || b.raport_nomresi.trim() === '');
+            if (aEmpty && !bEmpty) return -1;
+            if (!aEmpty && bEmpty) return 1;
+            return b.id - a.id; 
+        });
+
+        if (highlightId) {
+            const targetIndex = sortedData.findIndex(item => item.id.toString() === highlightId.toString());
+            if (targetIndex !== -1) {
+                currentRapPage = Math.floor(targetIndex / rapRowsPerPage) + 1;
+            }
+        }
+
+        const totalPages = Math.ceil(sortedData.length / rapRowsPerPage) || 1;
+        if (currentRapPage > totalPages) currentRapPage = totalPages;
+
+        const startIndex = (currentRapPage - 1) * rapRowsPerPage;
+        const pageData = sortedData.slice(startIndex, startIndex + rapRowsPerPage);
+
+        raportTbody.innerHTML = '';
+        if (pageData.length === 0) {
+            raportTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#94a3b8;">Sistemdə heç bir raport məlumatı tapılmadı.</td></tr>`;
+            renderRapPagination(totalPages);
+            return;
+        }
+        
+        pageData.forEach(r => {
+            const tr = document.createElement('tr');
+            if (highlightId && r.id.toString() === highlightId.toString()) tr.classList.add('highlight-row');
+
+            let isMissing = (!r.raport_nomresi || r.raport_nomresi.trim() === '');
+            let safeFirma = (r.firma || '').replace(/"/g, '&quot;');
+            let melumatText = r.melumat || '';
+
+            tr.setAttribute('data-id', r.id);
+            tr.setAttribute('data-orqan', r.gomruk_orqani || '');
+            tr.setAttribute('data-firma', r.firma || '');
+            tr.setAttribute('data-voen', r.voen || '');
+            tr.setAttribute('data-tarix', r.tarix_yazilma || '');
+            tr.setAttribute('data-dovr', r.tarix_borcdovru || '');
+            tr.setAttribute('data-melumat', melumatText);
+
+            if (isMissing) {
+                tr.innerHTML = `
+                    <td style="font-size: 11px; color:#475569;">${r.gomruk_orqani || '—'}</td>
+                    <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${r.voen || '—'}</div></td>
+                    <td>
+                        <input type="text" class="modal-input edit-rap-tarix-${r.id}" value="${r.tarix_yazilma || ''}" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                        <div style="font-size:11px; color:#64748b;">${r.tarix_borcdovru || '—'}</div>
+                    </td>
+                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
+                    <td>
+                        <div style="display:flex; gap:6px; flex-direction:column; align-items:center;">
+                            <input type="text" class="modal-input edit-rap-nomre-${r.id}" placeholder="Raport əlavə et..." style="padding:4px; font-size:12px; width:100%; text-align:center; border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2);">
+                            <div style="display:flex; gap:6px; width:100%;">
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateRaportFromTable(${r.id})"><i class="fa-solid fa-save"></i> Saxla</button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#ef4444; color:white;" onclick="deleteRaport(${r.id})"><i class="fa-solid fa-trash"></i> Sil</button>
+                            </div>
+                        </div>
+                    </td>`;
+            } else {
+                tr.innerHTML = `
+                    <td style="font-size: 11px; color:#475569;">${r.gomruk_orqani || '—'}</td>
+                    <td><div style="font-weight:700; font-size:12px;">${safeFirma}</div><div style="font-size:11px; color:#64748b;">${r.voen || '—'}</div></td>
+                    <td>
+                        <div class="view-rap-tarix-${r.id}" style="font-size:11px; font-weight:600; margin-bottom:2px;">${r.tarix_yazilma || '—'}</div>
+                        <input type="text" class="modal-input edit-rap-tarix-${r.id}" value="${r.tarix_yazilma || ''}" style="display:none; width:100%; font-size:11px; padding:4px; margin-bottom:4px;" placeholder="Tarix">
+                        <div style="font-size:11px; color:#64748b;">${r.tarix_borcdovru || '—'}</div>
+                    </td>
+                    <td style="font-size:11px; color:#2563eb; font-weight:600;">${melumatText}</td>
+                    <td>
+                        <div class="view-rap-panel-${r.id}" style="display:flex; gap:10px; align-items:center; justify-content:center;">
+                            <span style="color:#166534; font-weight:700; font-size:13px;">${r.raport_nomresi}</span>
+                            <div style="display:flex; gap:6px;">
+                                <button onclick="enableRaportEditMode(${r.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #f59e0b; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteRaport(${r.id})" style="border-radius: 50%; border: none; cursor: pointer; background: transparent; color: #ef4444; font-size: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="edit-rap-panel-${r.id}" style="display:none; flex-direction:column; gap:6px; align-items:center;">
+                            <input type="text" class="modal-input edit-rap-nomre-${r.id}" value="${r.raport_nomresi}" style="padding:4px; font-size:12px; width:100%; text-align:center;">
+                            <div style="display:flex; gap:6px; width:100%;">
+                                <button class="btn-primary" style="flex:1; padding:4px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#10b981; color:white;" onclick="updateRaportFromTable(${r.id})"><i class="fa-solid fa-save"></i> Saxla</button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#ef4444; color:white;" onclick="deleteRaport(${r.id})"><i class="fa-solid fa-trash"></i> Sil</button>
+                                <button style="padding:4px 8px; border-radius:4px; border:none; cursor:pointer; font-size:11px; background:#94a3b8; color:white;" onclick="cancelRaportEditMode(${r.id})"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+                    </td>`;
+            }
+            raportTbody.appendChild(tr);
+        });
+        renderRapPagination(totalPages);
+    }
+
+    function renderRapPagination(totalPages) {
+        let container = document.getElementById('raport-pagination-controls');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'raport-pagination-controls';
+            container.className = 'pagination-container';
+            const wrapper = document.querySelector('#popup_raport_nomreleri .table-wrapper');
+            if(wrapper) wrapper.appendChild(container);
+        }
+        container.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        const prevBtn = document.createElement('button'); 
+        prevBtn.className = 'page-btn'; prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+        prevBtn.disabled = currentRapPage === 1; 
+        prevBtn.onclick = (e) => { e.preventDefault(); currentRapPage--; renderRaportTable(); };
+        container.appendChild(prevBtn);
+
+        let startPage = Math.max(1, currentRapPage - 2); 
+        let endPage = Math.min(totalPages, currentRapPage + 2);
+        for (let i = startPage; i <= endPage; i++) {
+            const pBtn = document.createElement('button'); 
+            pBtn.className = `page-btn ${i === currentRapPage ? 'active' : ''}`; 
+            pBtn.innerText = i;
+            pBtn.onclick = (e) => { e.preventDefault(); currentRapPage = i; renderRaportTable(); }; 
+            container.appendChild(pBtn);
+        }
+
+        const nextBtn = document.createElement('button'); 
+        nextBtn.className = 'page-btn'; nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        nextBtn.disabled = currentRapPage === totalPages; 
+        nextBtn.onclick = (e) => { e.preventDefault(); currentRapPage++; renderRaportTable(); };
+        container.appendChild(nextBtn);
+    }
+
+    window.enableRaportEditMode = function(id) {
+        document.querySelector(`.view-rap-tarix-${id}`).style.display = 'none';
+        document.querySelector(`.edit-rap-tarix-${id}`).style.display = 'block';
+        document.querySelector(`.view-rap-panel-${id}`).style.display = 'none';
+        document.querySelector(`.edit-rap-panel-${id}`).style.display = 'flex';
+    }
+
+    window.cancelRaportEditMode = function(id) {
+        document.querySelector(`.view-rap-tarix-${id}`).style.display = 'block';
+        document.querySelector(`.edit-rap-tarix-${id}`).style.display = 'none';
+        document.querySelector(`.view-rap-panel-${id}`).style.display = 'flex';
+        document.querySelector(`.edit-rap-panel-${id}`).style.display = 'none';
+    }
+
+    window.updateRaportFromTable = function(id) {
+        const tr = document.querySelector(`tr[data-id="${id}"]`);
+        if(!tr) return;
+
+        const newTarix = document.querySelector(`.edit-rap-tarix-${id}`).value.trim();
+        const newNomre = document.querySelector(`.edit-rap-nomre-${id}`).value.trim();
+
+        if(!newNomre) { alert("Raport nömrəsini daxil edin!"); return; }
+
+        const payload = {
+            gomruk_orqani: tr.getAttribute('data-orqan'),
+            firma: tr.getAttribute('data-firma'),
+            voen: tr.getAttribute('data-voen'),
+            tarix_yazilma: newTarix,
+            tarix_borcdovru: tr.getAttribute('data-dovr'),
+            melumat: tr.getAttribute('data-melumat'),
+            raport_nomresi: newNomre
+        };
+
+        fetch(`${RAPORT_API_URL}/${id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        }).then(() => { 
+            loadAllRaports(() => renderRaportTable());
+        }).catch(err => alert("Xəta baş verdi: " + err.message));
+    }
+
+    window.deleteRaport = function(id) {
+        if(!confirm("Diqqət: Bu raport qeydini bazadan tamamilə silmək istədiyinizə əminsiniz?")) return;
+        fetch(`${RAPORT_API_URL}/${id}`, { method: 'DELETE' })
+        .then(() => { loadAllRaports(() => renderRaportTable()); })
+        .catch(err => alert("Silinərkən xəta: " + err.message));
+    }
+
+    // Event Listeners for the modal
+    if (raportBtn && raportNomrePopup) { 
+        raportBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            raportNomrePopup.style.display = 'flex'; 
+            currentRapPage = 1; 
+            renderRaportTable(); 
+        }); 
+    }
+    
+    if (closeRaportNomreBtn && raportNomrePopup) { 
+        closeRaportNomreBtn.addEventListener('click', e => { 
+            e.preventDefault(); 
+            raportNomrePopup.style.display = 'none'; 
+        }); 
+    }
+
+    // Raport nömrəsi çatışmayan yerlərdən kliklədikdə modala yönləndirmə
+    window.openRaportPanelAndHighlight = function(rapId) {
+        if (raportNomrePopup) {
+            raportNomrePopup.style.display = 'flex';
+            renderRaportTable(rapId);
         }
     }
 
