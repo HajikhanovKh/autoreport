@@ -490,13 +490,17 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
     let connection;
     try {
         const { id } = req.params;
-        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        // Yalnız cədvəldə olan doğru adları (mesulsexsvezife) saxladıq
+        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexs } = req.body;
+        
         connection = await mysql.createConnection(dbConfig);
         
+        // SQL sorğusundan artıq sütunu sildik
         await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
-            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '', id]
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
+            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezife || '', mesulsexs || '', id]
         );
+        
         res.json({ message: "Raport ayarları uğurla yeniləndi" });
     } catch (error) {
         console.error("Raport ayarları yenilənərkən xəta:", error);
