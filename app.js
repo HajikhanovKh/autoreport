@@ -387,21 +387,25 @@ document.addEventListener("DOMContentLoaded", function() {
     // Pəncərənin daxilini 2 bölməli xüsusi dizaynla JS vasitəsilə sıfırdan qururuq
     if (popupSigners) {
         popupSigners.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
+        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
             <div style="background: white; border-radius: 16px; width: 90%; max-width: 650px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
                 <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top-left-radius: 16px; border-top-right-radius: 16px;">
                     <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-users-gear" style="color: #3b82f6; margin-right: 8px;"></i>İmzalayan Şəxslərin Tənzimlənməsi</h2>
                     <button id="close-signer-popup-btn" style="background: transparent; border: none; font-size: 24px; color: #64748b; cursor: pointer; transition: 0.2s;">&times;</button>
                 </div>
-
                 <div style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-                    
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 10px; margin-bottom: 24px;">
                         <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #1e40af; border-bottom: 1px dashed #93c5fd; padding-bottom: 10px;"><i class="fa-solid fa-file-signature" style="margin-right: 6px;"></i>1. Bildirişlərin hazırlanmasında məsul şəxslər</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div style="grid-column: span 2;">
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayan şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-sign-leader-person" placeholder="Məs: İdarə rəisinin müavini..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                                <!-- Vəzifə xanası Textarea edildi -->
+                                <textarea id="dyn-sign-leader-person" rows="2" placeholder="Məs: İdarə rəisinin müavini..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box; resize: vertical; font-family: inherit;"></textarea>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayan şəxsin Soyadı, adı</label>
+                                <!-- Yeni Input əlavə edildi -->
+                                <input type="text" id="dyn-sign-leader-name" placeholder="Məs: Həsənov Həsən..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
                             </div>
                             <div>
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İcra edən şəxsin Soyadı, adı</label>
@@ -411,16 +415,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Telefon nömrəsi</label>
                                 <input type="text" id="dyn-sign-phone" placeholder="Məs: 050 123 45 67..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
                             </div>
-                            <input type="hidden" id="dyn-sign-leader-name" value="">
                         </div>
                     </div>
-
                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 10px;">
                         <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #166534; border-bottom: 1px dashed #86efac; padding-bottom: 10px;"><i class="fa-solid fa-file-contract" style="margin-right: 6px;"></i>2. Raportun hazırlanması üçün məlumatlar</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div style="grid-column: span 2;">
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportun yazıldığı şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-rap-reisi-vezifesi" placeholder="Məs: Gömrük İdarəsinin Rəisinə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                                <!-- Vəzifə xanası Textarea edildi -->
+                                <textarea id="dyn-rap-reisi-vezifesi" rows="2" placeholder="Məs: Gömrük İdarəsinin Rəisinə..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box; resize: vertical; font-family: inherit;"></textarea>
                             </div>
                             <div style="grid-column: span 2;">
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Həmin şəxsin Soyadı, adı</label>
@@ -428,7 +431,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             </div>
                             <div style="grid-column: span 2;">
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Raportu imzalayacaq şəxsin vəzifəsi</label>
-                                <input type="text" id="dyn-rap-mesul-vezife" placeholder="Məs: Gömrük Əməliyyatları Bölməsinin rəisi..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box;">
+                                <!-- Vəzifə xanası Textarea edildi -->
+                                <textarea id="dyn-rap-mesul-vezife" rows="2" placeholder="Məs: Gömrük Əməliyyatları Bölməsinin rəisi..." style="width: 100%; padding: 10px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box; resize: vertical; font-family: inherit;"></textarea>
                             </div>
                             <div style="grid-column: span 2;">
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">İmzalayacaq şəxsin Soyadı, adı</label>
@@ -436,9 +440,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             </div>
                         </div>
                     </div>
-
                 </div>
-
                 <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; align-items: center; gap: 16px;">
                     <span id="dyn-signer-status-msg" style="font-size: 13px; font-weight: 700; display: none;"></span>
                     <button id="dyn-save-signers-btn" style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-save" style="margin-right: 6px;"></i> Yadda Saxla</button>
@@ -446,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function() {
             </div>
         </div>
         `;
-        popupSigners.style.background = 'transparent'; // Webflow-un mövcud arxa fonu ləğv edilir
+        popupSigners.style.background = 'transparent'; 
     }
 
     function loadSigners() {
@@ -513,8 +515,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const payloadRaport = {
                 idarereisivezifesi: document.getElementById('dyn-rap-reisi-vezifesi').value.trim(),
                 idarereisi: document.getElementById('dyn-rap-reisi-adi').value.trim(),
-                mesulsexsvezifesi: document.getElementById('dyn-rap-mesul-vezife').value.trim(),
-                mesulsexsvezife: document.getElementById('dyn-rap-mesul-vezife').value.trim(), 
+                mesulsexsvezifesi: document.getElementById('dyn-rap-mesul-vezife').value.trim(), // YALNIZ BU QALMALI İDİ
                 mesulsexs: document.getElementById('dyn-rap-mesul-adi').value.trim()
             };
 
