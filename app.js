@@ -2037,6 +2037,32 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
+    if(confirmPrezipBtn) {
+        confirmPrezipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün yeni bildiriş yazılası bəyannamə yoxdur. Sənəd yaradılmadı.");
+                if (preZipPopup) preZipPopup.style.display = "none";
+                return;
+            }
+            if (preZipPopup) preZipPopup.style.display = "none";
+            executeZipProcess();
+        });
+    }
+
+    if(confirmRaportZipBtn) {
+        confirmRaportZipBtn.addEventListener("click", () => {
+            if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
+                alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
+                if (preRaportPopup) preRaportPopup.style.display = "none";
+                return;
+            }
+            if (preRaportPopup) preRaportPopup.style.display = "none";
+            executeRaportZipProcess();
+        });
+    }
+
+
+    
     if(saveZipSelectionsBtn) {
         saveZipSelectionsBtn.addEventListener('click', function() {
             const checkedBoxes = document.querySelectorAll('.zip-row-check:checked');
