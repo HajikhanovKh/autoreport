@@ -2,7 +2,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
         const DOGRU_SIFRE = "Analog*+2026+*";
         document.body.style.overflow = 'hidden';
-        
+
         const overlay = document.createElement('div');
         overlay.id = "security-overlay"; 
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
