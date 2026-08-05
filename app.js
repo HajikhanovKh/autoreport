@@ -387,7 +387,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Pəncərənin daxilini 2 bölməli xüsusi dizaynla JS vasitəsilə sıfırdan qururuq
     if (popupSigners) {
         popupSigners.innerHTML = `
-        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: flex; justify-content: center; align-items: center;">
             <div style="background: white; border-radius: 16px; width: 90%; max-width: 650px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
                 <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-top-left-radius: 16px; border-top-right-radius: 16px;">
                     <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-users-gear" style="color: #3b82f6; margin-right: 8px;"></i>İmzalayan Şəxslərin Tənzimlənməsi</h2>
