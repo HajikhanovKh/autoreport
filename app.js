@@ -256,7 +256,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const rowsPerPage = 20;
     
     let currentBilPage = 1;
-    const bilRowsPerPage = 30;
+    const bilRowsPerPage = 20;
     
     let minAmountFilter = 0; 
     let currentSignerId = null;
@@ -890,7 +890,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // ========================================================
 
     let currentRapPage = 1;
-    const rapRowsPerPage = 30;
+    const rapRowsPerPage = 20;
 
     const raportBtn = document.getElementById('raport-nomre-btn');
     const raportNomrePopup = document.getElementById('popup_raport_nomreleri');
