@@ -4,7 +4,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
         document.body.style.overflow = 'hidden';
         
         const overlay = document.createElement('div');
-        overlay.id = "security-overlay";
+        overlay.id = "security-overlay";const actionBtns = document.querySelectorAll
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
         overlay.innerHTML = `
             <div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px;">
@@ -60,9 +60,20 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
+        // Bu düymələri heç vaxt kilidləmə:
+        const excludedIds = [
+            'btn-open-cover-settings', 
+            'bildiris-nomre-btn', 
+            'bildiris-qosma', 
+            'btn-raport-qosma', 
+            'btn-open-cover-gen'
+        ];
+        
+        if (!excludedIds.includes(btn.id)) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
     });
 
     const COVER_API = 'https://autoreport-production.up.railway.app/api/coverinfo';
