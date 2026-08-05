@@ -383,7 +383,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // İMZALAYAN ŞƏXSLƏR PƏNCƏRƏSİ (DİNAMİK VƏ 2 BÖLMƏLİ)
     // ==========================================
     
-    const popupSigners = document.getElementById('popup_signers');
     
     // Pəncərənin daxilini 2 bölməli xüsusi dizaynla JS vasitəsilə sıfırdan qururuq
     if (popupSigners) {
