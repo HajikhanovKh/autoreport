@@ -1788,16 +1788,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             let firmsToProcess = [];
-            
-            let warningHtml = `
-            <tr style="background:#f8fafc; border-bottom:2px solid #cbd5e1; text-align:left;">
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Gömrük orqanı və Firma</th>
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Köhnə Bəyannamələr<br><span style="font-size:10px; font-weight:400; color:#64748b;">(Əgər varsa)</span></th>
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Yeni Yazılacaq Bəyannamələr</th>
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Bildiriş Nömrəsi və Tarixi</th>
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Malın Adı</th>
-                <th style="padding:12px 10px; font-size:12px; color:#334155; font-weight:600;">Borc</th>
-            </tr>`;
+            let warningHtml = "";
 
             for (let i = 0; i < checkedFirms.length; i++) {
                 const checkbox = checkedFirms[i];
@@ -1829,38 +1820,82 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
 
                     let bilInputsHtml = '';
+                    let hasMissingNomre = false;
+
                     if (matchedRecords.length > 0) {
                         matchedRecords.forEach((rec) => {
                             let nomre = rec.bildiris_nomresi || "";
                             let tarix = rec.tarix_yazilma || "";
+                            if (!nomre || !tarix) hasMissingNomre = true;
+                            
                             bilInputsHtml += `
-                                <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-                                    <input type="text" class="rap-bil-nomre-${i}" data-bil-id="${rec.id}" value="${nomre}" placeholder="Nömrə" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:${nomre ? '#f8fafc' : '#fef08a'};">
-                                    <input type="text" class="rap-bil-tarix-${i}" data-bil-id="${rec.id}" value="${tarix}" placeholder="Tarix" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:${tarix ? '#f8fafc' : '#fef08a'};">
+                                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; flex: 1 1 45%; min-width: 250px;">
+                                    <strong style="font-size:11px; color:#475569; width:40px;"><i class="fa-solid fa-file-invoice"></i></strong>
+                                    <input type="text" class="rap-bil-nomre-${i}" data-bil-id="${rec.id}" value="${nomre}" placeholder="Bildiriş Nömrəsi" style="flex:1; padding:6px 10px; font-size:12px; border:1px solid ${nomre ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${nomre ? '#ffffff' : '#fef2f2'};">
+                                    <input type="text" class="rap-bil-tarix-${i}" data-bil-id="${rec.id}" value="${tarix}" placeholder="Tarix" style="width:90px; padding:6px 10px; font-size:12px; border:1px solid ${tarix ? '#cbd5e1' : '#ef4444'}; border-radius:4px; outline:none; background:${tarix ? '#ffffff' : '#fef2f2'};">
                                 </div>`;
                         });
                     } else {
+                        hasMissingNomre = true;
                         bilInputsHtml = `
-                            <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
-                                <input type="text" class="rap-bil-nomre-${i}" value="" placeholder="Nömrə" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:#fef08a;">
-                                <input type="text" class="rap-bil-tarix-${i}" value="" placeholder="Tarix" style="width:80px; padding:6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none; background:#fef08a;">
+                            <div style="display:flex; gap:8px; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; width:100%;">
+                                <strong style="font-size:11px; color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Bazada yoxdur:</strong>
+                                <input type="text" class="rap-bil-nomre-${i}" value="" placeholder="Bildiriş Nömrəsi..." style="flex:1; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
+                                <input type="text" class="rap-bil-tarix-${i}" value="" placeholder="Tarix..." style="width:100px; padding:6px 10px; font-size:12px; border:1px solid #ef4444; border-radius:4px; outline:none; background:#fef2f2;">
                             </div>`;
                     }
 
+                    let warningBadge = hasMissingNomre 
+                        ? `<div style="margin-top:6px; color:#b91c1c; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #fee2e2; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> Bildiriş məlumatı əksikdir! Aşağı oxa basın</div>` 
+                        : `<div style="margin-top:6px; color:#166534; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; background: #dcfce7; padding: 4px 8px; border-radius: 4px;"><i class="fa-solid fa-check-circle"></i> Bildiriş tamdır</div>`;
+
                     warningHtml += `
-                    <tr style="background: #ffffff; border-bottom: 1px solid #e2e8f0; vertical-align: middle;">
-                        <td style="padding:12px 10px;">
-                            <input type="checkbox" class="custom-checkbox raport-modal-check" data-idx="${i}" checked style="display:none;">
-                            <strong style="color:#0f172a; font-size:13px; display:block; margin-bottom:4px;">${idare}</strong>
-                            <span style="font-size:11px; color:#475569; font-weight:500;">${firmaAdi}</span>
+                    <tr>
+                        <td style="padding: 0; border: none; padding-bottom: 12px;">
+                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                                    
+                                    <div style="display:flex; gap:12px; align-items:flex-start; flex:1; min-width:250px;">
+                                        <input type="checkbox" class="custom-checkbox raport-modal-check" data-idx="${i}" checked style="margin-top:4px;">
+                                        <div>
+                                            <strong style="color:#0f172a; font-size:14px; display:block; margin-bottom:2px;">${idare}</strong>
+                                            <span style="font-size:12px; color:#475569; display:block;">${firmaAdi}</span>
+                                            ${warningBadge}
+                                        </div>
+                                    </div>
+
+                                    <div style="display:flex; gap:15px; align-items:center; background:#f8fafc; padding:8px 16px; border-radius:8px; border:1px solid #e2e8f0;">
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Köhnə Bəy.</div>
+                                            <div style="color:#ef4444; font-size:12px; font-weight:600;">${oldRaportGb || "Yoxdur"}</div>
+                                        </div>
+                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Yeni Bəy.</div>
+                                            <div style="color:#10b981; font-weight:800; font-size:13px;">${newRaportGb}</div>
+                                        </div>
+                                        <div style="width:1px; height:24px; background:#cbd5e1;"></div>
+                                        <div>
+                                            <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:2px;">Borc</div>
+                                            <div style="font-weight:800; color:#1e293b; font-size:13px;">${newRaportBorc} USD</div>
+                                        </div>
+                                        <button class="btn-sec toggle-raport-details" data-target="raport-details-${i}" style="padding:6px 10px; font-size:12px; border-radius:6px; margin-left:8px;" title="Bildiriş məlumatlarını göstər"><i class="fa-solid fa-chevron-down"></i></button>
+                                    </div>
+                                </div>
+
+                                <div id="raport-details-${i}" style="display:none; margin-top:16px; padding-top:16px; border-top:1px dashed #cbd5e1;">
+                                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                                        ${bilInputsHtml}
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:16px;">
+                                    <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adını bura daxil edin..." style="width:100%; padding:10px 14px; font-size:13px; border:1px solid #cbd5e1; border-radius:6px; outline:none; background:#f8fafc; transition:0.2s;">
+                                </div>
+
+                            </div>
                         </td>
-                        <td style="padding:12px 10px; color:#ef4444; font-size:12px; font-weight:500;">${oldRaportGb || "Yoxdur"}</td>
-                        <td style="padding:12px 10px; color:#10b981; font-weight:700; font-size:12px;">${newRaportGb}</td>
-                        <td style="padding:12px 10px;">${bilInputsHtml}</td>
-                        <td style="padding:12px 10px;">
-                            <input type="text" id="malin-adi-${i}" class="malin-adi-input" placeholder="Malın adı..." style="width:100%; min-width:140px; padding:8px 10px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; outline:none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
-                        </td>
-                        <td style="padding:12px 10px; font-weight:700; color:#1e293b; white-space:nowrap; font-size:13px;">${newRaportBorc} ABŞ</td>
                     </tr>`;
 
                     firmsToProcess.push({ 
@@ -1878,55 +1913,34 @@ document.addEventListener("DOMContentLoaded", function() {
             window.pendingFirmsToRaportZip = firmsToProcess;
 
             if (preraportTbody && preRaportPopup) {
+                // Cədvəlin ənənəvi başlıqlarını gizlədirik ki, tam Kart dizaynı olsun
                 let thead = preraportTbody.closest('table').querySelector('thead');
                 if (thead) { thead.style.display = 'none'; }
                 
                 preraportTbody.innerHTML = warningHtml;
                 preRaportPopup.style.display = "flex";
+
+                // Ox (Accordion) düyməsi üçün Event Listener
+                document.querySelectorAll('.toggle-raport-details').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('data-target');
+                        const targetRow = document.getElementById(targetId);
+                        const icon = this.querySelector('i');
+                        if (targetRow.style.display === 'none') {
+                            targetRow.style.display = 'block';
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-up');
+                        } else {
+                            targetRow.style.display = 'none';
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    });
+                });
             }
         });
     }
-
-    const executeRaportZipProcess = async () => {
-        const updatePromises = [];
-        const payload = [];
-        pendingRaportDbSavePayload = [];
-        const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
-        let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
-
-        for (const item of window.pendingFirmsToRaportZip) {
-            let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
-            if (!rowCheck || !rowCheck.checked) continue; 
-
-            let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
-            let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
-
-            let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
-            let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
-
-            let nomreVals = [];
-            let tarixVals = [];
-
-            nomreInputs.forEach((inp, idx) => {
-                let nVal = inp.value.trim();
-                let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
-                let bId = inp.getAttribute("data-bil-id");
-
-                if (nVal) nomreVals.push(nVal);
-                if (tVal) tarixVals.push(tVal);
-
-                if (bId && (nVal || tVal)) {
-                    let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
-                    if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
-                        let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
-                        updatePromises.push(
-                            fetch(`${BIL_API_URL}/${bId}`, { 
-                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
-                            })
-                        );
-                    }
-                }
-            });
 
             let finalNomre = Array.from(new Set(nomreVals)).join(", ");
             let finalTarix = Array.from(new Set(tarixVals)).join(", ");
