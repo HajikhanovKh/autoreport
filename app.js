@@ -382,7 +382,7 @@ document.addEventListener("DOMContentLoaded", function() {
    // ==========================================
     // İMZALAYAN ŞƏXSLƏR PƏNCƏRƏSİ (DİNAMİK VƏ 2 BÖLMƏLİ)
     // ==========================================
-    const signerBtn = document.getElementById('signer-btn');
+    
     const popupSigners = document.getElementById('popup_signers');
     
     // Pəncərənin daxilini 2 bölməli xüsusi dizaynla JS vasitəsilə sıfırdan qururuq
