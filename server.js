@@ -510,6 +510,48 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
     }
 });
 
+// Raport məlumatını (nömrə, tarix və s.) yeniləmək
+app.put('/api/raportinfo/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { gomruk_orqani, firma, voen, tarix_yazilma, tarix_borcdovru, melumat, raport_nomresi } = req.body;
+        
+        connection = await mysql.createConnection(dbConfig);
+        
+        await connection.execute(
+            'UPDATE raportinfo SET gomruk_orqani=?, firma=?, voen=?, tarix_yazilma=?, tarix_borcdovru=?, melumat=?, raport_nomresi=? WHERE id=?',
+            [gomruk_orqani || '', firma || '', voen || '', tarix_yazilma || '', tarix_borcdovru || '', melumat || '', raport_nomresi || '', id]
+        );
+        
+        res.json({ message: "Raport məlumatı uğurla yeniləndi!" });
+    } catch (error) {
+        console.error("Raport yenilənərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+
+// Raport qeydini bazadan silmək
+app.delete('/api/raportinfo/:id', async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        
+        connection = await mysql.createConnection(dbConfig);
+        
+        await connection.execute('DELETE FROM raportinfo WHERE id=?', [id]);
+        
+        res.json({ message: "Raport qeydi uğurla silindi!" });
+    } catch (error) {
+        console.error("Raport silinərkən xəta:", error);
+        res.status(500).json({ error: "Baza xətası" });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
 // ==========================================
 // RAPORT İNFO (Məlumatların bazaya yazılması və oxunması)
 // ==========================================
