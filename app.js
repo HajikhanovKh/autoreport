@@ -882,6 +882,20 @@ document.addEventListener("DOMContentLoaded", function() {
         if (bildirisPopup) {
             bildirisPopup.style.display = 'flex';
             renderBildirisTable(bilId);
+            
+            // Pəncərə açılandan dərhal sonra hədəfə sürüşdürmə (Scroll)
+            setTimeout(() => {
+                const modalBody = bildirisPopup.querySelector('.modal-body');
+                const highlightedRow = bildirisPopup.querySelector('.highlight-row');
+                
+                if (highlightedRow) {
+                    // Əgər rənglənmiş sətir varsa, onu ekranın mərkəzinə gətir
+                    highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else if (modalBody) {
+                    // Tapılmazsa, ən azından pəncərəni ən yuxarıya qaldır
+                    modalBody.scrollTop = 0;
+                }
+            }, 50);
         }
     }
 
@@ -1107,10 +1121,22 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // Raport nömrəsi çatışmayan yerlərdən kliklədikdə modala yönləndirmə
-    window.openRaportPanelAndHighlight = function(rapId) {
+   window.openRaportPanelAndHighlight = function(rapId) {
         if (raportNomrePopup) {
             raportNomrePopup.style.display = 'flex';
             renderRaportTable(rapId);
+            
+            // Pəncərə açılandan dərhal sonra hədəfə sürüşdürmə (Scroll)
+            setTimeout(() => {
+                const modalBody = raportNomrePopup.querySelector('.modal-body');
+                const highlightedRow = raportNomrePopup.querySelector('.highlight-row');
+                
+                if (highlightedRow) {
+                    highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else if (modalBody) {
+                    modalBody.scrollTop = 0;
+                }
+            }, 50);
         }
     }
 
