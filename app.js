@@ -2131,7 +2131,7 @@ document.addEventListener("DOMContentLoaded", function() {
             payload.push({
                 idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
                 idarereisi: raportAyarlarData.idarereisi || "",
-                mesulsexsvezifeyeri: raportAyarlarData.mesulsexsvezife ||  "tapilmadi",
+                mesulsexsvezifeyeri: [raportAyarlarData.mesulsexsvezife, raportAyarlarData.mesulsexsvezifesi].find(val => val && val !== "undefined") || "tapilmadi",
                 mesulsexs: raportAyarlarData.mesulsexs || "",
                 raportfirma: item.firmaAdi,
                 uzanti: item.isFiziki ? "na" : "nin",
