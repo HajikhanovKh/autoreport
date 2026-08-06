@@ -2070,215 +2070,161 @@ document.addEventListener("DOMContentLoaded", function() {
     // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
     // ==========================================
     const executeRaportZipProcess = async () => {
-    const updatePromises = [];
-    const payload = [];
-    pendingRaportDbSavePayload = [];
-    const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
-    let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
+        const updatePromises = [];
+        const payload = [];
+        pendingRaportDbSavePayload = [];
+        const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
+        let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
 
-    // Xətanı izləmək üçün bayraq
-    let hasError = false;
+        for (const item of window.pendingFirmsToRaportZip) {
+            let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
+            if (!rowCheck || !rowCheck.checked) continue; 
 
-    // 🔴 KÖMƏKÇİ FUNKSİYA: Ekranda qırmızı çərçivə və kursor effekti yaradır
-    const showInlineError = (inputEl, placeholderText) => {
-        if (inputEl) {
-            // Ekranda vizual olaraq xətanı göstəririk
-            inputEl.style.transition = "all 0.3s ease";
-            inputEl.style.border = "2px solid #ef4444"; // Qırmızı çərçivə
-            inputEl.style.boxShadow = "0 0 8px rgba(239, 68, 68, 0.4)"; // Qırmızı kölgə effekti
-            inputEl.focus(); // Kursoru birbaşa o xanaya gətirir
-            
-            let oldPlaceholder = inputEl.placeholder;
-            inputEl.placeholder = placeholderText; // Xananın içində qısa xəbərdarlıq
+            let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
+            let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
 
-            // 3 saniyə sonra xananı əvvəlki sakit halına qaytarırıq
-            setTimeout(() => {
-                inputEl.style.border = "";
-                inputEl.style.boxShadow = "";
-                inputEl.placeholder = oldPlaceholder;
-            }, 3000);
-        }
-    };
+            let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
+            let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
 
-    for (const item of window.pendingFirmsToRaportZip) {
-        // Əgər ilk xəta tapılıbsa, o xana qırmızı olacaq və digərlərini yoxlamağa ehtiyac yoxdur
-        if (hasError) break;
+            let nomreVals = [];
+            let tarixVals = [];
 
-        let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
-        if (!rowCheck || !rowCheck.checked) continue; 
+            nomreInputs.forEach((inp, idx) => {
+                let nVal = inp.value.trim();
+                let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
+                let bId = inp.getAttribute("data-bil-id");
 
-        let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
-        let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
+                if (nVal) nomreVals.push(nVal);
+                if (tVal) tarixVals.push(tVal);
 
-        let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
-        let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
-
-        let nomreVals = [];
-        let tarixVals = [];
-
-        nomreInputs.forEach((inp, idx) => {
-            let nVal = inp.value.trim();
-            let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
-            let bId = inp.getAttribute("data-bil-id");
-
-            if (nVal) nomreVals.push(nVal);
-            if (tVal) tarixVals.push(tVal);
-
-            if (bId && (nVal || tVal)) {
-                let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
-                if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
-                    let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
-                    updatePromises.push(
-                        fetch(`${BIL_API_URL}/${bId}`, { 
-                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
-                        })
-                    );
+                if (bId && (nVal || tVal)) {
+                    let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
+                    if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
+                        let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
+                        updatePromises.push(
+                            fetch(`${BIL_API_URL}/${bId}`, { 
+                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
+                            })
+                        );
+                    }
                 }
+            });
+
+            let finalNomre = Array.from(new Set(nomreVals)).join(", ");
+            let finalTarix = Array.from(new Set(tarixVals)).join(", ");
+
+            if (!malinAdiValue) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); return;
             }
-        });
+            if (!finalNomre) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş nömrəsi daxil edilməyib!`); return;
+            }
+            if (!finalTarix) {
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş tarixi daxil edilməyib!`); return;
+            }
 
-        let finalNomre = Array.from(new Set(nomreVals)).join(", ");
-        let finalTarix = Array.from(new Set(tarixVals)).join(", ");
+            let totalInvoys = parseFloat(item.invoysSum) || 0;
+            let manatInvoys = totalInvoys * mezenne;
+            let borc = parseFloat(item.newBorc) || 0;
+            let manatBorc = borc * mezenne;
 
-        // 🟢 YENİ SƏSSİZ VƏ VİZUAL XƏBƏRDARLIQ SİSTEMİ
-        if (!malinAdiValue) {
-            showInlineError(malinAdiInput, "Malın adı mütləqdir!");
-            hasError = true;
-            break; 
-        }
-        if (!finalNomre) {
-            showInlineError(nomreInputs[0], "Nömrəni yazın!");
-            hasError = true;
-            break;
-        }
-        if (!finalTarix) {
-            showInlineError(tarixInputs[0], "Tarixi daxil edin!");
-            hasError = true;
-            break;
-        }
+            payload.push({
+                idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
+                idarereisi: raportAyarlarData.idarereisi || "",
+                mesulsexsvezifesi: raportAyarlarData.mesulsexsvezifesi || "",
+                mesulsexs: raportAyarlarData.mesulsexs || "",
+                raportfirma: item.firmaAdi,
+                uzanti: item.isFiziki ? "na" : "nin",
+                raportgbnomresi: item.newGb,
+                ixracolke: item.ixracList,
+                invoysmebleg: totalInvoys.toFixed(2),
+                manatinvoysmebleg: manatInvoys.toFixed(2),
+                cevirme: mezenne.toString(),
+                malinadi: malinAdiValue,
+                borc: borc.toFixed(2),
+                manatborc: manatBorc.toFixed(2),
+                safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
+                bildiristarix: finalTarix,
+                bildirisnomresi: finalNomre,
+                tarixyazilma: getTodayFormatted()
+            });
 
-        let totalInvoys = parseFloat(item.invoysSum) || 0;
-        let manatInvoys = totalInvoys * mezenne;
-        let borc = parseFloat(item.newBorc) || 0;
-        let manatBorc = borc * mezenne;
-
-        payload.push({
-            idarereisivezifesi: raportAyarlarData[0] ? raportAyarlarData[0].idarereisivezifesi : "",
-            idarereisi: raportAyarlarData[0] ? raportAyarlarData[0].idarereisi : "",
-            mesulsexsvezifeyeri: raportAyarlarData[0] ? (raportAyarlarData[0].mesulsexsvezife || raportAyarlarData[0].mesulsexsvezifesi) : "",
-            mesulsexs: raportAyarlarData[0] ? raportAyarlarData[0].mesulsexs : "",
-            raportfirma: item.firmaAdi,
-            uzanti: item.isFiziki ? "na" : "nin",
-            raportgbnomresi: item.newGb,
-            ixracolke: item.ixracList,
-            invoysmebleg: totalInvoys.toFixed(2),
-            manatinvoysmebleg: manatInvoys.toFixed(2),
-            cevirme: mezenne.toString(),
-            malinadi: malinAdiValue,
-            borc: borc.toFixed(2),
-            manatborc: manatBorc.toFixed(2),
-            safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
-            bildiristarix: finalTarix,
-            bildirisnomresi: finalNomre,
-            tarixyazilma: getTodayFormatted()
-        });
-
-        pendingRaportDbSavePayload.push({
-            gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
-            firma: item.firmaAdi,
-            voen: item.voen || "",
-            tarix_yazilma: getTodayFormatted(),
-            tarix_borcdovru: targetPeriod || "",
-            melumat: `Bəyannamələr: ${item.newGb}`
-        });
-    }
-
-    // 🛑 ƏGƏR XƏTA (Boş xana) VARSA, FUNKSİYANI DƏRHAL DAYANDIRIRIQ Kİ PƏNCƏRƏ BAĞLANMASIN:
-    if (hasError) {
-        return; 
-    }
-
-    if (payload.length === 0) {
-        alert("Seçilmiş firma tapılmadı!"); 
-        return;
-    }
-
-    if (updatePromises.length > 0) {
-        try { await Promise.all(updatePromises); loadAllBildirisler(); } 
-        catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
-    }
-
-    // UĞURLU OLDUQDA PƏNCƏRƏNİ (MODALI) MƏHZ BURADA BAĞLAYIRIQ
-    if (typeof preRaportPopup !== 'undefined' && preRaportPopup) {
-        preRaportPopup.style.display = 'none';
-    }
-
-    const overlay = createLoadingOverlay();
-    const progressBar = document.getElementById('zip-progress-bar');
-    const progressText = document.getElementById('zip-progress-text');
-    
-    overlay.style.display = 'flex'; overlay.style.pointerEvents = 'auto';
-    setTimeout(() => overlay.style.opacity = '1', 10);
-
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-        if (progress < 90) {
-            progress += Math.floor(Math.random() * 15) + 5;
-            if(progress > 90) progress = 90;
-            progressBar.style.width = `${progress}%`;
-            progressText.innerText = `${progress}%`;
-        }
-    }, 600);
-
-    try {
-        const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
-        const response = await fetch(generateDocsEndpoint, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
-        });
-
-        if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
-
-        const arrayBuffer = await response.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: 'application/zip' });
-        
-        clearInterval(progressInterval);
-        progressBar.style.width = `100%`;
-        progressText.style.color = `#10b981`; progressText.innerText = `100% - Yüklənir!`;
-        await new Promise(r => setTimeout(r, 600));
-
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `Raportlar_${getTodayFormatted()}.zip`;
-        document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
-
-        if (typeof raportZipTbody !== 'undefined' && raportZipTbody) {
-            raportZipTbody.innerHTML = '';
-            pendingRaportDbSavePayload.forEach((obj, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox raport-zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Raport hazırlanacaq</td>`;
-                raportZipTbody.appendChild(tr);
+            pendingRaportDbSavePayload.push({
+                gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
+                firma: item.firmaAdi,
+                voen: item.voen || "",
+                tarix_yazilma: getTodayFormatted(),
+                tarix_borcdovru: targetPeriod || "",
+                melumat: `Bəyannamələr: ${item.newGb}`
             });
         }
-        if (typeof raportZipPopup !== 'undefined' && raportZipPopup) {
-            raportZipPopup.style.display = 'flex';
+
+        if (payload.length === 0) {
+            alert("Seçilmiş və ya aktiv firma tapılmadı!"); return;
         }
 
-    } catch (error) {
-        clearInterval(progressInterval); 
-        alert("Server ilə əlaqə xətası: " + error.message);
-    } finally {
-        overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
-        setTimeout(() => {
-            overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
-        }, 300);
-    }
-};
+        if (updatePromises.length > 0) {
+            try { await Promise.all(updatePromises); loadAllBildirisler(); } 
+            catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
+        }
 
+        const overlay = createLoadingOverlay();
+        const progressBar = document.getElementById('zip-progress-bar');
+        const progressText = document.getElementById('zip-progress-text');
+        
+        overlay.style.display = 'flex'; overlay.style.pointerEvents = 'auto';
+        setTimeout(() => overlay.style.opacity = '1', 10);
 
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if(progress > 90) progress = 90;
+                progressBar.style.width = `${progress}%`;
+                progressText.innerText = `${progress}%`;
+            }
+        }, 600);
 
+        try {
+            const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
+            const response = await fetch(generateDocsEndpoint, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
+            });
 
+            if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
 
-    
+            const arrayBuffer = await response.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+            
+            clearInterval(progressInterval);
+            progressBar.style.width = `100%`;
+            progressText.style.color = `#10b981`; progressText.innerText = `100% - Yüklənir!`;
+            await new Promise(r => setTimeout(r, 600));
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `Raportlar_${getTodayFormatted()}.zip`;
+            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+
+            if (raportZipTbody) {
+                raportZipTbody.innerHTML = '';
+                pendingRaportDbSavePayload.forEach((obj, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox raport-zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Raport hazırlanacaq</td>`;
+                    raportZipTbody.appendChild(tr);
+                });
+            }
+            if (raportZipPopup) raportZipPopup.style.display = 'flex';
+
+        } catch (error) {
+            clearInterval(progressInterval); alert("XƏTA: " + error.message);
+        } finally {
+            overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
+            setTimeout(() => {
+                overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
+            }, 300);
+        }
+    };
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
