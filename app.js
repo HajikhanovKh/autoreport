@@ -2113,14 +2113,18 @@ document.addEventListener("DOMContentLoaded", function() {
             let finalNomre = Array.from(new Set(nomreVals)).join(", ");
             let finalTarix = Array.from(new Set(tarixVals)).join(", ");
 
+            // DİQQƏT: return əvəzinə throw new Error istifadə edirik ki, pəncərənin bağlanmasını tam bloklayaq!
             if (!malinAdiValue) {
-                alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); return;
+                alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); 
+                throw new Error("Əməliyyat dayandırıldı: Malın adı yoxdur");
             }
             if (!finalNomre) {
-                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş nömrəsi daxil edilməyib!`); return;
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş nömrəsi daxil edilməyib!`); 
+                throw new Error("Əməliyyat dayandırıldı: Bildiriş nömrəsi yoxdur");
             }
             if (!finalTarix) {
-                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş tarixi daxil edilməyib!`); return;
+                alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş tarixi daxil edilməyib!`); 
+                throw new Error("Əməliyyat dayandırıldı: Bildiriş tarixi yoxdur");
             }
 
             let totalInvoys = parseFloat(item.invoysSum) || 0;
@@ -2131,7 +2135,6 @@ document.addEventListener("DOMContentLoaded", function() {
             payload.push({
                 idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
                 idarereisi: raportAyarlarData.idarereisi || "",
-                // Əvvəlki kodunuzu silib, yalnız bu şəkildə yazın:
                 mesulsexsvezifeyeri: [raportAyarlarData.mesulsexsvezife, raportAyarlarData.mesulsexsvezifesi].find(val => val && val !== "undefined") || "tapılmadı",
                 mesulsexs: raportAyarlarData.mesulsexs || "",
                 raportfirma: item.firmaAdi,
@@ -2160,8 +2163,10 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
 
+        // Seçilmiş firma yoxdursa yenə dayandırırıq
         if (payload.length === 0) {
-            alert("Seçilmiş və ya aktiv firma tapılmadı!"); return;
+            alert("Seçilmiş və ya aktiv firma tapılmadı!"); 
+            throw new Error("Əməliyyat dayandırıldı: Firma seçilməyib");
         }
 
         if (updatePromises.length > 0) {
