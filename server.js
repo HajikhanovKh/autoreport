@@ -620,7 +620,7 @@ app.post('/api/generate-raports', async (req, res) => {
             for (const key in firm) {
                 renderData[key] = firm[key] ? firm[key] : ''; 
             }
-
+            renderData.mesulsexsvezifeyeri = firm.mesulsexsvezife ? firm.mesulsexsvezife : '';
             doc.render(renderData);
 
             const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
