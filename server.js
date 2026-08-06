@@ -402,16 +402,26 @@ app.post('/api/generate-cover', async (req, res) => {
         const coverData = cRows.length > 0 ? cRows[0] : { go: '', adres: '' };
 
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/convertsablon.docx";
-        const sablonRes = await axios.get(sablon_url, { responseType: 'arraybuffer' });
+        const poct_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/poctsiyahi.docx";
+
+        // Hər iki şablonu eyni anda çəkirik
+        const [sablonRes, poctRes] = await Promise.all([
+            axios.get(sablon_url, { responseType: 'arraybuffer' }),
+            axios.get(poct_url, { responseType: 'arraybuffer' }).catch(() => null) // Fayl tapılmazsa, server çökməsin
+        ]);
+
         const sablonBuffer = sablonRes.data;
+        const poctBuffer = poctRes ? poctRes.data : null;
 
         const zipOutput = new JSZip();
+        const poctFirms = []; // Poçt siyahısı cədvəli üçün array
 
         for (let i = 0; i < selectedFirms.length; i++) {
             const f = selectedFirms[i];
             const rawName = f.covercompany || f.covername || `Firma_${i+1}`;
             const safeName = rawName.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
+            // Zərf məlumatı
             const data = {
                 covergo: coverData.go || "",
                 coveradres: coverData.adres || "",
@@ -421,14 +431,18 @@ app.post('/api/generate-cover', async (req, res) => {
                 index: f.index || ""
             };
 
+            // Poçt siyahısına bu firmanı tələblərə uyğun formatlayaraq əlavə edirik
+            poctFirms.push({
+                sira: i + 1,
+                soyadiadi: f.soyadiadi || f.covername || "",
+                firmasi: f.isFiziki ? "fiziki şəxs" : "firması",
+                unvani: f.unvan || f.covercompanyadres || ""
+            });
+
             try {
+                // Köhnə əməliyyat: Fərdi Zərflərin Hazırlanması
                 const docZip = new PizZip(sablonBuffer);
-                const doc = new Docxtemplater(docZip, { 
-                    paragraphLoop: true, 
-                    linebreaks: true,
-                    nullGetter: function() { return ""; }
-                });
-                
+                const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; } });
                 doc.render(data);
                 const outDocx = doc.getZip().generate({ type: "nodebuffer" });
                 zipOutput.file(`Zerf_${safeName}.docx`, outDocx);
@@ -437,9 +451,29 @@ app.post('/api/generate-cover', async (req, res) => {
             }
         }
 
+        // ==========================================
+        // YENİ: POÇT SİYAHISI SƏNƏDİNİN ƏLAVƏ EDİLMƏSİ
+        // ==========================================
+        if (poctBuffer && poctFirms.length > 0) {
+            try {
+                const poctZip = new PizZip(poctBuffer);
+                const poctDoc = new Docxtemplater(poctZip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; } });
+                
+                poctDoc.render({
+                    gomrukorqani: coverData.go || "",
+                    firms: poctFirms
+                });
+                
+                const outPoct = poctDoc.getZip().generate({ type: "nodebuffer" });
+                zipOutput.file(`Poct_Siyahisi.docx`, outPoct);
+            } catch (poctErr) {
+                console.error(`Poçt siyahısı yaradılarkən xəta:`, poctErr);
+            }
+        }
+
         const zipBuffer = await zipOutput.generateAsync({ type: "nodebuffer", compression: "STORE" });
         
-        res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlukleri.zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=Zerf_Uzlukleri_Ve_Siyahi.zip');
         res.setHeader('Content-Type', 'application/zip');
         return res.send(zipBuffer);
 
