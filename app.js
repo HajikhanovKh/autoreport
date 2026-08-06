@@ -2292,17 +2292,71 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    if(confirmRaportZipBtn) {
-        confirmRaportZipBtn.addEventListener("click", () => {
-            if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
-                if (preRaportPopup) preRaportPopup.style.display = "none";
-                return;
-            }
+    // Əvvəlki confirmRaportZipBtn üçün olan bütün addEventListener-ləri silin və yalnız bunu qoyun:
+if (confirmRaportZipBtn) {
+    // Köhnə dinləyicilərin təsirini silmək üçün klonlayırıq
+    const newBtn = confirmRaportZipBtn.cloneNode(true);
+    confirmRaportZipBtn.parentNode.replaceChild(newBtn, confirmRaportZipBtn);
+    
+    newBtn.addEventListener("click", () => {
+        if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
+            alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
             if (preRaportPopup) preRaportPopup.style.display = "none";
-            executeRaportZipProcess();
-        });
-    }
+            return;
+        }
+
+        // 1. Əvvəlcə daxil edilməyən xanaları yoxlayırıq (Pəncərə hələ AÇIQDIR!)
+        let firstInvalidInput = null;
+
+        for (const item of window.pendingFirmsToRaportZip) {
+            let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
+            if (!rowCheck || !rowCheck.checked) continue; 
+
+            let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
+            let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
+
+            let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
+            let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
+
+            let hasNomre = Array.from(nomreInputs).some(inp => inp.value.trim() !== "");
+            let hasTarix = Array.from(tarixInputs).some(inp => inp.value.trim() !== "");
+
+            if (!malinAdiValue) {
+                firstInvalidInput = malinAdiInput;
+                break;
+            }
+            if (!hasNomre) {
+                firstInvalidInput = nomreInputs[0];
+                break;
+            }
+            if (!hasTarix) {
+                firstInvalidInput = tarixInputs[0];
+                break;
+            }
+        }
+
+        // 2. Əgər boş xana varsa, pəncərəni QƏTİYYƏN BAĞLAMIROQ!
+        if (firstInvalidInput) {
+            // Xananı qırmızı rəngə boyayırıq və kursoru ora qoyuruq
+            firstInvalidInput.style.transition = "all 0.3s ease";
+            firstInvalidInput.style.border = "2px solid #ef4444";
+            firstInvalidInput.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.5)";
+            firstInvalidInput.focus();
+
+            // 3 saniyə sonra xana normal rəngə qayıtsın
+            setTimeout(() => {
+                firstInvalidInput.style.border = "";
+                firstInvalidInput.style.boxShadow = "";
+            }, 3000);
+
+            return; // 🛑 DAYANIRIK! Pəncərə açılıb qalır, heç bir yerə getmir.
+        }
+
+        // 3. Hər şey qaydasındadırsa, pəncərəni məhz indi bağlayırıq və ZIP prosesini işə salırıq
+        if (preRaportPopup) preRaportPopup.style.display = "none";
+        executeRaportZipProcess();
+    });
+}
 
     const bildirisQosmaBtn = document.getElementById("bildiris-qosma");
     if (bildirisQosmaBtn) {
