@@ -229,33 +229,42 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // 🟢 2. DƏQİQ MƏLUMAT BƏRPASI: Hər bir sətrin Fiziki şəxs yoxsa Firma olduğunu birbaşa cədvəldən oxuyuruq
+           // 🟢 ƏN VACİB YENİLİK: Serverə yalnız təmizlənmiş məlumatları göndəririk
             const formattedCovers = təmizSiyahı.map(item => {
                 let firmaAd = item.covercompany || item.covername || "";
                 
-                // Arxa plandakı seçilmiş cədvəl sətirlərindən bu firmanı tapırıq
                 let domCheckbox = Array.from(document.querySelectorAll('.firma-check2:checked')).find(cb => 
                     cb.getAttribute('data-firma') === firmaAd
                 );
 
-                // Əgər cədvəldə tapıldısa məlumatları oradan çəkirik, tapılmadısa adından təxmin edirik
                 let isFizikiUser = false;
                 if (domCheckbox) {
                     isFizikiUser = domCheckbox.getAttribute('data-isfiziki') === 'true' || domCheckbox.getAttribute('data-isfiziki') === true;
                 } else {
                     let adUpper = firmaAd.toUpperCase();
                     if (!adUpper.includes("MMC") && !adUpper.includes("MƏHDUD") && !adUpper.includes("ASC") && !adUpper.includes("QSC")) {
-                        isFizikiUser = true; // Əgər MMC, ASC deyilsə, deməli Fiziki Şəxsdir (İnsandır)
+                        isFizikiUser = true; 
                     }
+                }
+
+                // Firma sahibinin (mesul şexsin) adını tapmaq
+                let sahibAdi = "";
+                if (item.originalData && item.originalData.soyadiadi && item.originalData.soyadiadi !== firmaAd) {
+                    sahibAdi = item.originalData.soyadiadi;
+                }
+                
+                // Əgər fiziki şəxsdirsə və xüsusi soyadı yoxdursa, elə firmanın adı onun öz adıdır
+                if (isFizikiUser && !sahibAdi) {
+                    sahibAdi = firmaAd;
                 }
 
                 return {
                     ...item, 
                     isFiziki: isFizikiUser,
-                    soyadiadi: firmaAd,
+                    soyadiadi: sahibAdi, // Yalnızca sahibin adı veya fiziki şahsın tam adı gider
                     unvan: item.covercompanyadres || (domCheckbox ? domCheckbox.getAttribute('data-unvan') : "")
                 };
             });
-
             // 🌐 SERVERƏ GÖNDƏRİLMƏ:
             const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
                 method: 'POST',
