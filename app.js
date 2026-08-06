@@ -215,10 +215,21 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.disabled = true;
 
         try {
+            // 🟢 ƏN VACİB YENİLİK: Serverə göndəriləcək məlumatları formatlayırıq
+            const formattedCovers = window.pendingCovers.map(item => {
+                return {
+                    ...item, // Köhnə dataları saxlayır
+                    // Poçt siyahısı üçün lazım olan YENİ dataları (orijinal bazadan) bura məcbur əlavə edirik:
+                    isFiziki: item.originalData ? item.originalData.isFiziki : false,
+                    soyadiadi: item.originalData ? (item.originalData.soyadiadi || item.originalData.firmaAdi) : (item.covercompany || ""),
+                    unvan: item.originalData ? item.originalData.unvan : (item.covercompanyadres || "")
+                };
+            });
+
             const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: window.pendingCovers })
+                body: JSON.stringify({ selectedFirms: formattedCovers }) // Artıq yeni siyahını göndəririk
             });
 
             if (!response.ok) throw new Error("Server xətası yarandı");
