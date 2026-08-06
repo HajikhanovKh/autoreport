@@ -2088,6 +2088,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             let nomreVals = [];
             let tarixVals = [];
+            let bildirisDetaylari = []; // 👈 Yeni: Hər bir bildirişin tarix və nömrəsini cütləşdirmək üçün
 
             nomreInputs.forEach((inp, idx) => {
                 let nVal = inp.value.trim();
@@ -2096,6 +2097,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (nVal) nomreVals.push(nVal);
                 if (tVal) tarixVals.push(tVal);
+
+                // Əgər həm nömrə, həm də tarix daxil edilibsə, onları şərtə uyğun birləşdiririk
+                if (nVal && tVal) {
+                    bildirisDetaylari.push(`${tVal}-cü il tarixli ${nVal}`);
+                } else if (nVal) {
+                    bildirisDetaylari.push(`tarixli ${nVal}`);
+                }
 
                 if (bId && (nVal || tVal)) {
                     let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
@@ -2113,6 +2121,23 @@ document.addEventListener("DOMContentLoaded", function() {
             let finalNomre = Array.from(new Set(nomreVals)).join(", ");
             let finalTarix = Array.from(new Set(tarixVals)).join(", ");
 
+            // =========================================================================
+            // 🎯 SİZİN İSTƏDİYİNİZ ŞƏRTLƏRİN PROQRAMLAŞDIRILMASI:
+            // =========================================================================
+            let bildirisqeydiVal = "";
+            let bildirisnomreuzantiVal = "";
+
+            if (bildirisDetaylari.length === 1) {
+                // 1. Əgər 1 dənədirsə: (xx.xx.xxxx-cı il tarixli xxxxxxxx) və uzantı boş qalır
+                bildirisqeydiVal = bildirisDetaylari[0];
+                bildirisnomreuzantiVal = "";
+            } else if (bildirisDetaylari.length >= 2) {
+                // 2. Əgər 2 və ya daha artıqdırsa: vergüllə ayırırıq və uzantıya "lər" yazırıq
+                bildirisqeydiVal = bildirisDetaylari.join(", ");
+                bildirisnomreuzantiVal = "lər";
+            }
+            // =========================================================================
+
             if (!malinAdiValue) {
                 alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); return;
             }
@@ -2129,10 +2154,10 @@ document.addEventListener("DOMContentLoaded", function() {
             let manatBorc = borc * mezenne;
 
             payload.push({
-                idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
-                idarereisi: raportAyarlarData.idarereisi || "",
-                mesulsexsvezifesi: raportAyarlarData.mesulsexsvezifesi || "",
-                mesulsexs: raportAyarlarData.mesulsexs || "",
+                idarereisivezifesi: raportAyarlarData[0] ? raportAyarlarData[0].idarereisivezifesi : "",
+                idarereisi: raportAyarlarData[0] ? raportAyarlarData[0].idarereisi : "",
+                mesulsexsvezifeyeri: raportAyarlarData[0] ? (raportAyarlarData[0].mesulsexsvezife || raportAyarlarData[0].mesulsexsvezifesi) : "",
+                mesulsexs: raportAyarlarData[0] ? raportAyarlarData[0].mesulsexs : "",
                 raportfirma: item.firmaAdi,
                 uzanti: item.isFiziki ? "na" : "nin",
                 raportgbnomresi: item.newGb,
@@ -2144,6 +2169,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 borc: borc.toFixed(2),
                 manatborc: manatBorc.toFixed(2),
                 safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
+                
+                // 👇 Yeni bildiriş teqlərimizi bura əlavə edirik:
+                bildirisqeydi: bildirisqeydiVal,
+                bildirisnomreuzanti: bildirisnomreuzantiVal,
+                
                 bildiristarix: finalTarix,
                 bildirisnomresi: finalNomre,
                 tarixyazilma: getTodayFormatted()
