@@ -2070,189 +2070,246 @@ document.addEventListener("DOMContentLoaded", function() {
     // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
     // ==========================================
     const executeRaportZipProcess = async () => {
-        const updatePromises = [];
-        const payload = [];
-        pendingRaportDbSavePayload = [];
-        const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
-        let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
+    const updatePromises = [];
+    const payload = [];
+    pendingRaportDbSavePayload = [];
+    const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
+    
+    let hasError = false;
 
-        for (const item of window.pendingFirmsToRaportZip) {
-            let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
-            if (!rowCheck || !rowCheck.checked) continue; 
-
-            let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
-            let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
-
-            let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
-            let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
-
-            let nomreVals = [];
-            let tarixVals = [];
-            let bildirisDetaylari = []; // Hər bildirişin cütlüyü üçün
-
-            nomreInputs.forEach((inp, idx) => {
-                let nVal = inp.value.trim();
-                let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
-                let bId = inp.getAttribute("data-bil-id");
-
-                if (nVal) nomreVals.push(nVal);
-                if (tVal) tarixVals.push(tVal);
-
-                // İstədiyiniz formatı (Tarix və Nömrə) burada formalaşdırırıq:
-                if (nVal && tVal) {
-                    bildirisDetaylari.push(`${tVal}-cı il tarixli ${nVal}`);
-                } else if (nVal) {
-                    bildirisDetaylari.push(`tarixli ${nVal}`);
-                }
-
-                if (bId && (nVal || tVal)) {
-                    let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
-                    if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
-                        let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
-                        updatePromises.push(
-                            fetch(`${BIL_API_URL}/${bId}`, { 
-                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
-                            })
-                        );
-                    }
-                }
-            });
-
-            let finalNomre = Array.from(new Set(nomreVals)).join(", ");
-            let finalTarix = Array.from(new Set(tarixVals)).join(", ");
-
-            // =========================================================================
-            // MÖTƏRİZƏ VƏ ŞƏKİLÇİ ("LƏR") MƏNTİQİ:
-            // =========================================================================
-            let bildirisqeydiVal = "";
-            let bildirisnomreuzantiVal = "";
-
-            if (bildirisDetaylari.length === 1) {
-                // 1 dənədirsə: Mötərizə içində yaz, uzantını boş burax
-                bildirisqeydiVal = `(${bildirisDetaylari[0]})`;
-                bildirisnomreuzantiVal = "";
-            } else if (bildirisDetaylari.length >= 2) {
-                // 2 və daha artıqdırsa: Vergüllə ayır, mötərizəyə al və "lər" əlavə et
-                bildirisqeydiVal = `(${bildirisDetaylari.join(", ")})`;
-                bildirisnomreuzantiVal = "lər";
-            }
-            // =========================================================================
-
-            let totalInvoys = parseFloat(item.invoysSum) || 0;
-            let manatInvoys = totalInvoys * mezenne;
-            let borc = parseFloat(item.newBorc) || 0;
-            let manatBorc = borc * mezenne;
-
-            // =========================================================================
-            // PAYLOAD.PUSH (Adlar vəzifələr üçün [0] silindi, problem həll olundu!)
-            // =========================================================================
-            // 🔴 DİAQNOSTİKA ÜÇÜN YENİ YOXLAYICI BLOK:
-            // Əgər raportAyarlarData mövcuddursa və içində məlumat varsa onu götür, yoxdursa boş obyekt ver.
-            let ayarlar = (typeof raportAyarlarData !== 'undefined' && raportAyarlarData && raportAyarlarData.length > 0) ? raportAyarlarData[0] : {};
-
-            payload.push({
-                // Əgər məlumat gəlmirsə, Word-də qəsdən "TAPILMADI" sözü yazılacaq
-                idarereisivezifesi: ayarlar.idarereisivezifesi || "VƏZİFƏ TAPILMADI",
-                idarereisi: ayarlar.idarereisi || "RƏİS TAPILMADI",
-                mesulsexsvezifeyeri: ayarlar.mesulsexsvezife || ayarlar.mesulsexsvezifesi || "MƏSUL VƏZİFƏ TAPILMADI",
-                mesulsexs: ayarlar.mesulsexs || "MƏSUL ŞƏXS TAPILMADI",
-                
-                raportfirma: item.firmaAdi,
-                uzanti: item.isFiziki ? "na" : "nin",
-                raportgbnomresi: item.newGb,
-                ixracolke: item.ixracList,
-                invoysmebleg: totalInvoys.toFixed(2),
-                manatinvoysmebleg: manatInvoys.toFixed(2),
-                cevirme: mezenne.toString(),
-                malinadi: malinAdiValue,
-                borc: borc.toFixed(2),
-                manatborc: manatBorc.toFixed(2),
-                safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
-                
-                bildirisqeydi: bildirisqeydiVal,
-                bildirisnomreuzanti: bildirisnomreuzantiVal,
-                bildiristarix: finalTarix,
-                bildirisnomresi: finalNomre,
-                tarixyazilma: getTodayFormatted()
-            });
-
-            pendingRaportDbSavePayload.push({
-                gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
-                firma: item.firmaAdi,
-                voen: item.voen || "",
-                tarix_yazilma: getTodayFormatted(),
-                tarix_borcdovru: targetPeriod || "",
-                melumat: `Bəyannamələr: ${item.newGb}`
-            });
-        }
-
-        if (payload.length === 0) {
-            alert("Seçilmiş və ya aktiv firma tapılmadı!"); return;
-        }
-
-        if (updatePromises.length > 0) {
-            try { await Promise.all(updatePromises); loadAllBildirisler(); } 
-            catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
-        }
-
-        const overlay = createLoadingOverlay();
-        const progressBar = document.getElementById('zip-progress-bar');
-        const progressText = document.getElementById('zip-progress-text');
-        
-        overlay.style.display = 'flex'; overlay.style.pointerEvents = 'auto';
-        setTimeout(() => overlay.style.opacity = '1', 10);
-
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += Math.floor(Math.random() * 15) + 5;
-                if(progress > 90) progress = 90;
-                progressBar.style.width = `${progress}%`;
-                progressText.innerText = `${progress}%`;
-            }
-        }, 600);
-
-        try {
-            const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
-            const response = await fetch(generateDocsEndpoint, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
-            });
-
-            if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
-
-            const arrayBuffer = await response.arrayBuffer();
-            const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+    // 🔴 KÖMƏKÇİ FUNKSİYA: Ekranda qırmızı çərçivə və kursor effekti yaradır
+    const showInlineError = (inputEl, placeholderText) => {
+        if (inputEl) {
+            inputEl.style.transition = "all 0.3s ease";
+            inputEl.style.border = "2px solid #ef4444"; 
+            inputEl.style.boxShadow = "0 0 8px rgba(239, 68, 68, 0.4)"; 
+            inputEl.focus(); 
             
-            clearInterval(progressInterval);
-            progressBar.style.width = `100%`;
-            progressText.style.color = `#10b981`; progressText.innerText = `100% - Yüklənir!`;
-            await new Promise(r => setTimeout(r, 600));
+            let oldPlaceholder = inputEl.placeholder;
+            inputEl.placeholder = placeholderText; 
 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `Raportlar_${getTodayFormatted()}.zip`;
-            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
-
-            if (raportZipTbody) {
-                raportZipTbody.innerHTML = '';
-                pendingRaportDbSavePayload.forEach((obj, idx) => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox raport-zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Raport hazırlanacaq</td>`;
-                    raportZipTbody.appendChild(tr);
-                });
-            }
-            if (raportZipPopup) raportZipPopup.style.display = 'flex';
-
-        } catch (error) {
-            clearInterval(progressInterval); alert("XƏTA: " + error.message);
-        } finally {
-            overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
             setTimeout(() => {
-                overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
-            }, 300);
+                inputEl.style.border = "";
+                inputEl.style.boxShadow = "";
+                inputEl.placeholder = oldPlaceholder;
+            }, 3000);
         }
     };
 
+    // 🟢 ƏN VACİB YENİLİK: Ayarları ZIP yaradılmamışdan saniyələr əvvəl birbaşa bazadan çəkirik!
+    // Bu kod sayəsində Word sənədindəki məlumatların boş gəlmə ehtimalı 0-a bərabər olur.
+    let ayarlar = {};
+    let mezenne = 1.7;
+    try {
+        const ayarlarReq = await fetch('https://autoreport-production.up.railway.app/api/raportayarlar');
+        const ayarlarRes = await ayarlarReq.json();
+        if (Array.isArray(ayarlarRes) && ayarlarRes.length > 0) {
+            ayarlar = ayarlarRes[0];
+        } else if (ayarlarRes && !Array.isArray(ayarlarRes)) {
+            ayarlar = ayarlarRes;
+        }
+        if (ayarlar.mezenne) {
+            mezenne = parseFloat(ayarlar.mezenne) || 1.7;
+        }
+    } catch (err) {
+        console.error("Ayarları serverdən çəkərkən xəta:", err);
+    }
+
+    for (const item of window.pendingFirmsToRaportZip) {
+        if (hasError) break;
+
+        let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
+        if (!rowCheck || !rowCheck.checked) continue; 
+
+        let malinAdiInput = document.getElementById(`malin-adi-${item.rowIdx}`);
+        let malinAdiValue = malinAdiInput ? malinAdiInput.value.trim() : "";
+
+        let nomreInputs = document.querySelectorAll(`.rap-bil-nomre-${item.rowIdx}`);
+        let tarixInputs = document.querySelectorAll(`.rap-bil-tarix-${item.rowIdx}`);
+
+        let nomreVals = [];
+        let tarixVals = [];
+        let bildirisDetaylari = []; 
+
+        nomreInputs.forEach((inp, idx) => {
+            let nVal = inp.value.trim();
+            let tVal = tarixInputs[idx] ? tarixInputs[idx].value.trim() : "";
+            let bId = inp.getAttribute("data-bil-id");
+
+            if (nVal) nomreVals.push(nVal);
+            if (tVal) tarixVals.push(tVal);
+
+            // Mötərizə içindəki tarix və nömrənin tənzimlənməsi
+            if (nVal && tVal) {
+                bildirisDetaylari.push(`${tVal}-cı il tarixli ${nVal}`);
+            } else if (nVal) {
+                bildirisDetaylari.push(`tarixli ${nVal}`);
+            }
+
+            if (bId && (nVal || tVal)) {
+                let oldObj = allBildirislerData.find(b => b.id.toString() === bId.toString());
+                if (oldObj && (oldObj.bildiris_nomresi !== nVal || oldObj.tarix_yazilma !== tVal)) {
+                    let updatePayload = { ...oldObj, bildiris_nomresi: nVal, tarix_yazilma: tVal };
+                    updatePromises.push(
+                        fetch(`${BIL_API_URL}/${bId}`, { 
+                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(updatePayload) 
+                        })
+                    );
+                }
+            }
+        });
+
+        let finalNomre = Array.from(new Set(nomreVals)).join(", ");
+        let finalTarix = Array.from(new Set(tarixVals)).join(", ");
+
+        // Bildiriş qeydi üçün məntiq
+        let bildirisqeydiVal = "";
+        let bildirisnomreuzantiVal = "";
+
+        if (bildirisDetaylari.length === 1) {
+            bildirisqeydiVal = `(${bildirisDetaylari[0]})`;
+            bildirisnomreuzantiVal = "";
+        } else if (bildirisDetaylari.length >= 2) {
+            bildirisqeydiVal = `(${bildirisDetaylari.join(", ")})`;
+            bildirisnomreuzantiVal = "lər";
+        }
+
+        // Vizual xəbərdarlıqlar (Pəncərəni bağlatmır)
+        if (!malinAdiValue) {
+            showInlineError(malinAdiInput, "Malın adı mütləqdir!");
+            hasError = true;
+            break; 
+        }
+        if (!finalNomre) {
+            showInlineError(nomreInputs[0], "Nömrəni yazın!");
+            hasError = true;
+            break;
+        }
+        if (!finalTarix) {
+            showInlineError(tarixInputs[0], "Tarixi daxil edin!");
+            hasError = true;
+            break;
+        }
+
+        let totalInvoys = parseFloat(item.invoysSum) || 0;
+        let manatInvoys = totalInvoys * mezenne;
+        let borc = parseFloat(item.newBorc) || 0;
+        let manatBorc = borc * mezenne;
+
+        // MƏLUMATLARIN WORD-Ə ÖTÜRÜLMƏSİ (Artıq 100% dolu gələcək)
+        payload.push({
+            idarereisivezifesi: ayarlar.idarereisivezifesi || "",
+            idarereisi: ayarlar.idarereisi || "",
+            mesulsexsvezifeyeri: (ayarlar.mesulsexsvezife || ayarlar.mesulsexsvezifesi || ""),
+            mesulsexs: ayarlar.mesulsexs || "",
+            
+            raportfirma: item.firmaAdi,
+            uzanti: item.isFiziki ? "na" : "nin",
+            raportgbnomresi: item.newGb,
+            ixracolke: item.ixracList,
+            invoysmebleg: totalInvoys.toFixed(2),
+            manatinvoysmebleg: manatInvoys.toFixed(2),
+            cevirme: mezenne.toString(),
+            malinadi: malinAdiValue,
+            borc: borc.toFixed(2),
+            manatborc: manatBorc.toFixed(2),
+            safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
+            
+            bildirisqeydi: bildirisqeydiVal,
+            bildirisnomreuzanti: bildirisnomreuzantiVal,
+            bildiristarix: finalTarix,
+            bildirisnomresi: finalNomre,
+            tarixyazilma: getTodayFormatted()
+        });
+
+        pendingRaportDbSavePayload.push({
+            gomruk_orqani: item.checkbox.getAttribute("data-idare") || "",
+            firma: item.firmaAdi,
+            voen: item.voen || "",
+            tarix_yazilma: getTodayFormatted(),
+            tarix_borcdovru: targetPeriod || "",
+            melumat: `Bəyannamələr: ${item.newGb}`
+        });
+    }
+
+    if (hasError) {
+        return; 
+    }
+
+    if (payload.length === 0) {
+        alert("Seçilmiş firma tapılmadı!"); 
+        return;
+    }
+
+    if (updatePromises.length > 0) {
+        try { await Promise.all(updatePromises); loadAllBildirisler(); } 
+        catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
+    }
+
+    if (typeof preRaportPopup !== 'undefined' && preRaportPopup) {
+        preRaportPopup.style.display = 'none';
+    }
+
+    const overlay = createLoadingOverlay();
+    const progressBar = document.getElementById('zip-progress-bar');
+    const progressText = document.getElementById('zip-progress-text');
+    
+    overlay.style.display = 'flex'; overlay.style.pointerEvents = 'auto';
+    setTimeout(() => overlay.style.opacity = '1', 10);
+
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += Math.floor(Math.random() * 15) + 5;
+            if(progress > 90) progress = 90;
+            progressBar.style.width = `${progress}%`;
+            progressText.innerText = `${progress}%`;
+        }
+    }, 600);
+
+    try {
+        const generateDocsEndpoint = 'https://autoreport-production.up.railway.app/api/generate-raports'; 
+        const response = await fetch(generateDocsEndpoint, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selectedFirms: payload })
+        });
+
+        if (!response.ok) throw new Error(`Server xətası (Status: ${response.status})`);
+
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+        
+        clearInterval(progressInterval);
+        progressBar.style.width = `100%`;
+        progressText.style.color = `#10b981`; progressText.innerText = `100% - Yüklənir!`;
+        await new Promise(r => setTimeout(r, 600));
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Raportlar_${getTodayFormatted()}.zip`;
+        document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+
+        if (typeof raportZipTbody !== 'undefined' && raportZipTbody) {
+            raportZipTbody.innerHTML = '';
+            pendingRaportDbSavePayload.forEach((obj, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><input type="checkbox" class="custom-checkbox raport-zip-row-check" data-idx="${idx}" checked></td><td>${obj.gomruk_orqani}</td><td>${obj.firma}</td><td style="color:#2563eb; font-weight:600;">${obj.melumat.replace('Bəyannamələr: ', '')}</td><td>Raport hazırlanacaq</td>`;
+                raportZipTbody.appendChild(tr);
+            });
+        }
+        if (typeof raportZipPopup !== 'undefined' && raportZipPopup) {
+            raportZipPopup.style.display = 'flex';
+        }
+
+    } catch (error) {
+        clearInterval(progressInterval); 
+        alert("Server ilə əlaqə xətası: " + error.message);
+    } finally {
+        overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
+        setTimeout(() => {
+            overlay.style.display = 'none'; progressBar.style.width = '0%'; progressText.innerText = '0%'; progressText.style.color = '#3b82f6';
+        }, 300);
+    }
+};
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
             if (window.pendingFirmsToZip && window.pendingFirmsToZip.length === 0) {
