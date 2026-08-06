@@ -215,10 +215,10 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.disabled = true;
 
         try {
-            // 🛑 YENİ: Boş və ya xətalı sətirləri (məsələn, 'Hamısını Seç' checkbox-unu) siyahıdan təmizləyirik
+            // 🛑 1. ÇOX GÜCLÜ FİLTR: Adı 2 hərfdən qısa olan, boş və xətalı sətirləri amansızcasına silir (12-ci sətrin qənimi)
             const təmizSiyahı = window.pendingCovers.filter(item => {
                 let ad = item.covercompany || item.covername || item.firmaAdi || "";
-                return ad.trim() !== "" && ad !== "undefined" && ad !== "null";
+                return typeof ad === 'string' && ad.trim().length > 2 && ad !== "undefined" && ad !== "null";
             });
 
             if (təmizSiyahı.length === 0) {
@@ -228,20 +228,39 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            // 🟢 ƏN VACİB YENİLİK: Serverə yalnız təmizlənmiş məlumatları göndəririk
+            // 🟢 2. DƏQİQ MƏLUMAT BƏRPASI: Hər bir sətrin Fiziki şəxs yoxsa Firma olduğunu birbaşa cədvəldən oxuyuruq
             const formattedCovers = təmizSiyahı.map(item => {
+                let firmaAd = item.covercompany || item.covername || "";
+                
+                // Arxa plandakı seçilmiş cədvəl sətirlərindən bu firmanı tapırıq
+                let domCheckbox = Array.from(document.querySelectorAll('.firma-check2:checked')).find(cb => 
+                    cb.getAttribute('data-firma') === firmaAd
+                );
+
+                // Əgər cədvəldə tapıldısa məlumatları oradan çəkirik, tapılmadısa adından təxmin edirik
+                let isFizikiUser = false;
+                if (domCheckbox) {
+                    isFizikiUser = domCheckbox.getAttribute('data-isfiziki') === 'true' || domCheckbox.getAttribute('data-isfiziki') === true;
+                } else {
+                    let adUpper = firmaAd.toUpperCase();
+                    if (!adUpper.includes("MMC") && !adUpper.includes("MƏHDUD") && !adUpper.includes("ASC") && !adUpper.includes("QSC")) {
+                        isFizikiUser = true; // Əgər MMC, ASC deyilsə, deməli Fiziki Şəxsdir (İnsandır)
+                    }
+                }
+
                 return {
-                    ...item, // Köhnə dataları saxlayır
-                    isFiziki: item.originalData ? item.originalData.isFiziki : false,
-                    soyadiadi: item.originalData ? (item.originalData.soyadiadi || item.originalData.firmaAdi) : (item.covercompany || ""),
-                    unvan: item.originalData ? item.originalData.unvan : (item.covercompanyadres || "")
+                    ...item, 
+                    isFiziki: isFizikiUser,
+                    soyadiadi: firmaAd,
+                    unvan: item.covercompanyadres || (domCheckbox ? domCheckbox.getAttribute('data-unvan') : "")
                 };
             });
 
+            // 🌐 SERVERƏ GÖNDƏRİLMƏ:
             const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: formattedCovers }) // Artıq xətasız siyahını göndəririk
+                body: JSON.stringify({ selectedFirms: formattedCovers })
             });
 
             if (!response.ok) throw new Error("Server xətası yarandı");
@@ -252,7 +271,6 @@ document.addEventListener("DOMContentLoaded", function() {
             const a = document.createElement('a');
             a.href = url;
             
-            // Tarixi əldə etmək üçün təhlükəsiz üsul
             const today = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toLocaleDateString('az-AZ');
             a.download = `Zerf_Uzlukleri_${today}.zip`;
             
@@ -261,7 +279,8 @@ document.addEventListener("DOMContentLoaded", function() {
             a.remove();
             window.URL.revokeObjectURL(url);
 
-            document.getElementById('cover-gen-modal').style.display = 'none';
+            const modal = document.getElementById('cover-gen-modal');
+            if(modal) modal.style.display = 'none';
         } catch (error) {
             alert("Xəta: " + error.message);
         } finally {
