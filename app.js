@@ -2076,7 +2076,34 @@ document.addEventListener("DOMContentLoaded", function() {
     const targetPeriod = document.querySelector('.netice-dovr') ? document.querySelector('.netice-dovr').innerText.trim() : '';
     let mezenne = parseFloat(raportAyarlarData.mezenne) || 1.7; 
 
+    // Xətanı izləmək üçün bayraq
+    let hasError = false;
+
+    // 🔴 KÖMƏKÇİ FUNKSİYA: Ekranda qırmızı çərçivə və kursor effekti yaradır
+    const showInlineError = (inputEl, placeholderText) => {
+        if (inputEl) {
+            // Ekranda vizual olaraq xətanı göstəririk
+            inputEl.style.transition = "all 0.3s ease";
+            inputEl.style.border = "2px solid #ef4444"; // Qırmızı çərçivə
+            inputEl.style.boxShadow = "0 0 8px rgba(239, 68, 68, 0.4)"; // Qırmızı kölgə effekti
+            inputEl.focus(); // Kursoru birbaşa o xanaya gətirir
+            
+            let oldPlaceholder = inputEl.placeholder;
+            inputEl.placeholder = placeholderText; // Xananın içində qısa xəbərdarlıq
+
+            // 3 saniyə sonra xananı əvvəlki sakit halına qaytarırıq
+            setTimeout(() => {
+                inputEl.style.border = "";
+                inputEl.style.boxShadow = "";
+                inputEl.placeholder = oldPlaceholder;
+            }, 3000);
+        }
+    };
+
     for (const item of window.pendingFirmsToRaportZip) {
+        // Əgər ilk xəta tapılıbsa, o xana qırmızı olacaq və digərlərini yoxlamağa ehtiyac yoxdur
+        if (hasError) break;
+
         let rowCheck = document.querySelector(`.raport-modal-check[data-idx="${item.rowIdx}"]`);
         if (!rowCheck || !rowCheck.checked) continue; 
 
@@ -2113,18 +2140,21 @@ document.addEventListener("DOMContentLoaded", function() {
         let finalNomre = Array.from(new Set(nomreVals)).join(", ");
         let finalTarix = Array.from(new Set(tarixVals)).join(", ");
 
-        // 🔴 YOXLLAMALAR: Əgər xəta varsa, "return" edirik. Funksiya dayanır, pəncərə AÇIQ QALIR!
+        // 🟢 YENİ SƏSSİZ VƏ VİZUAL XƏBƏRDARLIQ SİSTEMİ
         if (!malinAdiValue) {
-            alert(`Diqqət: "${item.firmaAdi}" üçün Malın adı daxil edilməyib!`); 
-            return; 
+            showInlineError(malinAdiInput, "Malın adı mütləqdir!");
+            hasError = true;
+            break; 
         }
         if (!finalNomre) {
-            alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş nömrəsi daxil edilməyib!`); 
-            return;
+            showInlineError(nomreInputs[0], "Nömrəni yazın!");
+            hasError = true;
+            break;
         }
         if (!finalTarix) {
-            alert(`Diqqət: "${item.firmaAdi}" üçün Bildiriş tarixi daxil edilməyib!`); 
-            return;
+            showInlineError(tarixInputs[0], "Tarixi daxil edin!");
+            hasError = true;
+            break;
         }
 
         let totalInvoys = parseFloat(item.invoysSum) || 0;
@@ -2163,8 +2193,13 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // 🛑 ƏGƏR XƏTA (Boş xana) VARSA, FUNKSİYANI DƏRHAL DAYANDIRIRIQ Kİ PƏNCƏRƏ BAĞLANMASIN:
+    if (hasError) {
+        return; 
+    }
+
     if (payload.length === 0) {
-        alert("Seçilmiş və ya aktiv firma tapılmadı!"); 
+        alert("Seçilmiş firma tapılmadı!"); 
         return;
     }
 
@@ -2173,10 +2208,9 @@ document.addEventListener("DOMContentLoaded", function() {
         catch (err) { console.error("Bildiriş məlumatlarını yeniləyərkən xəta: ", err); }
     }
 
-    // 🟢 HƏR ŞEY UĞURLUDUR! PƏNCƏRƏNİ MƏHZ BURADA BAĞLAYIRIQ:
-    const preZipWarningPopup = document.getElementById('popup_pre_zip_warning');
-    if (preZipWarningPopup) {
-        preZipWarningPopup.style.display = 'none';
+    // UĞURLU OLDUQDA PƏNCƏRƏNİ (MODALI) MƏHZ BURADA BAĞLAYIRIQ
+    if (typeof preRaportPopup !== 'undefined' && preRaportPopup) {
+        preRaportPopup.style.display = 'none';
     }
 
     const overlay = createLoadingOverlay();
@@ -2230,7 +2264,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
     } catch (error) {
-        clearInterval(progressInterval); alert("XƏTA: " + error.message);
+        clearInterval(progressInterval); 
+        alert("Server ilə əlaqə xətası: " + error.message);
     } finally {
         overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
         setTimeout(() => {
@@ -2238,6 +2273,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 300);
     }
 };
+
+
+
+
+
+    
 
     if(confirmPrezipBtn) {
         confirmPrezipBtn.addEventListener("click", () => {
