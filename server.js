@@ -490,15 +490,17 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
     let connection;
     try {
         const { id } = req.params;
-        // Yalnız cədvəldə olan doğru adları (mesulsexsvezife) saxladıq
-        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexs } = req.body;
+        // Hər iki ehtimalı (mesulsexsvezife və mesulsexsvezifesi) req.body-dən alırıq
+        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
         
+        // Hansı dolu gəlibsə, onu götürürük
+        const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
+
         connection = await mysql.createConnection(dbConfig);
         
-        // SQL sorğusundan artıq sütunu sildik
         await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
-            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezife || '', mesulsexs || '', id]
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
+            [idarereisivezifesi || '', idarereisi || '', finalVezife, finalVezife, mesulsexs || '', id]
         );
         
         res.json({ message: "Raport ayarları uğurla yeniləndi" });
@@ -509,7 +511,6 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
         if (connection) await connection.end();
     }
 });
-
 // Raport məlumatını (nömrə, tarix və s.) yeniləmək
 app.put('/api/raportinfo/:id', async (req, res) => {
     let connection;
@@ -620,7 +621,7 @@ app.post('/api/generate-raports', async (req, res) => {
             for (const key in firm) {
                 renderData[key] = firm[key] ? firm[key] : ''; 
             }
-            renderData.mesulsexsvezifeyeri = firm.mesulsexsvezife ? firm.mesulsexsvezife : '';
+            renderData.mesulsexsvezifeyeri = firm.mesulsexsvezife || firm.mesulsexsvezifesi || '';
             doc.render(renderData);
 
             const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
