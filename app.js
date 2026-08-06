@@ -2146,11 +2146,17 @@ document.addEventListener("DOMContentLoaded", function() {
             // =========================================================================
             // PAYLOAD.PUSH (Adlar vəzifələr üçün [0] silindi, problem həll olundu!)
             // =========================================================================
+            // 🔴 DİAQNOSTİKA ÜÇÜN YENİ YOXLAYICI BLOK:
+            // Əgər raportAyarlarData mövcuddursa və içində məlumat varsa onu götür, yoxdursa boş obyekt ver.
+            let ayarlar = (typeof raportAyarlarData !== 'undefined' && raportAyarlarData && raportAyarlarData.length > 0) ? raportAyarlarData[0] : {};
+
             payload.push({
-                idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
-                idarereisi: raportAyarlarData.idarereisi || "",
-                mesulsexsvezifeyeri: [raportAyarlarData.mesulsexsvezife, raportAyarlarData.mesulsexsvezifesi].find(val => val && val !== "undefined") || "",
-                mesulsexs: raportAyarlarData.mesulsexs || "",
+                // Əgər məlumat gəlmirsə, Word-də qəsdən "TAPILMADI" sözü yazılacaq
+                idarereisivezifesi: ayarlar.idarereisivezifesi || "VƏZİFƏ TAPILMADI",
+                idarereisi: ayarlar.idarereisi || "RƏİS TAPILMADI",
+                mesulsexsvezifeyeri: ayarlar.mesulsexsvezife || ayarlar.mesulsexsvezifesi || "MƏSUL VƏZİFƏ TAPILMADI",
+                mesulsexs: ayarlar.mesulsexs || "MƏSUL ŞƏXS TAPILMADI",
+                
                 raportfirma: item.firmaAdi,
                 uzanti: item.isFiziki ? "na" : "nin",
                 raportgbnomresi: item.newGb,
@@ -2163,10 +2169,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 manatborc: manatBorc.toFixed(2),
                 safeFirmaAdi: item.firmaAdi.replace(/[^a-zA-Z0-9azəöğüşıçƏÖĞÜŞİÇ ]/gi, '').trim().substring(0, 30) || "Firma",
                 
-                // Mötərizəli qeyd və şəkilçi bura əlavə edildi:
                 bildirisqeydi: bildirisqeydiVal,
                 bildirisnomreuzanti: bildirisnomreuzantiVal,
-                
                 bildiristarix: finalTarix,
                 bildirisnomresi: finalNomre,
                 tarixyazilma: getTodayFormatted()
