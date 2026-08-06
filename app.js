@@ -2131,7 +2131,8 @@ document.addEventListener("DOMContentLoaded", function() {
             payload.push({
                 idarereisivezifesi: raportAyarlarData.idarereisivezifesi || "",
                 idarereisi: raportAyarlarData.idarereisi || "",
-                mesulsexsvezifeyeri: [raportAyarlarData.mesulsexsvezife, raportAyarlarData.mesulsexsvezifesi].find(val => val && val !== "undefined") || "tapilmadi",
+                // Əvvəlki kodunuzu silib, yalnız bu şəkildə yazın:
+mesulsexsvezifeyeri: "MÜFƏTTİŞ TEST DİAQNOSTİKA",
                 mesulsexs: raportAyarlarData.mesulsexs || "",
                 raportfirma: item.firmaAdi,
                 uzanti: item.isFiziki ? "na" : "nin",
