@@ -210,93 +210,101 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     async function executeCoverGenerate() {
-        const btn = document.getElementById('btn-execute-cover');
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Hazırlanır...`;
-        btn.disabled = true;
+    const btn = document.getElementById('btn-execute-cover');
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Hazırlanır...`;
+    btn.disabled = true;
 
-        try {
-            // 🛑 1. ÇOX GÜCLÜ FİLTR: Adı 2 hərfdən qısa olan, boş və xətalı sətirləri amansızcasına silir (12-ci sətrin qənimi)
-            const təmizSiyahı = window.pendingCovers.filter(item => {
-                let ad = item.covercompany || item.covername || item.firmaAdi || "";
-                return typeof ad === 'string' && ad.trim().length > 2 && ad !== "undefined" && ad !== "null";
-            });
+    try {
+        // 1. Geçersiz ve boş satırları temizliyoruz
+        const təmizSiyahı = window.pendingCovers.filter(item => {
+            let ad = item.covercompany || item.covername || item.firmaAdi || "";
+            return typeof ad === 'string' && ad.trim().length > 2 && ad !== "undefined" && ad !== "null";
+        });
 
-            if (təmizSiyahı.length === 0) {
-                alert("Keçərli firma tapılmadı! Zəhmət olmasa firmaları düzgün seçin.");
-                btn.innerHTML = `<i class="fa-solid fa-file-word"></i> Hazırla və Yüklə`;
-                btn.disabled = false;
-                return;
-            }
-
-            // 🟢 2. DƏQİQ MƏLUMAT BƏRPASI: Hər bir sətrin Fiziki şəxs yoxsa Firma olduğunu birbaşa cədvəldən oxuyuruq
-           // 🟢 ƏN VACİB YENİLİK: Serverə yalnız təmizlənmiş məlumatları göndəririk
-            const formattedCovers = təmizSiyahı.map(item => {
-                let firmaAd = item.covercompany || item.covername || "";
-                
-                let domCheckbox = Array.from(document.querySelectorAll('.firma-check2:checked')).find(cb => 
-                    cb.getAttribute('data-firma') === firmaAd
-                );
-
-                let isFizikiUser = false;
-                if (domCheckbox) {
-                    isFizikiUser = domCheckbox.getAttribute('data-isfiziki') === 'true' || domCheckbox.getAttribute('data-isfiziki') === true;
-                } else {
-                    let adUpper = firmaAd.toUpperCase();
-                    if (!adUpper.includes("MMC") && !adUpper.includes("MƏHDUD") && !adUpper.includes("ASC") && !adUpper.includes("QSC")) {
-                        isFizikiUser = true; 
-                    }
-                }
-
-                // Firma sahibinin (mesul şexsin) adını tapmaq
-                let sahibAdi = "";
-                if (item.originalData && item.originalData.soyadiadi && item.originalData.soyadiadi !== firmaAd) {
-                    sahibAdi = item.originalData.soyadiadi;
-                }
-                
-                // Əgər fiziki şəxsdirsə və xüsusi soyadı yoxdursa, elə firmanın adı onun öz adıdır
-                if (isFizikiUser && !sahibAdi) {
-                    sahibAdi = firmaAd;
-                }
-
-                return {
-                    ...item, 
-                    isFiziki: isFizikiUser,
-                    soyadiadi: sahibAdi, // Yalnızca sahibin adı veya fiziki şahsın tam adı gider
-                    unvan: item.covercompanyadres || (domCheckbox ? domCheckbox.getAttribute('data-unvan') : "")
-                };
-            });
-            // 🌐 SERVERƏ GÖNDƏRİLMƏ:
-            const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: formattedCovers })
-            });
-
-            if (!response.ok) throw new Error("Server xətası yarandı");
-
-            const arrayBuffer = await response.arrayBuffer();
-            const blob = new Blob([arrayBuffer], { type: 'application/zip' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            
-            const today = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toLocaleDateString('az-AZ');
-            a.download = `Zerf_Uzlukleri_${today}.zip`;
-            
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            const modal = document.getElementById('cover-gen-modal');
-            if(modal) modal.style.display = 'none';
-        } catch (error) {
-            alert("Xəta: " + error.message);
-        } finally {
+        if (təmizSiyahı.length === 0) {
+            alert("Geçerli firma bulunamadı! Lütfen firmaları doğru şekilde seçin.");
             btn.innerHTML = `<i class="fa-solid fa-file-word"></i> Hazırla və Yüklə`;
             btn.disabled = false;
+            return;
         }
+
+        // 2. Məlumatların bərpası və Şirkət Sahibi/Rehber adının bulunması
+        const formattedCovers = təmizSiyahı.map(item => {
+            let firmaAd = item.covercompany || item.covername || "";
+            
+            // DOM'daki ilgili seçili checkbox'ı buluyoruz
+            let domCheckbox = Array.from(document.querySelectorAll('.firma-check2:checked')).find(cb => 
+                cb.getAttribute('data-firma') === firmaAd
+            );
+
+            let isFizikiUser = false;
+            if (domCheckbox) {
+                isFizikiUser = domCheckbox.getAttribute('data-isfiziki') === 'true' || domCheckbox.getAttribute('data-isfiziki') === true;
+            } else {
+                let adUpper = firmaAd.toUpperCase();
+                if (!adUpper.includes("MMC") && !adUpper.includes("MƏHDUD") && !adUpper.includes("ASC") && !adUpper.includes("QSC")) {
+                    isFizikiUser = true; 
+                }
+            }
+
+            // Checkbox attribute'larından veya veri nesnesinden yetkili/rehber adını alıyoruz
+            let sahibAdi = "";
+            if (domCheckbox) {
+                sahibAdi = domCheckbox.getAttribute('data-rehber') || 
+                           domCheckbox.getAttribute('data-director') || 
+                           domCheckbox.getAttribute('data-soyadiadi') || "";
+            }
+            
+            if (!sahibAdi && item.originalData) {
+                sahibAdi = item.originalData.rehber || item.originalData.soyadiadi || "";
+            }
+
+            // Eğer fiziki şahıssa ve ayrıca rehber adı belirtilmemişse, firma adı şahsın adıdır
+            if (isFizikiUser && !sahibAdi) {
+                sahibAdi = firmaAd;
+            }
+
+            return {
+                ...item, 
+                isFiziki: isFizikiUser,
+                soyadiadi: sahibAdi ? sahibAdi : "—", // Veritabanında sahip adı yoksa "—" yazar
+                covercompany: firmaAd,
+                unvan: item.covercompanyadres || (domCheckbox ? domCheckbox.getAttribute('data-unvan') : "")
+            };
+        });
+
+        // 3. Server'a gönderme
+        const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selectedFirms: formattedCovers })
+        });
+
+        if (!response.ok) throw new Error("Server hatası oluştu");
+
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const today = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toLocaleDateString('az-AZ');
+        a.download = `Zerf_Uzlukleri_${today}.zip`;
+        
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        const modal = document.getElementById('cover-gen-modal');
+        if(modal) modal.style.display = 'none';
+    } catch (error) {
+        alert("Hata: " + error.message);
+    } finally {
+        btn.innerHTML = `<i class="fa-solid fa-file-word"></i> Hazırla və Yüklə`;
+        btn.disabled = false;
     }
+}
 
     const API_URL = 'https://autoreport-production.up.railway.app/api/companies';
     const SIGNER_API_URL = 'https://autoreport-production.up.railway.app/api/mesulsexs';
