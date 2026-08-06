@@ -432,10 +432,15 @@ app.post('/api/generate-cover', async (req, res) => {
             };
 
             // Poçt siyahısına bu firmanı tələblərə uyğun formatlayaraq əlavə edirik
+            // Poçt siyahısına bu firmanı tələblərə uyğun formatlayaraq əlavə edirik
             poctFirms.push({
                 sira: i + 1,
-                soyadiadi: f.soyadiadi || f.covername || "",
-                firmasi: f.isFiziki ? "fiziki şəxs" : "firması",
+                // App.js'den gelen temiz sahibi adını yazdırır
+                soyadiadi: f.soyadiadi || "", 
+                
+                // Fiziki şahıssa "fiziki şəxs", şirketse kendi adını ("AGROEL" MMC) yazdırır
+                firmasi: f.isFiziki ? "fiziki şəxs" : f.covercompany, 
+                
                 unvani: f.unvan || f.covercompanyadres || ""
             });
 
