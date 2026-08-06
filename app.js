@@ -215,11 +215,23 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.disabled = true;
 
         try {
-            // 🟢 ƏN VACİB YENİLİK: Serverə göndəriləcək məlumatları formatlayırıq
-            const formattedCovers = window.pendingCovers.map(item => {
+            // 🛑 YENİ: Boş və ya xətalı sətirləri (məsələn, 'Hamısını Seç' checkbox-unu) siyahıdan təmizləyirik
+            const təmizSiyahı = window.pendingCovers.filter(item => {
+                let ad = item.covercompany || item.covername || item.firmaAdi || "";
+                return ad.trim() !== "" && ad !== "undefined" && ad !== "null";
+            });
+
+            if (təmizSiyahı.length === 0) {
+                alert("Keçərli firma tapılmadı! Zəhmət olmasa firmaları düzgün seçin.");
+                btn.innerHTML = `<i class="fa-solid fa-file-word"></i> Hazırla və Yüklə`;
+                btn.disabled = false;
+                return;
+            }
+
+            // 🟢 ƏN VACİB YENİLİK: Serverə yalnız təmizlənmiş məlumatları göndəririk
+            const formattedCovers = təmizSiyahı.map(item => {
                 return {
                     ...item, // Köhnə dataları saxlayır
-                    // Poçt siyahısı üçün lazım olan YENİ dataları (orijinal bazadan) bura məcbur əlavə edirik:
                     isFiziki: item.originalData ? item.originalData.isFiziki : false,
                     soyadiadi: item.originalData ? (item.originalData.soyadiadi || item.originalData.firmaAdi) : (item.covercompany || ""),
                     unvan: item.originalData ? item.originalData.unvan : (item.covercompanyadres || "")
@@ -229,7 +241,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const response = await fetch('https://autoreport-production.up.railway.app/api/generate-cover', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedFirms: formattedCovers }) // Artıq yeni siyahını göndəririk
+                body: JSON.stringify({ selectedFirms: formattedCovers }) // Artıq xətasız siyahını göndəririk
             });
 
             if (!response.ok) throw new Error("Server xətası yarandı");
@@ -239,7 +251,11 @@ document.addEventListener("DOMContentLoaded", function() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Zerf_Uzlukleri_${getTodayFormatted()}.zip`;
+            
+            // Tarixi əldə etmək üçün təhlükəsiz üsul
+            const today = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toLocaleDateString('az-AZ');
+            a.download = `Zerf_Uzlukleri_${today}.zip`;
+            
             document.body.appendChild(a);
             a.click();
             a.remove();
