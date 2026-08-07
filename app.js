@@ -8,14 +8,14 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
         overlay.innerHTML = `
             <div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px;">
-                <div style="background: #e0e7ff; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #4f46e5; font-size: 28px;">
-                    <i class="fa-solid fa-lock"></i>
-                </div>
-                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">Giriş Təsdiqi</h2>
-                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün şifrəni yazın.</p>
+                
+                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block;">
+                
+                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800;">ASGS Sisteminə Giriş</h2>
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Davam etmək üçün təhlükəsizlik şifrəsini yazın.</p>
                 <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;">
                 <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p>
-                <button id="sec-submit" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;">Daxil Ol</button>
+                <button id="sec-submit" style="width: 100%; background: #0f172a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;">Sistemə Daxil Ol</button>
             </div>`;
         document.body.appendChild(overlay);
         
