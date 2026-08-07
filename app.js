@@ -2251,14 +2251,15 @@ document.addEventListener("DOMContentLoaded", function() {
         let finalTarix = Array.from(new Set(tarixVals)).join(", ");
 
         // Bildiriş qeydi üçün məntiq
+        // Bildiriş qeydi üçün məntiq
         let bildirisqeydiVal = "";
         let bildirisnomreuzantiVal = "";
 
         if (bildirisDetaylari.length === 1) {
-            bildirisqeydiVal = `(${bildirisDetaylari[0]})`;
+            bildirisqeydiVal = bildirisDetaylari[0];
             bildirisnomreuzantiVal = "";
         } else if (bildirisDetaylari.length >= 2) {
-            bildirisqeydiVal = `(${bildirisDetaylari.join(", ")})`;
+            bildirisqeydiVal = bildirisDetaylari.join(", ");
             bildirisnomreuzantiVal = "lər";
         }
 
