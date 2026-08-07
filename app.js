@@ -11,7 +11,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 
                 <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block;">
                 
-                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800;">ASGS Sisteminə Giriş</h2>
+                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800;">ADG Sisteminə Giriş</h2>
                 <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Davam etmək üçün təhlükəsizlik şifrəsini yazın.</p>
                 <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;">
                 <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış şifrə!</p>
