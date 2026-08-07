@@ -248,18 +248,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // Checkbox attribute'larından veya veri nesnesinden yetkili/rehber adını alıyoruz
-            let sahibAdi = "";
-            if (domCheckbox) {
-                sahibAdi = domCheckbox.getAttribute('data-rehber') || 
-                           domCheckbox.getAttribute('data-director') || 
-                           domCheckbox.getAttribute('data-soyadiadi') || "";
-            }
+            // Firma sahibinin (müdirin) adını birbaşa bazadan gələn dəyərdən (item.covername) alırıq
+            let sahibAdi = item.covername && item.covername !== "Qeyd edilməyib" ? item.covername : "";
             
-            if (!sahibAdi && item.originalData) {
-                sahibAdi = item.originalData.rehber || item.originalData.soyadiadi || "";
+            // Əgər şirkətdirsə və rəhbərin adı bazada yoxdursa
+            if (!isFizikiUser && !sahibAdi) {
+                sahibAdi = "Qeyd edilməyib";
             }
 
-            // Eğer fiziki şahıssa ve ayrıca rehber adı belirtilmemişse, firma adı şahsın adıdır
+            // Əgər fiziki şəxsdirsə və xüsusi adı yoxdursa, elə firmanın adı onun öz adıdır
             if (isFizikiUser && !sahibAdi) {
                 sahibAdi = firmaAd;
             }
