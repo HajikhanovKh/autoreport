@@ -1901,6 +1901,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                     if (inputCompany) inputCompany.value = firmaName; 
                                 }
                                 handleRadioChange();
+
+                                // EKRANI YUMŞAQ ŞƏKİLDƏ ƏN YUXARIYA SÜRÜŞDÜRÜR
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                             });
                         });
 
