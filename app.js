@@ -2126,6 +2126,34 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
+    // Xüsusi xəbərdarlıq pəncərəsi (Alert əvəzi)
+    function showCustomWarning(message) {
+        let existing = document.getElementById('custom-warning-modal');
+        if (existing) existing.remove(); // Əgər əvvəldən varsa sil
+
+        const modal = document.createElement('div');
+        modal.id = 'custom-warning-modal';
+        modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 99999999; display: flex; justify-content: center; align-items: center;";
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 24px 30px; border-radius: 16px; width: 90%; max-width: 380px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; border-top: 5px solid #ef4444; animation: popIn 0.3s ease-out;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 26px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 style="margin: 0 0 12px 0; color: #0f172a; font-size: 18px; font-weight: 800;">Diqqət! Eksik Məlumat</h3>
+                <p style="color: #475569; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">${message}</p>
+                <button id="custom-warning-ok-btn" style="background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; width: 100%;">Tamam, İndi Düzəldirəm</button>
+            </div>
+            <style>@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }</style>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Düyməyə basdıqda yalnız bu kiçik pəncərəni bağlayır
+        document.getElementById('custom-warning-ok-btn').addEventListener('click', function() {
+            modal.remove();
+        });
+    }
     // ==========================================
     // YENİ: RAPORT ÜÇÜN XÜSUSİ ZIP GENERASİYASI
     // ==========================================
@@ -2235,18 +2263,22 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         // Vizual xəbərdarlıqlar (Pəncərəni bağlatmır)
+        // Vizual xəbərdarlıqlar və Xüsusi Popup
         if (!malinAdiValue) {
             showInlineError(malinAdiInput, "Malın adı mütləqdir!");
+            showCustomWarning(`<strong>${item.firmaAdi}</strong> üçün <b style="color:#ef4444;">Malın adı</b> daxil edilməyib! Zəhmət olmasa xananı doldurun.`);
             hasError = true;
             break; 
         }
         if (!finalNomre) {
             showInlineError(nomreInputs[0], "Nömrəni yazın!");
+            showCustomWarning(`<strong>${item.firmaAdi}</strong> üçün <b style="color:#ef4444;">Bildiriş Nömrəsi</b> daxil edilməyib!`);
             hasError = true;
             break;
         }
         if (!finalTarix) {
             showInlineError(tarixInputs[0], "Tarixi daxil edin!");
+            showCustomWarning(`<strong>${item.firmaAdi}</strong> üçün <b style="color:#ef4444;">Tarix</b> daxil edilməyib!`);
             hasError = true;
             break;
         }
@@ -2397,11 +2429,10 @@ document.addEventListener("DOMContentLoaded", function() {
     if(confirmRaportZipBtn) {
         confirmRaportZipBtn.addEventListener("click", () => {
             if (window.pendingFirmsToRaportZip && window.pendingFirmsToRaportZip.length === 0) {
-                alert("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
-                if (preRaportPopup) preRaportPopup.style.display = "none";
+                showCustomWarning("Diqqət: Seçdiyiniz firmalar üçün raport yazılası yeni bəyannamə yoxdur.");
                 return;
             }
-            if (preRaportPopup) preRaportPopup.style.display = "none";
+            // DİQQƏT: Böyük pəncərə burada bağlanmır! O yalnız hər şey qaydasında olanda avtomatik bağlanacaq.
             executeRaportZipProcess();
         });
     }
