@@ -15,7 +15,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
+                <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
                 
                 <div style="position: relative; z-index: 2;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800; transition: color 0.3s ease;">ADG Sisteminə Giriş</h2>
@@ -116,7 +116,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
 
         let allAdminLogs = [];
         let currentAdminPage = 1;
-        const adminLogsPerPage = 15;
+        const adminLogsPerPage = 30;
 
         toggleBtn.addEventListener('click', () => {
             if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#0f172a'; } 
@@ -133,9 +133,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
 
         async function logAttempt(statusMsg) {
             try {
-                let ipRes = await fetch('https://ipapi.co/json/').catch(() => null);
-                let ipData = ipRes ? await ipRes.json() : {};
-
                 const ua = navigator.userAgent;
                 let browser = "Naməlum", os = "Naməlum", device = "Desktop";
                 if (/Mobi|Android/i.test(ua)) device = "Mobil Telefon";
@@ -153,9 +150,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 else if (/Edge|Edg/i.test(ua)) browser = "Edge";
 
                 const logData = {
-                    ip_address: ipData.ip || "Naməlum IP",
-                    location: (ipData.city && ipData.country_name) ? `${ipData.city}, ${ipData.country_name}` : "Naməlum Məkan",
-                    isp: ipData.org || "Naməlum Provayder",
                     os_name: os,
                     browser_name: browser,
                     device_type: device,
@@ -168,12 +162,16 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     body: JSON.stringify(logData)
                 });
                 
-                let resJson = await res.json().catch(() => ({}));
+                // Əgər 5 səhvə görə bloklanıbsa (403), şifrə səhvi xəbərdarlığı ilə yanaşı girişi qadağan edirik
                 if (res.status === 403) {
-                    alert("Çox sayda yanlış cəhd etdiyiniz üçün IP ünvanınız bloklandı!");
-                    location.reload();
+                    handleError("❌ Çox sayda yanlış cəhd! Girişiniz 1 saat müddətinə bloklandı.");
+                    return false;
                 }
-            } catch (err) { console.log("Log xətası: ", err); }
+                return true;
+            } catch (err) { 
+                console.log("Log xətası: ", err); 
+                return true;
+            }
         }
 
         async function startVerification() {
@@ -187,19 +185,28 @@ if (!document.documentElement.classList.contains('w-editor')) {
 
             setTimeout(async () => {
                 if (enteredPass === DOGRU_SIFRE) {
-                    await logAttempt("Uğurlu Giriş (Sistem)");
-                    handleSuccess("<i class='fa-solid fa-check'></i> Giriş Uğurludur", "Giriş Təsdiqləndi");
+                    let allowed = await logAttempt("Uğurlu Giriş (Sistem)");
+                    if(allowed) handleSuccess("<i class='fa-solid fa-check'></i> Giriş Uğurludur", "Giriş Təsdiqləndi");
+                    else resetBtn();
                 } 
                 else if (enteredPass === ADMIN_SIFRE) {
-                    await logAttempt("Uğurlu Giriş (Admin)");
-                    fetchAndShowAdminLogs(); 
+                    let allowed = await logAttempt("Uğurlu Giriş (Admin)");
+                    if(allowed) fetchAndShowAdminLogs(); 
+                    else resetBtn();
                 }
                 else {
-                    // Səhv yazılan şifrəni birbaşa status mesajına əlavə edib bazaya göndəririk
-                    await logAttempt(`Xətalı Şifrə Cəhdi: "${enteredPass}"`);
-                    handleError();
+                    let allowed = await logAttempt(`Xətalı Şifrə Cəhdi: "${enteredPass}"`);
+                    if(allowed) {
+                        handleError("❌ Yanlış şifrə! Zəhmət olmasa yenidən cəhd edin.");
+                    }
                 }
             }, 800); 
+        }
+
+        function resetBtn() {
+            input.disabled = false; 
+            btn.classList.remove('btn-loading');
+            btnText.innerText = 'Sistemə Daxil Ol';
         }
 
         function handleSuccess(btnMessage, titleMessage) {
@@ -218,11 +225,13 @@ if (!document.documentElement.classList.contains('w-editor')) {
             }, 2000);
         }
 
-        function handleError() {
+        function handleError(customMsg = "❌ Yanlış şifrə! Zəhmət olmasa yenidən cəhd edin.") {
             input.disabled = false; btn.classList.remove('btn-loading');
             btnText.innerText = 'Sistemə Daxil Ol';
             
-            error.style.display = 'block'; setTimeout(() => error.style.opacity = '1', 10);
+            error.innerText = customMsg;
+            error.style.display = 'block'; 
+            setTimeout(() => error.style.opacity = '1', 10);
             input.classList.add('error-border');
             
             input.value = ''; input.focus();
@@ -268,7 +277,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 const formattedDate = dateObj.toLocaleString('az-AZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
                 
                 let statusClass = "status-failed";
-                let statusText = log.status; // Yazılan səhv şifrə birbaşa burda görünəcək
+                let statusText = log.status; 
                 let isAdminLog = false;
 
                 if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
