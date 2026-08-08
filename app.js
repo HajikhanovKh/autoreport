@@ -15,7 +15,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
+                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
                 
                 <div style="position: relative; z-index: 2;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800; transition: color 0.3s ease;">ADG Sisteminə Giriş</h2>
