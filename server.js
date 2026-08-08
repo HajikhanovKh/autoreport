@@ -685,4 +685,41 @@ app.post('/api/generate-raports', async (req, res) => {
     }
 });
 
+// ==========================================
+// TƏHLÜKƏSİZLİK: GİRİŞ LOQLARINI YAZMAQ (POST)
+// ==========================================
+app.post('/api/login-logs', async (req, res) => {
+    let connection;
+    try {
+        const { ip_address, location, isp, os_name, browser_name, device_type, status } = req.body;
+        connection = await mysql.createConnection(dbConfig);
+        const query = `INSERT INTO login_logs (ip_address, location, isp, os_name, browser_name, device_type, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        await connection.execute(query, [ip_address, location, isp, os_name, browser_name, device_type, status]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Loq yazma xətası:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// ==========================================
+// TƏHLÜKƏSİZLİK: ADMIN PANEL ÜÇÜN LOQLARI ÇƏKMƏK (GET)
+// ==========================================
+app.get('/api/login-logs', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        // Ən son 100 girişi tarixə görə azalan ardıcıllıqla çəkirik
+        const [rows] = await connection.execute('SELECT * FROM login_logs ORDER BY login_time DESC LIMIT 100');
+        res.json(rows);
+    } catch (error) {
+        console.error("Loq oxuma xətası:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
 app.listen(port, () => console.log(`Server aktivdir... Port: ${port}`));
