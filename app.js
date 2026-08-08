@@ -10,40 +10,29 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.id = "security-overlay";
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);";
         
-        // YENİ ANİMASYON: cardModernIn (Bulanıktan netliğe yumuşak geçiş)
         overlay.innerHTML = `
-            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 0 0 40px 0; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 440px; animation: cardModernIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; transform-origin: center;">
+            <div id="security-card" style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 380px; animation: cardModernIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; transform-origin: center;">
                 
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6); z-index: 3;"></div>
-
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <div style="width: 100%; margin-bottom: 24px; position: relative; z-index: 2; overflow: hidden; border-top-left-radius: 28px; border-top-right-radius: 28px;">
-                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
-                </div>
+                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
                 
-                <div style="padding: 0 40px;">
-                    <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
-                    <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 28px; font-weight: 500; line-height: 1.5; transition: opacity 0.3s ease;">Sistemə daxil olmaq üçün təhlükəsizlik şifrənizi yazın</p>
+                <div style="position: relative; z-index: 2;">
+                    <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800; transition: color 0.3s ease;">ADG Sisteminə Giriş</h2>
+                    <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 24px; transition: opacity 0.3s ease;">Davam etmək üçün təhlükəsizlik şifrəsini yazın.</p>
                     
-                    <div style="position: relative; margin-bottom: 20px; z-index: 2;" id="input-container">
-                        <div style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; transition: color 0.2s;" id="lock-icon">
-                            <i class="fa-solid fa-lock"></i>
-                        </div>
-                        <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." autocomplete="current-password" style="width: 100%; box-sizing: border-box; padding: 16px 48px 16px 46px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 15px; font-weight: 600; color: #0f172a; outline: none; background: #f8fafc; transition: all 0.3s ease;">
+                    <div style="position: relative;">
+                        <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." autocomplete="current-password" style="width: 100%; box-sizing: border-box; padding: 14px 16px; padding-right: 40px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 15px; outline: none; transition: all 0.2s; background: #ffffff; color: #0f172a;">
                         
-                        <div id="toggle-password" style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; cursor: pointer; transition: color 0.2s;" title="Şifrəni Göstər/Gizlət">
+                        <div id="toggle-password" style="position: absolute; right: 14px; top: 22px; transform: translateY(-50%); color: #94a3b8; font-size: 15px; cursor: pointer; transition: color 0.2s;" title="Şifrəni Göstər/Gizlət">
                             <i class="fa-solid fa-eye" id="eye-icon"></i>
                         </div>
                     </div>
 
-                    <div id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: -8px 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease; text-align: left; padding-left: 6px;">
-                        <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Yanlış şifrə! Zəhmət olmasa yenidən cəhd edin.
-                    </div>
-
-                    <button id="sec-submit" style="position: relative; z-index: 2; width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border: none; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; overflow: hidden;">
+                    <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none; opacity: 0; transition: opacity 0.2s ease;">❌ Yanlış şifrə!</p>
+                    
+                    <button id="sec-submit" style="width: 100%; background: #0f172a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <span id="btn-text">Sistemə Daxil Ol</span>
-                        <i class="fa-solid fa-arrow-right" id="btn-icon" style="font-size: 14px; transition: transform 0.2s;"></i>
                     </button>
                 </div>
             </div>
@@ -84,25 +73,30 @@ if (!document.documentElement.classList.contains('w-editor')) {
             </div>
 
             <style>
-                /* Yeni Animasiya: Daha modern bulanıqlıq və kayma */
                 @keyframes cardModernIn { 
                     0% { opacity: 0; filter: blur(12px); transform: translateY(-30px) scale(0.95); } 
                     100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } 
                 }
-                @keyframes cardShake { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(-10px); } 30%, 60%, 90% { transform: translateX(10px); } }
-                @keyframes successScale { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+                @keyframes cardShake { 
+                    0%, 100% { transform: translateX(0); } 
+                    15%, 45%, 75% { transform: translateX(-10px); } 
+                    30%, 60%, 90% { transform: translateX(10px); } 
+                }
+                @keyframes successScale { 
+                    0% { transform: scale(1); } 
+                    50% { transform: scale(1.03); } 
+                    100% { transform: scale(1); } 
+                }
                 
-                #sec-password:focus { border-color: #3b82f6 !important; background: #ffffff !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important; }
-                #sec-password.error-border { border-color: #ef4444 !important; background: #fef2f2 !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important; color: #b91c1c !important; }
-                #sec-password.success-border { border-color: #10b981 !important; background: #ecfdf5 !important; color: #047857 !important; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important; }
-                #sec-submit:hover:not(:disabled) { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); box-shadow: 0 14px 26px -4px rgba(15, 23, 42, 0.4); transform: translateY(-2px); }
-                #sec-submit:hover:not(:disabled) i { transform: translateX(5px); }
-                #refresh-admin-btn:hover { background: #e2e8f0; color: #0f172a; }
-                #close-admin-btn:hover { background: #dc2626; }
+                #sec-password:focus { border-color: #0f172a !important; box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important; }
+                #sec-password.error-border { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
+                #sec-password.success-border { border-color: #10b981 !important; background: #ecfdf5 !important; color: #047857 !important; }
+                
+                #sec-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); }
                 .btn-loading { pointer-events: none; opacity: 0.85; }
-                .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4) !important; }
+                .btn-success { background: #10b981 !important; }
                 
-                /* Admin Card Styles (Yukarıdan aşağı doğru sıralama mantığı) */
+                /* Admin Card Styles */
                 .log-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display:flex; flex-direction:column; gap:12px; transition: 0.2s;}
                 .log-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); border-color:#cbd5e1;}
                 .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 5px;}
@@ -121,11 +115,9 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
         const btnText = document.getElementById('btn-text');
-        const btnIcon = document.getElementById('btn-icon');
         const error = document.getElementById('sec-error');
         const toggleBtn = document.getElementById('toggle-password');
         const eyeIcon = document.getElementById('eye-icon');
-        const lockIcon = document.getElementById('lock-icon');
         const secTitle = document.getElementById('sec-title');
         const secDesc = document.getElementById('sec-desc');
         const successGlow = document.getElementById('success-glow');
@@ -133,15 +125,13 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const adminPanel = document.getElementById('admin-panel');
 
         toggleBtn.addEventListener('click', () => {
-            if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#3b82f6'; } 
+            if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#0f172a'; } 
             else { input.type = 'password'; eyeIcon.className = 'fa-solid fa-eye'; eyeIcon.style.color = '#94a3b8'; }
         });
 
-        input.addEventListener('focus', () => { lockIcon.style.color = '#3b82f6'; });
-        input.addEventListener('blur', () => { if(!input.classList.contains('success-border') && !input.classList.contains('error-border')) lockIcon.style.color = '#94a3b8'; });
         input.addEventListener('input', () => {
             if (input.classList.contains('error-border')) {
-                input.classList.remove('error-border'); error.style.opacity = '0'; setTimeout(() => error.style.display = 'none', 200); lockIcon.style.color = '#3b82f6';
+                input.classList.remove('error-border'); error.style.opacity = '0'; setTimeout(() => error.style.display = 'none', 200); 
             }
         });
         input.addEventListener('keypress', function(e) { if (e.key === 'Enter') startVerification(); });
@@ -191,19 +181,18 @@ if (!document.documentElement.classList.contains('w-editor')) {
             
             input.disabled = true;
             btn.classList.add('btn-loading');
-            btnText.innerText = 'Yoxlanılır...';
-            btnIcon.className = 'fa-solid fa-circle-notch fa-spin';
+            btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Yoxlanılır...';
             
             const enteredPass = input.value;
 
             setTimeout(async () => {
                 if (enteredPass === DOGRU_SIFRE) {
                     await logAttempt("Uğurlu Giriş (Sistem)");
-                    handleSuccess("Giriş Uğurludur", "Giriş Təsdiqləndi");
+                    handleSuccess("<i class='fa-solid fa-check'></i> Giriş Uğurludur", "Giriş Təsdiqləndi");
                 } 
                 else if (enteredPass === ADMIN_SIFRE) {
                     await logAttempt("Uğurlu Giriş (Admin)");
-                    fetchAndShowAdminLogs(); // Admin panelini aç
+                    fetchAndShowAdminLogs(); 
                 }
                 else {
                     await logAttempt("Xətalı Şifrə Cəhdi");
@@ -215,14 +204,12 @@ if (!document.documentElement.classList.contains('w-editor')) {
         function handleSuccess(btnMessage, titleMessage) {
             input.disabled = false; btn.classList.remove('btn-loading');
             input.classList.remove('error-border'); input.classList.add('success-border');
-            lockIcon.style.color = '#10b981';
             
-            btn.classList.add('btn-success'); btnText.innerText = btnMessage;
-            btnIcon.className = 'fa-solid fa-check'; btnIcon.style.transform = 'scale(1.2)';
+            btn.classList.add('btn-success'); btnText.innerHTML = btnMessage;
 
             secTitle.innerText = titleMessage; secTitle.style.color = '#10b981';
             secDesc.style.opacity = '0'; successGlow.style.transform = 'translate(-50%, -50%) scale(2.5)';
-            brandLogo.style.transform = 'scale(1.03)'; card.style.animation = 'successScale 0.6s ease-out';
+            brandLogo.style.transform = 'scale(1.05)'; card.style.animation = 'successScale 0.6s ease-out';
             
             setTimeout(() => {
                 overlay.style.opacity = '0'; overlay.style.transform = 'scale(1.05)';
@@ -232,10 +219,10 @@ if (!document.documentElement.classList.contains('w-editor')) {
 
         function handleError() {
             input.disabled = false; btn.classList.remove('btn-loading');
-            btnText.innerText = 'Sistemə Daxil Ol'; btnIcon.className = 'fa-solid fa-arrow-right';
+            btnText.innerText = 'Sistemə Daxil Ol';
             
             error.style.display = 'block'; setTimeout(() => error.style.opacity = '1', 10);
-            input.classList.add('error-border'); lockIcon.style.color = '#ef4444';
+            input.classList.add('error-border');
             
             input.value = ''; input.focus();
             card.style.animation = 'none'; card.offsetHeight; card.style.animation = 'cardShake 0.45s ease-in-out';
@@ -246,9 +233,9 @@ if (!document.documentElement.classList.contains('w-editor')) {
         // ==========================================
         async function fetchAndShowAdminLogs() {
             input.disabled = false; btn.classList.remove('btn-loading');
-            overlay.style.background = '#f8fafc'; // Qaranlıq fonu ağart
-            card.style.display = 'none'; // Şifrə kartını gizlət
-            adminPanel.style.display = 'block'; // Admin paneli göstər
+            overlay.style.background = '#f8fafc'; 
+            card.style.display = 'none'; 
+            adminPanel.style.display = 'block'; 
             
             const sysContainer = document.getElementById('system-logs-container');
             const admContainer = document.getElementById('admin-logs-container');
@@ -288,7 +275,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                         </div>
                     `;
 
-                    // Sol və Sağ sütunlara paylama
                     if (isAdminLog) {
                         admHtml += cardHtml;
                     } else {
@@ -296,7 +282,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     }
                 });
 
-                // Boş olma ehtimalı
                 sysContainer.innerHTML = sysHtml !== '' ? sysHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Sistem qeydi tapılmadı.</div>';
                 admContainer.innerHTML = admHtml !== '' ? admHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Admin qeydi tapılmadı.</div>';
 
@@ -306,12 +291,10 @@ if (!document.documentElement.classList.contains('w-editor')) {
             }
         }
 
-        // Yeniləmə Düyməsi
         document.getElementById('refresh-admin-btn').addEventListener('click', () => {
             fetchAndShowAdminLogs();
         });
 
-        // Çıxış Düyməsi
         document.getElementById('close-admin-btn').addEventListener('click', () => {
             window.location.reload(); 
         });
