@@ -15,7 +15,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
+                <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
                 
                 <div style="position: relative; z-index: 2;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800; transition: color 0.3s ease;">ADG Sisteminə Giriş</h2>
@@ -51,10 +51,9 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
-                        
                         <div style="background: transparent;">
                             <h2 style="font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
-                                <i class="fa-solid fa-desktop" style="color: #10b981;"></i> Sistem Girişləri & Xətalar
+                                <i class="fa-solid fa-desktop" style="color: #10b981;"></i> Sistem Girişləri & Xətalı Cəhdlər
                             </h2>
                             <div id="system-logs-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
                         </div>
@@ -84,7 +83,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 .btn-loading { pointer-events: none; opacity: 0.85; }
                 .btn-success { background: #10b981 !important; }
                 
-                /* Admin Card Styles */
                 .log-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display:flex; flex-direction:column; gap:12px; transition: 0.2s;}
                 .log-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); border-color:#cbd5e1;}
                 .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 5px;}
@@ -96,7 +94,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 .log-detail { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #334155; font-weight: 500;}
                 .log-detail i { color: #94a3b8; width: 16px; text-align: center; }
 
-                /* Pagination Button Styles */
                 .page-btn { background: white; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; color: #475569; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
                 .page-btn:hover { background: #f1f5f9; border-color: #94a3b8;}
                 .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);}
@@ -117,10 +114,9 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const brandLogo = document.getElementById('brand-logo');
         const adminPanel = document.getElementById('admin-panel');
 
-        // Paginasiya üçün qlobal dəyişənlər
         let allAdminLogs = [];
         let currentAdminPage = 1;
-        const adminLogsPerPage = 30; // Hər səhifədə görünəcək maksimum log sayı
+        const adminLogsPerPage = 30;
 
         toggleBtn.addEventListener('click', () => {
             if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#0f172a'; } 
@@ -166,11 +162,17 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     status: statusMsg
                 };
 
-                await fetch(`${API_URL}/api/login-logs`, {
+                let res = await fetch(`${API_URL}/api/login-logs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(logData)
                 });
+                
+                let resJson = await res.json().catch(() => ({}));
+                if (res.status === 403) {
+                    alert("Çox sayda yanlış cəhd etdiyiniz üçün IP ünvanınız bloklandı!");
+                    location.reload();
+                }
             } catch (err) { console.log("Log xətası: ", err); }
         }
 
@@ -193,7 +195,8 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     fetchAndShowAdminLogs(); 
                 }
                 else {
-                    await logAttempt("Xətalı Şifrə Cəhdi");
+                    // Səhv yazılan şifrəni birbaşa status mesajına əlavə edib bazaya göndəririk
+                    await logAttempt(`Xətalı Şifrə Cəhdi: "${enteredPass}"`);
                     handleError();
                 }
             }, 800); 
@@ -226,9 +229,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
             card.style.animation = 'none'; card.offsetHeight; card.style.animation = 'cardShake 0.45s ease-in-out';
         }
 
-        // ==========================================
-        // ADMIN PANELİ VƏ SƏHİFƏLƏMƏ MƏNTİQİ
-        // ==========================================
         async function fetchAndShowAdminLogs() {
             input.disabled = false; btn.classList.remove('btn-loading');
             overlay.style.background = '#f8fafc'; 
@@ -244,7 +244,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
             try {
                 const res = await fetch(`${API_URL}/api/login-logs`);
                 allAdminLogs = await res.json();
-                currentAdminPage = 1; // Yeniləndikdə 1-ci səhifəyə qayıdırıq
+                currentAdminPage = 1; 
                 renderAdminLogs();
             } catch(e) {
                 sysContainer.innerHTML = `<div style="text-align:center; color:#ef4444; padding: 20px;">Xəta: ${e.message}</div>`;
@@ -252,16 +252,13 @@ if (!document.documentElement.classList.contains('w-editor')) {
             }
         }
 
-        // Loqları cari səhifəyə görə render edən funksiya
         function renderAdminLogs() {
             const sysContainer = document.getElementById('system-logs-container');
             const admContainer = document.getElementById('admin-logs-container');
-            const pagContainer = document.getElementById('admin-pagination-container');
 
             let sysHtml = '';
             let admHtml = '';
 
-            // Səhifələmə hesablaması
             const startIndex = (currentAdminPage - 1) * adminLogsPerPage;
             const endIndex = startIndex + adminLogsPerPage;
             const pageLogs = allAdminLogs.slice(startIndex, endIndex);
@@ -271,7 +268,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 const formattedDate = dateObj.toLocaleString('az-AZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
                 
                 let statusClass = "status-failed";
-                let statusText = "Xətalı";
+                let statusText = log.status; // Yazılan səhv şifrə birbaşa burda görünəcək
                 let isAdminLog = false;
 
                 if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
@@ -304,7 +301,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
             renderAdminPagination();
         }
 
-        // Paginasiya düymələrini yaradan funksiya
         function renderAdminPagination() {
             const pagContainer = document.getElementById('admin-pagination-container');
             pagContainer.innerHTML = '';
@@ -319,7 +315,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     btn.onclick = () => {
                         currentAdminPage = i;
                         renderAdminLogs();
-                        // Düyməyə basdıqda paneli rəvan yuxarı sürüşdürür
                         document.getElementById('admin-panel').scrollTo({top: 0, behavior: 'smooth'});
                     };
                     pagContainer.appendChild(btn);
@@ -327,7 +322,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
             }
         }
 
-        // Düymələrin funksiyaları
         document.getElementById('refresh-admin-btn').addEventListener('click', () => {
             fetchAndShowAdminLogs();
         });
