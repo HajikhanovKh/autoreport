@@ -689,43 +689,48 @@ app.post('/api/generate-raports', async (req, res) => {
 // TƏHLÜKƏSİZLİK: GİRİŞ LOQLARINI YAZMAQ (POST)
 // ==========================================
 // Yaddaşda IP bloklamalarını saxlamaq üçün massiv (Server yenilənəndə təmizlənir)
-const blockedIps = {}; // { ip: { count: say, blockUntil: vaxt } }
+const ipAttemptTracker = {}; // { ip: { count: 0, blockUntil: 0 } }
 
 app.post('/api/login-logs', async (req, res) => {
     let connection;
     try {
-        const { ip_address, location, isp, os_name, browser_name, device_type, status } = req.body;
-        
-        // IP Bloklama yoxlaması
+        // IP ünvanını birbaşa server səviyyəsində dəqiq oxuyuruq
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || "Naməlum IP";
+        const cleanIp = clientIp.includes(',') ? clientIp.split(',')[0].trim() : clientIp;
+
+        const { os_name, browser_name, device_type, status } = req.body;
         const now = Date.now();
-        if (blockedIps[ip_address] && blockedIps[ip_address].blockUntil > now) {
-            return res.status(403).json({ error: "Bu IP ünvanından çox sayda yanlış cəhd edildiyi üçün bloklanıb." });
+
+        // 1 Saatlıq Bloklama Yoxlaması
+        if (ipAttemptTracker[cleanIp] && ipAttemptTracker[cleanIp].blockUntil > now) {
+            return res.status(403).json({ error: "BLOCKED" });
         }
 
-        // Əgər status xətalı cəhddirsə, səhvləri sayaq
+        // Xətalı şifrə cəhdlərini sayırıq
         if (status && status.includes('Xətalı Şifrə')) {
-            if (!blockedIps[ip_address]) {
-                blockedIps[ip_address] = { count: 0, blockUntil: 0 };
+            if (!ipAttemptTracker[cleanIp]) {
+                ipAttemptTracker[cleanIp] = { count: 0, blockUntil: 0 };
             }
-            blockedIps[ip_address].count += 1;
+            ipAttemptTracker[cleanIp].count += 1;
 
-            // 5-ci səhvindən sonra 15 dəqiqəlik blokla
-            if (blockedIps[ip_address].count >= 5) {
-                blockedIps[ip_address].blockUntil = now + (15 * 60 * 1000); // 15 dəqiqə
-                blockedIps[ip_address].count = 0; // sayğacı sıfırla
+            // 5 səhvindən sonra 1 saatlıq (3600000 ms) blok qoyuruq
+            if (ipAttemptTracker[cleanIp].count >= 5) {
+                ipAttemptTracker[cleanIp].blockUntil = now + (60 * 60 * 1000); 
+                ipAttemptTracker[cleanIp].count = 0; 
             }
         } else if (status && (status.includes('Uğurlu') || status.includes('Admin'))) {
-            // Doğru şifrə yazıldıqda həmin IP-nin səhv sayğacını təmizlə
-            if (blockedIps[ip_address]) {
-                delete blockedIps[ip_address];
+            if (ipAttemptTracker[cleanIp]) {
+                delete ipAttemptTracker[cleanIp];
             }
         }
 
         connection = await mysql.createConnection(dbConfig);
-        const query = `INSERT INTO login_logs (ip_address, location, isp, os_name, browser_name, device_type, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        await connection.execute(query, [ip_address, location, isp, os_name, browser_name, device_type, status]);
         
-        res.json({ success: true, blocked: blockedIps[ip_address] ? blockedIps[ip_address].count : 0 });
+        // Avtomatik olaraq Azərbaycan məkanını və IP-ni bazaya yazırıq
+        const query = `INSERT INTO login_logs (ip_address, location, isp, os_name, browser_name, device_type, status) VALUES (?, 'Azərbaycan', 'Yerli Provayder', ?, ?, ?, ?)`;
+        await connection.execute(query, [cleanIp, os_name, browser_name, device_type, status]);
+        
+        res.json({ success: true });
     } catch (error) {
         console.error("Loq yazma xətası:", error);
         res.status(500).json({ error: error.message });
