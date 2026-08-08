@@ -12,7 +12,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
             <div id="security-card" style="background: #ffffff; padding: 40px 32px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); text-align: center; width: 100%; max-width: 420px; border: 1px solid rgba(226, 232, 240, 0.8); animation: cardPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden;">
                 
                 <div style="margin-bottom: 20px;">
-                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 200px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 200px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
                 </div>
                 
                 <h2 style="margin: 0 0 6px 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">Giriş Təsdiqi</h2>
