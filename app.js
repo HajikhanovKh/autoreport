@@ -1,75 +1,90 @@
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        // TƏHLÜKƏSİZLİK ŞİFRƏSİ (6 RƏQƏMLİ PİN)
-        const DOGRU_SIFRE = "202626"; 
+        // HARF, RAKAM VE SEMBOL İÇEREN ŞİFRE
+        const DOGRU_SIFRE = "Analog*+2026+*"; 
         document.body.style.overflow = 'hidden';
         
         const overlay = document.createElement('div');
         overlay.id = "security-overlay";
-        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: opacity 0.4s ease;";
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: opacity 0.4s ease;";
         
         overlay.innerHTML = `
-            <div id="security-card" style="background: #ffffff; padding: 40px 32px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); text-align: center; width: 100%; max-width: 420px; border: 1px solid rgba(226, 232, 240, 0.8); animation: cardPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden;">
+            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 42px 36px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 420px; animation: cardPopIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden;">
                 
-                <div style="margin-bottom: 20px;">
-                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 200px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);"></div>
+
+                <div style="margin-bottom: 22px;">
+                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 210px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.08));">
                 </div>
                 
-                <h2 style="margin: 0 0 6px 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">Giriş Təsdiqi</h2>
-                <p style="color: #64748b; font-size: 13.5px; margin-bottom: 24px; font-weight: 500;">Davam etmək üçün 6 rəqəmli PİN kodu daxil edin</p>
+                <h2 style="margin: 0 0 6px 0; color: #0f172a; font-size: 21px; font-weight: 800; letter-spacing: -0.4px;">Sistem Güvenlik Teyidi</h2>
+                <p style="color: #64748b; font-size: 13.5px; margin-bottom: 26px; font-weight: 500; line-height: 1.4;">Lütfen erişim sağlamak için güvenlik şifrenizi girin</p>
                 
-                <div id="otp-container" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
-                    ${[0, 1, 2, 3, 4, 5].map(i => `<input type="text" maxlength="1" inputmode="numeric" class="otp-box" data-index="${i}" autocomplete="off" style="width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 12px; outline: none; background: #f8fafc; color: #0f172a; transition: all 0.2s ease;">`).join('')}
+                <div style="position: relative; margin-bottom: 18px;">
+                    <div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; transition: color 0.2s;" id="lock-icon">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <input type="password" id="sec-password" placeholder="Şifrenizi yazın..." autocomplete="current-password" style="width: 100%; box-sizing: border-box; padding: 15px 46px 15px 44px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 15px; font-weight: 600; color: #0f172a; outline: none; background: #f8fafc; transition: all 0.25s ease;">
+                    
+                    <div id="toggle-password" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; cursor: pointer; transition: color 0.2s;" title="Şifreyi Göster/Gizle">
+                        <i class="fa-solid fa-eye" id="eye-icon"></i>
+                    </div>
                 </div>
-                
-                <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: 0 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease;">❌ Yanlış təsdiq kodu!</p>
-                <button id="sec-submit" style="width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);">Sistemə Daxil Ol</button>
+
+                <div id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: -6px 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease; text-align: left; padding-left: 4px;">
+                    <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Hatalı şifre! Lütfen tekrar deneyin.
+                </div>
+
+                <button id="sec-submit" style="width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border: none; padding: 15px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>Sisteme Giriş Yap</span>
+                    <i class="fa-solid fa-arrow-right" style="font-size: 14px; transition: transform 0.2s;"></i>
+                </button>
             </div>
 
             <style>
-                /* Animasiya Qaydaları */
                 @keyframes cardPopIn {
-                    0% { opacity: 0; transform: scale(0.85) translateY(20px); }
+                    0% { opacity: 0; transform: scale(0.88) translateY(24px); }
                     100% { opacity: 1; transform: scale(1) translateY(0); }
                 }
 
-                @keyframes shakeError {
+                @keyframes cardShake {
                     0%, 100% { transform: translateX(0); }
-                    15%, 45%, 75% { transform: translateX(-8px); }
-                    30%, 60%, 90% { transform: translateX(8px); }
+                    15%, 45%, 75% { transform: translateX(-9px); }
+                    30%, 60%, 90% { transform: translateX(9px); }
                 }
 
-                @keyframes successPulse {
+                @keyframes successGlow {
                     0% { transform: scale(1); }
-                    50% { transform: scale(1.04); }
+                    50% { transform: scale(1.02); }
                     100% { transform: scale(1); }
                 }
 
-                .otp-box:focus {
+                #sec-password:focus {
                     border-color: #3b82f6 !important;
                     background: #ffffff !important;
-                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18) !important;
-                    transform: translateY(-2px);
+                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important;
                 }
 
-                .otp-box.error-state {
+                #sec-password.error-border {
                     border-color: #ef4444 !important;
                     background: #fef2f2 !important;
-                    color: #b91c1c !important;
                     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
                 }
 
-                .otp-box.success-state {
+                #sec-password.success-border {
                     border-color: #10b981 !important;
                     background: #ecfdf5 !important;
-                    color: #047857 !important;
                     box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important;
                 }
 
                 #sec-submit:hover {
                     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+                    box-shadow: 0 14px 26px -4px rgba(15, 23, 42, 0.4);
                     transform: translateY(-1px);
-                    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
+                }
+
+                #sec-submit:hover i {
+                    transform: translateX(4px);
                 }
 
                 #sec-submit:active {
@@ -80,104 +95,82 @@ if (!document.documentElement.classList.contains('w-editor')) {
         document.body.appendChild(overlay);
         
         const card = document.getElementById('security-card');
-        const boxes = document.querySelectorAll('.otp-box');
+        const input = document.getElementById('sec-password');
         const btn = document.getElementById('sec-submit');
         const error = document.getElementById('sec-error');
-        
-        // Input Hadisələri
-        boxes.forEach((box, idx) => {
-            box.addEventListener('input', (e) => {
-                box.value = box.value.replace(/[^0-9]/g, ''); // Yalnız rəqəm
-                clearErrorState();
-                
-                if (box.value.length === 1 && idx < boxes.length - 1) {
-                    boxes[idx + 1].focus();
-                }
-                
-                // Bütün xanalar dolduqda avtomatik yoxla
-                let allFilled = Array.from(boxes).every(b => b.value.length === 1);
-                if (allFilled) {
-                    checkPassword();
-                }
-            });
-            
-            box.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && box.value === '' && idx > 0) {
-                    boxes[idx - 1].focus();
-                }
-                if (e.key === 'Enter') {
-                    checkPassword();
-                }
-            });
-            
-            box.addEventListener('paste', (e) => {
-                e.preventDefault();
-                clearErrorState();
-                const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
-                
-                if (pasteData) {
-                    for (let i = 0; i < boxes.length; i++) {
-                        if (pasteData[i]) {
-                            boxes[i].value = pasteData[i];
-                            if (i < boxes.length - 1) boxes[i + 1].focus();
-                        }
-                    }
-                    if (pasteData.length >= 6) {
-                        checkPassword();
-                    }
-                }
-            });
+        const toggleBtn = document.getElementById('toggle-password');
+        const eyeIcon = document.getElementById('eye-icon');
+        const lockIcon = document.getElementById('lock-icon');
+
+        // Şifre Göster / Gizle
+        toggleBtn.addEventListener('click', () => {
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.className = 'fa-solid fa-eye-slash';
+                eyeIcon.style.color = '#3b82f6';
+            } else {
+                input.type = 'password';
+                eyeIcon.className = 'fa-solid fa-eye';
+                eyeIcon.style.color = '#94a3b8';
+            }
         });
 
-        function clearErrorState() {
-            error.style.opacity = '0';
-            setTimeout(() => error.style.display = 'none', 200);
-            boxes.forEach(b => b.classList.remove('error-state'));
-        }
+        // Input Odaklanma Efekti
+        input.addEventListener('focus', () => {
+            lockIcon.style.color = '#3b82f6';
+        });
 
-        function triggerErrorAnimation() {
-            error.style.display = 'block';
-            setTimeout(() => error.style.opacity = '1', 10);
-            
-            boxes.forEach(b => {
-                b.classList.add('error-state');
-                b.value = '';
-            });
+        input.addEventListener('blur', () => {
+            lockIcon.style.color = '#94a3b8';
+        });
 
-            // Şəkilli Shake animasiyası
-            card.style.animation = 'none';
-            card.offsetHeight; // Reflow reset
-            card.style.animation = 'shakeError 0.45s ease-in-out';
+        input.addEventListener('input', () => {
+            if (input.classList.contains('error-border')) {
+                input.classList.remove('error-border');
+                error.style.opacity = '0';
+                setTimeout(() => error.style.display = 'none', 180);
+            }
+        });
 
-            boxes[0].focus();
-        }
-
-        function triggerSuccessAnimation() {
-            boxes.forEach(b => b.classList.add('success-state'));
-            card.style.animation = 'successPulse 0.4s ease-in-out';
-            
-            setTimeout(() => {
-                overlay.style.opacity = '0';
-                document.body.style.overflow = '';
-                setTimeout(() => overlay.remove(), 400);
-            }, 450);
-        }
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkPassword();
+        });
 
         function checkPassword() {
-            let entered = Array.from(boxes).map(b => b.value).join('');
-            if (entered === DOGRU_SIFRE) {
-                triggerSuccessAnimation();
+            if (input.value === DOGRU_SIFRE) {
+                // Başarı Durumu
+                input.classList.remove('error-border');
+                input.classList.add('success-border');
+                card.style.animation = 'successGlow 0.35s ease-in-out';
+                
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    document.body.style.overflow = '';
+                    setTimeout(() => overlay.remove(), 400);
+                }, 350);
             } else {
-                triggerErrorAnimation();
+                // Hata Durumu
+                error.style.display = 'block';
+                setTimeout(() => error.style.opacity = '1', 10);
+                input.classList.add('error-border');
+                input.value = '';
+                input.focus();
+
+                // Kart Titreme Animasyonu
+                card.style.animation = 'none';
+                card.offsetHeight; // Reflow reset
+                card.style.animation = 'cardShake 0.45s ease-in-out';
             }
         }
-
-        btn.addEventListener('click', checkPassword);
         
-        // Açılanda 1-ci xanaya fokuslan
-        setTimeout(() => boxes[0].focus(), 150);
+        btn.addEventListener('click', checkPassword);
+        setTimeout(() => input.focus(), 150);
     })();
 }
+
+
+
+//Proqramin esas hissesi burdan baslayir
 document.addEventListener("DOMContentLoaded", function() {
     const style = document.createElement('style');
     style.innerHTML = `
