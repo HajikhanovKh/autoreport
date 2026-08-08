@@ -1,7 +1,9 @@
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        // HƏRF, RƏQƏM VƏ SİMVOL İÇƏRƏN ŞİFRƏ
         const DOGRU_SIFRE = "Analog*+2026+*"; 
+        const ADMIN_SIFRE = "Admin*+2026+*";
+        const API_URL = "https://autoreport-production.up.railway.app";
+        
         document.body.style.overflow = 'hidden';
         
         const overlay = document.createElement('div');
@@ -9,17 +11,16 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);";
         
         overlay.innerHTML = `
-            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 0 0 40px 0; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 440px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
+            <div id="security-card" style="background: rgba(255, 255, 255, 0.96); padding: 48px 36px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 460px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
                 
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6); z-index: 3;"></div>
-
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
                 <div style="width: 100%; margin-bottom: 24px; position: relative; z-index: 2; overflow: hidden; border-top-left-radius: 28px; border-top-right-radius: 28px;">
-                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
+                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
                 </div>
                 
-                <div style="padding: 0 40px;">
+                <div style="padding: 0 20px;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
                     <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 28px; font-weight: 500; line-height: 1.5; transition: opacity 0.3s ease;">Sistemə daxil olmaq üçün təhlükəsizlik şifrənizi yazın</p>
                     
@@ -45,57 +46,43 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 </div>
             </div>
 
+            <div id="admin-panel" style="display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; background:#f1f5f9; z-index: 99999999; overflow-y: auto; padding: 40px 20px;">
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; background:white; padding:20px 30px; border-radius:16px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                        <h1 style="margin:0; font-size:24px; color:#0f172a; font-weight:800; display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-shield-halved" style="color:#3b82f6;"></i> Təhlükəsizlik Auditi - Giriş Tarixçəsi
+                        </h1>
+                        <button id="close-admin-btn" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px;"><i class="fa-solid fa-right-from-bracket"></i> Çıxış Et</button>
+                    </div>
+                    <div id="admin-logs-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+                        <h3 style="grid-column: 1 / -1; text-align:center; color:#64748b; margin-top:50px;"><i class="fa-solid fa-spinner fa-spin"></i> Məlumatlar çəkilir...</h3>
+                    </div>
+                </div>
+            </div>
+
             <style>
-                @keyframes cardPopIn {
-                    0% { opacity: 0; transform: scale(0.85) translateY(30px); }
-                    100% { opacity: 1; transform: scale(1) translateY(0); }
-                }
-                @keyframes cardShake {
-                    0%, 100% { transform: translateX(0); }
-                    15%, 45%, 75% { transform: translateX(-10px); }
-                    30%, 60%, 90% { transform: translateX(10px); }
-                }
-                @keyframes successScale {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.03); }
-                    100% { transform: scale(1); }
-                }
-                #sec-password:focus {
-                    border-color: #3b82f6 !important;
-                    background: #ffffff !important;
-                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important;
-                }
-                #sec-password.error-border {
-                    border-color: #ef4444 !important;
-                    background: #fef2f2 !important;
-                    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
-                    color: #b91c1c !important;
-                }
-                #sec-password.success-border {
-                    border-color: #10b981 !important;
-                    background: #ecfdf5 !important;
-                    color: #047857 !important;
-                    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important;
-                }
-                #sec-submit:hover:not(:disabled) {
-                    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-                    box-shadow: 0 14px 26px -4px rgba(15, 23, 42, 0.4);
-                    transform: translateY(-2px);
-                }
-                #sec-submit:hover:not(:disabled) i {
-                    transform: translateX(5px);
-                }
-                #sec-submit:active:not(:disabled) {
-                    transform: translateY(0);
-                }
-                .btn-loading {
-                    pointer-events: none;
-                    opacity: 0.85;
-                }
-                .btn-success {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-                    box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4) !important;
-                }
+                @keyframes cardPopIn { 0% { opacity: 0; transform: scale(0.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+                @keyframes cardShake { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(-10px); } 30%, 60%, 90% { transform: translateX(10px); } }
+                @keyframes successScale { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+                #sec-password:focus { border-color: #3b82f6 !important; background: #ffffff !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important; }
+                #sec-password.error-border { border-color: #ef4444 !important; background: #fef2f2 !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important; color: #b91c1c !important; }
+                #sec-password.success-border { border-color: #10b981 !important; background: #ecfdf5 !important; color: #047857 !important; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important; }
+                #sec-submit:hover:not(:disabled) { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); box-shadow: 0 14px 26px -4px rgba(15, 23, 42, 0.4); transform: translateY(-2px); }
+                #sec-submit:hover:not(:disabled) i { transform: translateX(5px); }
+                .btn-loading { pointer-events: none; opacity: 0.85; }
+                .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4) !important; }
+                
+                /* Admin Card Styles */
+                .log-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display:flex; flex-direction:column; gap:12px; transition: 0.2s;}
+                .log-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); border-color:#cbd5e1;}
+                .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 5px;}
+                .log-time { font-size: 12px; font-weight: 700; color: #475569; display:flex; align-items:center; gap:6px;}
+                .log-status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px;}
+                .status-success { background: #dcfce7; color: #059669; }
+                .status-failed { background: #fee2e2; color: #dc2626; }
+                .status-admin { background: #e0e7ff; color: #4f46e5; }
+                .log-detail { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #334155; font-weight: 500;}
+                .log-detail i { color: #94a3b8; width: 16px; text-align: center; }
             </style>
         `;
         document.body.appendChild(overlay);
@@ -113,111 +100,182 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const secDesc = document.getElementById('sec-desc');
         const successGlow = document.getElementById('success-glow');
         const brandLogo = document.getElementById('brand-logo');
+        const adminPanel = document.getElementById('admin-panel');
 
-        // Şifrəni Göstər / Gizlət
         toggleBtn.addEventListener('click', () => {
-            if (input.type === 'password') {
-                input.type = 'text';
-                eyeIcon.className = 'fa-solid fa-eye-slash';
-                eyeIcon.style.color = '#3b82f6';
-            } else {
-                input.type = 'password';
-                eyeIcon.className = 'fa-solid fa-eye';
-                eyeIcon.style.color = '#94a3b8';
-            }
+            if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#3b82f6'; } 
+            else { input.type = 'password'; eyeIcon.className = 'fa-solid fa-eye'; eyeIcon.style.color = '#94a3b8'; }
         });
 
-        // Focus & Blur Rəng Effektləri
-        input.addEventListener('focus', () => {
-            lockIcon.style.color = '#3b82f6';
-        });
-        input.addEventListener('blur', () => {
-            if(!input.classList.contains('success-border') && !input.classList.contains('error-border')){
-               lockIcon.style.color = '#94a3b8';
-            }
-        });
-
-        // Xəta halında yazmağa başlayanda xətanı sil
+        input.addEventListener('focus', () => { lockIcon.style.color = '#3b82f6'; });
+        input.addEventListener('blur', () => { if(!input.classList.contains('success-border') && !input.classList.contains('error-border')) lockIcon.style.color = '#94a3b8'; });
         input.addEventListener('input', () => {
             if (input.classList.contains('error-border')) {
-                input.classList.remove('error-border');
-                error.style.opacity = '0';
-                setTimeout(() => error.style.display = 'none', 200);
-                lockIcon.style.color = '#3b82f6';
+                input.classList.remove('error-border'); error.style.opacity = '0'; setTimeout(() => error.style.display = 'none', 200); lockIcon.style.color = '#3b82f6';
             }
         });
-
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') startVerification();
-        });
+        input.addEventListener('keypress', function(e) { if (e.key === 'Enter') startVerification(); });
         btn.addEventListener('click', startVerification);
 
-        function startVerification() {
+        // --- IP VƏ CİHAZ MƏLUMATLARINI TOPLAYAN FUNKSİYA ---
+        async function logAttempt(statusMsg) {
+            try {
+                // Pulsuz IP xidmətindən data çəkirik
+                let ipRes = await fetch('https://ipapi.co/json/').catch(() => null);
+                let ipData = ipRes ? await ipRes.json() : {};
+
+                // Cihaz və Brauzer məlumatlarını Parse edirik
+                const ua = navigator.userAgent;
+                let browser = "Naməlum", os = "Naməlum", device = "Desktop";
+                if (/Mobi|Android/i.test(ua)) device = "Mobil Telefon";
+                if (/Tablet|iPad/i.test(ua)) device = "Planşet";
+                
+                if (/Windows/i.test(ua)) os = "Windows";
+                else if (/Mac/i.test(ua)) os = "MacOS";
+                else if (/Linux/i.test(ua)) os = "Linux";
+                else if (/Android/i.test(ua)) os = "Android";
+                else if (/iOS|iPhone|iPad/i.test(ua)) os = "iOS";
+
+                if (/Chrome/i.test(ua) && !/Edge|OPR/i.test(ua)) browser = "Chrome";
+                else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
+                else if (/Firefox/i.test(ua)) browser = "Firefox";
+                else if (/Edge|Edg/i.test(ua)) browser = "Edge";
+
+                const logData = {
+                    ip_address: ipData.ip || "Naməlum IP",
+                    location: (ipData.city && ipData.country_name) ? `${ipData.city}, ${ipData.country_name}` : "Naməlum Məkan",
+                    isp: ipData.org || "Naməlum Provayder",
+                    os_name: os,
+                    browser_name: browser,
+                    device_type: device,
+                    status: statusMsg
+                };
+
+                // Backend-ə POST sorğusu
+                await fetch(`${API_URL}/api/login-logs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(logData)
+                });
+            } catch (err) {
+                console.log("Log xətası: ", err); // Sistem işləməyə davam edəcək
+            }
+        }
+
+        async function startVerification() {
             if(input.value.trim() === "") return;
             
-            // Yöklənir (Doğrulanır) Simulyasiyası
             input.disabled = true;
             btn.classList.add('btn-loading');
             btnText.innerText = 'Yoxlanılır...';
             btnIcon.className = 'fa-solid fa-circle-notch fa-spin';
             
-            setTimeout(() => {
-                checkPassword();
+            const enteredPass = input.value;
+
+            // Bazaya log göndərənə qədər azca gözləmə və yoxlama animasiyası
+            setTimeout(async () => {
+                if (enteredPass === DOGRU_SIFRE) {
+                    await logAttempt("Uğurlu Giriş (Sistem)");
+                    handleSuccess("Giriş Uğurludur", "Giriş Təsdiqləndi");
+                } 
+                else if (enteredPass === ADMIN_SIFRE) {
+                    await logAttempt("Uğurlu Giriş (Admin)");
+                    openAdminPanel(); // Admin panelini aç
+                }
+                else {
+                    await logAttempt("Xətalı Şifrə Cəhdi");
+                    handleError();
+                }
             }, 800); 
         }
 
-        function checkPassword() {
-            input.disabled = false;
-            btn.classList.remove('btn-loading');
+        function handleSuccess(btnMessage, titleMessage) {
+            input.disabled = false; btn.classList.remove('btn-loading');
+            input.classList.remove('error-border'); input.classList.add('success-border');
+            lockIcon.style.color = '#10b981';
+            
+            btn.classList.add('btn-success'); btnText.innerText = btnMessage;
+            btnIcon.className = 'fa-solid fa-check'; btnIcon.style.transform = 'scale(1.2)';
 
-            if (input.value === DOGRU_SIFRE) {
-                // --- UĞURLU GİRİŞ ---
-                input.classList.remove('error-border');
-                input.classList.add('success-border');
-                lockIcon.style.color = '#10b981';
-                
-                btn.classList.add('btn-success');
-                btnText.innerText = 'Giriş Uğurludur';
-                btnIcon.className = 'fa-solid fa-check';
-                btnIcon.style.transform = 'scale(1.2)';
+            secTitle.innerText = titleMessage; secTitle.style.color = '#10b981';
+            secDesc.style.opacity = '0'; successGlow.style.transform = 'translate(-50%, -50%) scale(2.5)';
+            brandLogo.style.transform = 'scale(1.03)'; card.style.animation = 'successScale 0.6s ease-out';
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0'; overlay.style.transform = 'scale(1.05)';
+                document.body.style.overflow = ''; setTimeout(() => overlay.remove(), 600);
+            }, 2000);
+        }
 
-                secTitle.innerText = "Kimlik Doğrulandı";
-                secTitle.style.color = '#10b981';
-                secDesc.style.opacity = '0';
-                successGlow.style.transform = 'translate(-50%, -50%) scale(2.5)';
-                brandLogo.style.transform = 'scale(1.03)';
-                card.style.animation = 'successScale 0.6s ease-out';
-                
-                setTimeout(() => {
-                    overlay.style.opacity = '0';
-                    overlay.style.transform = 'scale(1.05)';
-                    document.body.style.overflow = '';
-                    setTimeout(() => overlay.remove(), 600);
-                }, 2000);
-                
-            } else {
-                // --- XƏTALI GİRİŞ ---
-                btnText.innerText = 'Sistemə Daxil Ol';
-                btnIcon.className = 'fa-solid fa-arrow-right';
-                
-                error.style.display = 'block';
-                setTimeout(() => error.style.opacity = '1', 10);
-                input.classList.add('error-border');
-                lockIcon.style.color = '#ef4444';
-                
-                input.value = '';
-                input.focus();
+        function handleError() {
+            input.disabled = false; btn.classList.remove('btn-loading');
+            btnText.innerText = 'Sistemə Daxil Ol'; btnIcon.className = 'fa-solid fa-arrow-right';
+            
+            error.style.display = 'block'; setTimeout(() => error.style.opacity = '1', 10);
+            input.classList.add('error-border'); lockIcon.style.color = '#ef4444';
+            
+            input.value = ''; input.focus();
+            card.style.animation = 'none'; card.offsetHeight; card.style.animation = 'cardShake 0.45s ease-in-out';
+        }
 
-                card.style.animation = 'none';
-                card.offsetHeight;
-                card.style.animation = 'cardShake 0.45s ease-in-out';
+        // ==========================================
+        // ADMIN PANELİ FUNKSİYALARI
+        // ==========================================
+        async function openAdminPanel() {
+            input.disabled = false; btn.classList.remove('btn-loading');
+            overlay.style.background = '#f1f5f9'; // Qaranlıq fonu ağart
+            card.style.display = 'none'; // Şifrə kartını gizlət
+            adminPanel.style.display = 'block'; // Admin paneli göstər
+            
+            const grid = document.getElementById('admin-logs-grid');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/login-logs`);
+                const logs = await res.json();
+                
+                grid.innerHTML = ''; // Yüklənir mesajını sil
+                
+                if(logs.length === 0) {
+                    grid.innerHTML = '<h3 style="grid-column:1/-1; text-align:center; color:#64748b; margin-top:50px;">Bazada heç bir giriş qeydi yoxdur.</h3>';
+                    return;
+                }
+
+                logs.forEach(log => {
+                    const dateObj = new Date(log.login_time);
+                    const formattedDate = dateObj.toLocaleString('az-AZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                    
+                    let statusClass = "status-failed";
+                    let statusText = "Xətalı";
+                    if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
+                    if(log.status.includes('Admin')) { statusClass = 'status-admin'; statusText = 'Uğurlu (Admin)'; }
+
+                    grid.innerHTML += `
+                        <div class="log-card">
+                            <div class="log-header">
+                                <div class="log-time"><i class="fa-regular fa-clock"></i> ${formattedDate}</div>
+                                <div class="log-status ${statusClass}">${statusText}</div>
+                            </div>
+                            <div class="log-detail"><i class="fa-solid fa-earth-americas"></i> <span><strong>IP:</strong> ${log.ip_address}</span></div>
+                            <div class="log-detail"><i class="fa-solid fa-location-dot"></i> <span><strong>Məkan:</strong> ${log.location}</span></div>
+                            <div class="log-detail"><i class="fa-solid fa-wifi"></i> <span><strong>Şəbəkə:</strong> ${log.isp}</span></div>
+                            <div class="log-detail"><i class="fa-solid fa-laptop-code"></i> <span><strong>Sistem:</strong> ${log.os_name} / ${log.browser_name}</span></div>
+                            <div class="log-detail"><i class="fa-solid fa-mobile-screen"></i> <span><strong>Cihaz:</strong> ${log.device_type}</span></div>
+                        </div>
+                    `;
+                });
+
+            } catch(e) {
+                grid.innerHTML = `<h3 style="grid-column:1/-1; text-align:center; color:#ef4444; margin-top:50px;">Server xətası: ${e.message}</h3>`;
             }
         }
-        
+
+        document.getElementById('close-admin-btn').addEventListener('click', () => {
+            window.location.reload(); // Çıxış edəndə səhifəni tam yenilə ki, şifrə ekranı təzədən gəlsin
+        });
+
         setTimeout(() => input.focus(), 150);
     })();
 }
-
 
 
 //Proqramin esas hissesi burdan baslayir
