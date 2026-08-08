@@ -1,96 +1,183 @@
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        // YENİ OTP ŞİFRƏSİ (6 RƏQƏMLİ)
+        // TƏHLÜKƏSİZLİK ŞİFRƏSİ (6 RƏQƏMLİ PİN)
         const DOGRU_SIFRE = "202626"; 
         document.body.style.overflow = 'hidden';
         
         const overlay = document.createElement('div');
         overlay.id = "security-overlay";
-        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center;";
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: opacity 0.4s ease;";
         
         overlay.innerHTML = `
-            <div style="background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; width: 100%; max-width: 420px; animation: popIn 0.3s ease-out;">
+            <div id="security-card" style="background: #ffffff; padding: 40px 32px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); text-align: center; width: 100%; max-width: 420px; border: 1px solid rgba(226, 232, 240, 0.8); animation: cardPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden;">
                 
-                <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block;">
-                
-                <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800;">Sistemə Təsdiq</h2>
-                <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Sistemə daxil olmaq üçün 6 rəqəmli təhlükəsizlik kodunu yazın.</p>
-                
-                <div id="otp-container" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;">
-                    ${[1, 2, 3, 4, 5, 6].map(() => `<input type="text" maxlength="1" class="otp-input" style="width: 48px; height: 58px; text-align: center; font-size: 24px; font-weight: 700; border: 2px solid #cbd5e1; border-radius: 12px; outline: none; transition: all 0.2s; background: #f8fafc; color: #0f172a;">`).join('')}
+                <div style="margin-bottom: 20px;">
+                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 200px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
                 </div>
                 
-                <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin: 0 0 14px 0; display: none;">❌ Yanlış təsdiq kodu!</p>
-                <button id="sec-submit" style="width: 100%; background: #0f172a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;">Sistemə Daxil Ol</button>
+                <h2 style="margin: 0 0 6px 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">Giriş Təsdiqi</h2>
+                <p style="color: #64748b; font-size: 13.5px; margin-bottom: 24px; font-weight: 500;">Davam etmək üçün 6 rəqəmli PİN kodu daxil edin</p>
+                
+                <div id="otp-container" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
+                    ${[0, 1, 2, 3, 4, 5].map(i => `<input type="text" maxlength="1" inputmode="numeric" class="otp-box" data-index="${i}" autocomplete="off" style="width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 800; border: 2px solid #cbd5e1; border-radius: 12px; outline: none; background: #f8fafc; color: #0f172a; transition: all 0.2s ease;">`).join('')}
+                </div>
+                
+                <p id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: 0 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease;">❌ Yanlış təsdiq kodu!</p>
+                <button id="sec-submit" style="width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);">Sistemə Daxil Ol</button>
             </div>
+
             <style>
-                .otp-input:focus { border-color: #3b82f6 !important; background: #ffffff !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); transform: translateY(-2px); }
-                @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                /* Animasiya Qaydaları */
+                @keyframes cardPopIn {
+                    0% { opacity: 0; transform: scale(0.85) translateY(20px); }
+                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                }
+
+                @keyframes shakeError {
+                    0%, 100% { transform: translateX(0); }
+                    15%, 45%, 75% { transform: translateX(-8px); }
+                    30%, 60%, 90% { transform: translateX(8px); }
+                }
+
+                @keyframes successPulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.04); }
+                    100% { transform: scale(1); }
+                }
+
+                .otp-box:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18) !important;
+                    transform: translateY(-2px);
+                }
+
+                .otp-box.error-state {
+                    border-color: #ef4444 !important;
+                    background: #fef2f2 !important;
+                    color: #b91c1c !important;
+                    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+                }
+
+                .otp-box.success-state {
+                    border-color: #10b981 !important;
+                    background: #ecfdf5 !important;
+                    color: #047857 !important;
+                    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important;
+                }
+
+                #sec-submit:hover {
+                    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
+                }
+
+                #sec-submit:active {
+                    transform: translateY(0);
+                }
             </style>
         `;
         document.body.appendChild(overlay);
         
-        const inputs = document.querySelectorAll('.otp-input');
+        const card = document.getElementById('security-card');
+        const boxes = document.querySelectorAll('.otp-box');
         const btn = document.getElementById('sec-submit');
         const error = document.getElementById('sec-error');
         
-        // OTP Məntiqi (Avtomatik keçid, silmə və kopyalama)
-        inputs.forEach((input, index) => {
-            // Rəqəm yazdıqda avtomatik növbəti xanaya keç
-            input.addEventListener('input', (e) => {
-                input.value = input.value.replace(/[^0-9]/g, ''); // Yalnız rəqəmə icazə ver
-                if (input.value.length === 1 && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
+        // Input Hadisələri
+        boxes.forEach((box, idx) => {
+            box.addEventListener('input', (e) => {
+                box.value = box.value.replace(/[^0-9]/g, ''); // Yalnız rəqəm
+                clearErrorState();
+                
+                if (box.value.length === 1 && idx < boxes.length - 1) {
+                    boxes[idx + 1].focus();
                 }
-                error.style.display = 'none';
+                
+                // Bütün xanalar dolduqda avtomatik yoxla
+                let allFilled = Array.from(boxes).every(b => b.value.length === 1);
+                if (allFilled) {
+                    checkPassword();
+                }
             });
             
-            // Siləndə avtomatik əvvəlki xanaya keç və ya Enter basanda təsdiqlə
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && input.value === '' && index > 0) {
-                    inputs[index - 1].focus();
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && box.value === '' && idx > 0) {
+                    boxes[idx - 1].focus();
                 }
-                if (e.key === 'Enter') checkPassword();
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
             });
             
-            // Kopyalayıb yapışdırdıqda (Paste) kodları xanalara böl
-            input.addEventListener('paste', (e) => {
+            box.addEventListener('paste', (e) => {
                 e.preventDefault();
-                const pastedData = e.clipboardData.getData('text').slice(0, inputs.length).replace(/[^0-9]/g, '');
-                for (let i = 0; i < pastedData.length; i++) {
-                    inputs[i].value = pastedData[i];
-                    if (i < inputs.length - 1) inputs[i + 1].focus();
+                clearErrorState();
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
+                
+                if (pasteData) {
+                    for (let i = 0; i < boxes.length; i++) {
+                        if (pasteData[i]) {
+                            boxes[i].value = pasteData[i];
+                            if (i < boxes.length - 1) boxes[i + 1].focus();
+                        }
+                    }
+                    if (pasteData.length >= 6) {
+                        checkPassword();
+                    }
                 }
             });
         });
-        
-        function checkPassword() {
-            let enteredCode = "";
-            inputs.forEach(input => enteredCode += input.value);
+
+        function clearErrorState() {
+            error.style.opacity = '0';
+            setTimeout(() => error.style.display = 'none', 200);
+            boxes.forEach(b => b.classList.remove('error-state'));
+        }
+
+        function triggerErrorAnimation() {
+            error.style.display = 'block';
+            setTimeout(() => error.style.opacity = '1', 10);
             
-            if (enteredCode === DOGRU_SIFRE) {
+            boxes.forEach(b => {
+                b.classList.add('error-state');
+                b.value = '';
+            });
+
+            // Şəkilli Shake animasiyası
+            card.style.animation = 'none';
+            card.offsetHeight; // Reflow reset
+            card.style.animation = 'shakeError 0.45s ease-in-out';
+
+            boxes[0].focus();
+        }
+
+        function triggerSuccessAnimation() {
+            boxes.forEach(b => b.classList.add('success-state'));
+            card.style.animation = 'successPulse 0.4s ease-in-out';
+            
+            setTimeout(() => {
                 overlay.style.opacity = '0';
-                overlay.style.transition = 'opacity 0.4s ease';
                 document.body.style.overflow = '';
                 setTimeout(() => overlay.remove(), 400);
+            }, 450);
+        }
+
+        function checkPassword() {
+            let entered = Array.from(boxes).map(b => b.value).join('');
+            if (entered === DOGRU_SIFRE) {
+                triggerSuccessAnimation();
             } else {
-                error.style.display = 'block';
-                inputs.forEach(input => {
-                    input.style.borderColor = '#ef4444';
-                    input.style.transform = 'translateY(0)';
-                    input.value = '';
-                });
-                inputs[0].focus(); // Səhv olanda yenidən birinci xanaya qaytarır
+                triggerErrorAnimation();
             }
         }
-        
+
         btn.addEventListener('click', checkPassword);
         
-        // Səhifə açılanda avtomatik 1-ci xanaya fokuslan
-        setTimeout(() => inputs[0].focus(), 100);
+        // Açılanda 1-ci xanaya fokuslan
+        setTimeout(() => boxes[0].focus(), 150);
     })();
 }
-
 document.addEventListener("DOMContentLoaded", function() {
     const style = document.createElement('style');
     style.innerHTML = `
