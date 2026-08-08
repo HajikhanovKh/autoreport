@@ -688,14 +688,44 @@ app.post('/api/generate-raports', async (req, res) => {
 // ==========================================
 // TƏHLÜKƏSİZLİK: GİRİŞ LOQLARINI YAZMAQ (POST)
 // ==========================================
+// Yaddaşda IP bloklamalarını saxlamaq üçün massiv (Server yenilənəndə təmizlənir)
+const blockedIps = {}; // { ip: { count: say, blockUntil: vaxt } }
+
 app.post('/api/login-logs', async (req, res) => {
     let connection;
     try {
         const { ip_address, location, isp, os_name, browser_name, device_type, status } = req.body;
+        
+        // IP Bloklama yoxlaması
+        const now = Date.now();
+        if (blockedIps[ip_address] && blockedIps[ip_address].blockUntil > now) {
+            return res.status(403).json({ error: "Bu IP ünvanından çox sayda yanlış cəhd edildiyi üçün bloklanıb." });
+        }
+
+        // Əgər status xətalı cəhddirsə, səhvləri sayaq
+        if (status && status.includes('Xətalı Şifrə')) {
+            if (!blockedIps[ip_address]) {
+                blockedIps[ip_address] = { count: 0, blockUntil: 0 };
+            }
+            blockedIps[ip_address].count += 1;
+
+            // 5-ci səhvindən sonra 15 dəqiqəlik blokla
+            if (blockedIps[ip_address].count >= 5) {
+                blockedIps[ip_address].blockUntil = now + (15 * 60 * 1000); // 15 dəqiqə
+                blockedIps[ip_address].count = 0; // sayğacı sıfırla
+            }
+        } else if (status && (status.includes('Uğurlu') || status.includes('Admin'))) {
+            // Doğru şifrə yazıldıqda həmin IP-nin səhv sayğacını təmizlə
+            if (blockedIps[ip_address]) {
+                delete blockedIps[ip_address];
+            }
+        }
+
         connection = await mysql.createConnection(dbConfig);
         const query = `INSERT INTO login_logs (ip_address, location, isp, os_name, browser_name, device_type, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
         await connection.execute(query, [ip_address, location, isp, os_name, browser_name, device_type, status]);
-        res.json({ success: true });
+        
+        res.json({ success: true, blocked: blockedIps[ip_address] ? blockedIps[ip_address].count : 0 });
     } catch (error) {
         console.error("Loq yazma xətası:", error);
         res.status(500).json({ error: error.message });
@@ -704,14 +734,10 @@ app.post('/api/login-logs', async (req, res) => {
     }
 });
 
-// ==========================================
-// TƏHLÜKƏSİZLİK: ADMIN PANEL ÜÇÜN LOQLARI ÇƏKMƏK (GET)
-// ==========================================
 app.get('/api/login-logs', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        // Ən son 100 girişi tarixə görə azalan ardıcıllıqla çəkirik
         const [rows] = await connection.execute('SELECT * FROM login_logs ORDER BY login_time DESC LIMIT 100');
         res.json(rows);
     } catch (error) {
