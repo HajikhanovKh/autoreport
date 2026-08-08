@@ -1,6 +1,6 @@
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        // HARF, RƏQƏM VƏ SİMVOL İÇƏRƏN ŞİFRƏ
+        // HƏRF, RƏQƏM VƏ SİMVOL İÇƏRƏN ŞİFRƏ
         const DOGRU_SIFRE = "Analog*+2026+*"; 
         document.body.style.overflow = 'hidden';
         
@@ -9,38 +9,40 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);";
         
         overlay.innerHTML = `
-            <div id="security-card" style="background: rgba(255, 255, 255, 0.96); padding: 48px 36px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 460px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
+            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 0 0 40px 0; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 440px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
                 
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);"></div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6); z-index: 3;"></div>
 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <div style="margin-bottom: 24px; position: relative; z-index: 2; padding: 0 10px;">
-                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 280px; max-width: 90%; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1)); transition: transform 0.5s ease;" id="brand-logo">
+                <div style="width: 100%; margin-bottom: 24px; position: relative; z-index: 2; overflow: hidden; border-top-left-radius: 28px; border-top-right-radius: 28px;">
+                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
                 </div>
                 
-                <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
-                <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 28px; font-weight: 500; line-height: 1.5; transition: opacity 0.3s ease;">Sistemə daxil olmaq üçün təhlükəsizlik şifrənizi yazın</p>
-                
-                <div style="position: relative; margin-bottom: 20px; z-index: 2;" id="input-container">
-                    <div style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; transition: color 0.2s;" id="lock-icon">
-                        <i class="fa-solid fa-lock"></i>
-                    </div>
-                    <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." autocomplete="current-password" style="width: 100%; box-sizing: border-box; padding: 16px 48px 16px 46px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 15px; font-weight: 600; color: #0f172a; outline: none; background: #f8fafc; transition: all 0.3s ease;">
+                <div style="padding: 0 40px;">
+                    <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
+                    <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 28px; font-weight: 500; line-height: 1.5; transition: opacity 0.3s ease;">Sistemə daxil olmaq üçün təhlükəsizlik şifrənizi yazın</p>
                     
-                    <div id="toggle-password" style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; cursor: pointer; transition: color 0.2s;" title="Şifrəni Göstər/Gizlət">
-                        <i class="fa-solid fa-eye" id="eye-icon"></i>
+                    <div style="position: relative; margin-bottom: 20px; z-index: 2;" id="input-container">
+                        <div style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; transition: color 0.2s;" id="lock-icon">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <input type="password" id="sec-password" placeholder="Şifrəni daxil edin..." autocomplete="current-password" style="width: 100%; box-sizing: border-box; padding: 16px 48px 16px 46px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 15px; font-weight: 600; color: #0f172a; outline: none; background: #f8fafc; transition: all 0.3s ease;">
+                        
+                        <div id="toggle-password" style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; cursor: pointer; transition: color 0.2s;" title="Şifrəni Göstər/Gizlət">
+                            <i class="fa-solid fa-eye" id="eye-icon"></i>
+                        </div>
                     </div>
-                </div>
 
-                <div id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: -8px 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease; text-align: left; padding-left: 6px;">
-                    <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Yanlış şifrə! Zəhmət olmasa yenidən cəhd edin.
-                </div>
+                    <div id="sec-error" style="color: #ef4444; font-size: 13px; font-weight: 700; margin: -8px 0 16px 0; display: none; opacity: 0; transition: opacity 0.2s ease; text-align: left; padding-left: 6px;">
+                        <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Yanlış şifrə! Zəhmət olmasa yenidən cəhd edin.
+                    </div>
 
-                <button id="sec-submit" style="position: relative; z-index: 2; width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border: none; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; overflow: hidden;">
-                    <span id="btn-text">Sistemə Daxil Ol</span>
-                    <i class="fa-solid fa-arrow-right" id="btn-icon" style="font-size: 14px; transition: transform 0.2s;"></i>
-                </button>
+                    <button id="sec-submit" style="position: relative; z-index: 2; width: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border: none; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; overflow: hidden;">
+                        <span id="btn-text">Sistemə Daxil Ol</span>
+                        <i class="fa-solid fa-arrow-right" id="btn-icon" style="font-size: 14px; transition: transform 0.2s;"></i>
+                    </button>
+                </div>
             </div>
 
             <style>
@@ -153,7 +155,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
         function startVerification() {
             if(input.value.trim() === "") return;
             
-            // Yoxlanılır Simulyasiyası
+            // Yöklənir (Doğrulanır) Simulyasiyası
             input.disabled = true;
             btn.classList.add('btn-loading');
             btnText.innerText = 'Yoxlanılır...';
@@ -183,7 +185,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 secTitle.style.color = '#10b981';
                 secDesc.style.opacity = '0';
                 successGlow.style.transform = 'translate(-50%, -50%) scale(2.5)';
-                brandLogo.style.transform = 'scale(1.05)';
+                brandLogo.style.transform = 'scale(1.03)';
                 card.style.animation = 'successScale 0.6s ease-out';
                 
                 setTimeout(() => {
