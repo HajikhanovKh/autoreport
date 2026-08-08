@@ -16,7 +16,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
                 <div style="margin-bottom: 24px; position: relative; z-index: 2; padding: 0 10px;">
-                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 280px; max-width: 90%; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1)); transition: transform 0.5s ease;" id="brand-logo">
+                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 280px; max-width: 90%; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1)); transition: transform 0.5s ease;" id="brand-logo">
                 </div>
                 
                 <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
