@@ -1,6 +1,6 @@
 if (!document.documentElement.classList.contains('w-editor')) {
     (function() {
-        // HƏRF, RƏQƏM VƏ SİMVOL İÇƏRƏN ŞİFRƏ
+        // HARF, RƏQƏM VƏ SİMVOL İÇƏRƏN ŞİFRƏ
         const DOGRU_SIFRE = "Analog*+2026+*"; 
         document.body.style.overflow = 'hidden';
         
@@ -9,14 +9,14 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);";
         
         overlay.innerHTML = `
-            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 48px 40px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 440px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
+            <div id="security-card" style="background: rgba(255, 255, 255, 0.96); padding: 48px 36px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 460px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
                 
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);"></div>
 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <div style="margin-bottom: 24px; position: relative; z-index: 2;">
-                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 210px; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.08)); transition: transform 0.5s ease;" id="brand-logo">
+                <div style="margin-bottom: 24px; position: relative; z-index: 2; padding: 0 10px;">
+                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 280px; max-width: 90%; height: auto; margin: 0 auto; display: block; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1)); transition: transform 0.5s ease;" id="brand-logo">
                 </div>
                 
                 <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
@@ -153,13 +153,12 @@ if (!document.documentElement.classList.contains('w-editor')) {
         function startVerification() {
             if(input.value.trim() === "") return;
             
-            // Yüklənir (Doğrulanır) Simulyasiyası
+            // Yoxlanılır Simulyasiyası
             input.disabled = true;
             btn.classList.add('btn-loading');
             btnText.innerText = 'Yoxlanılır...';
             btnIcon.className = 'fa-solid fa-circle-notch fa-spin';
             
-            // 800 millisaniyə sonra şifrəni yoxla
             setTimeout(() => {
                 checkPassword();
             }, 800); 
@@ -175,21 +174,18 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 input.classList.add('success-border');
                 lockIcon.style.color = '#10b981';
                 
-                // Düymə Dəyişimi
                 btn.classList.add('btn-success');
                 btnText.innerText = 'Giriş Uğurludur';
                 btnIcon.className = 'fa-solid fa-check';
                 btnIcon.style.transform = 'scale(1.2)';
 
-                // Başlıq & Loqo Animasiyaları
-                secTitle.innerText = "Giriş Təsdiqləndi";
+                secTitle.innerText = "Kimlik Doğrulandı";
                 secTitle.style.color = '#10b981';
                 secDesc.style.opacity = '0';
                 successGlow.style.transform = 'translate(-50%, -50%) scale(2.5)';
                 brandLogo.style.transform = 'scale(1.05)';
                 card.style.animation = 'successScale 0.6s ease-out';
                 
-                // Pəncərənin yavaşca qapanması üçün 2 saniyə (2000ms) gözlə
                 setTimeout(() => {
                     overlay.style.opacity = '0';
                     overlay.style.transform = 'scale(1.05)';
@@ -210,9 +206,8 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 input.value = '';
                 input.focus();
 
-                // Titrəmə (Shake) Animasiyası
                 card.style.animation = 'none';
-                card.offsetHeight; // Reflow reset
+                card.offsetHeight;
                 card.style.animation = 'cardShake 0.45s ease-in-out';
             }
         }
