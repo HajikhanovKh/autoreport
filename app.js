@@ -10,17 +10,19 @@ if (!document.documentElement.classList.contains('w-editor')) {
         overlay.id = "security-overlay";
         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 9999999; display: flex; justify-content: center; align-items: center; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);";
         
+        // YENİ ANİMASYON: cardModernIn (Bulanıktan netliğe yumuşak geçiş)
         overlay.innerHTML = `
-            <div id="security-card" style="background: rgba(255, 255, 255, 0.96); padding: 48px 36px; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 460px; animation: cardPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; transform-origin: center;">
+            <div id="security-card" style="background: rgba(255, 255, 255, 0.95); padding: 0 0 40px 0; border-radius: 28px; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; text-align: center; width: 100%; max-width: 440px; animation: cardModernIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; transform-origin: center;">
                 
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6); z-index: 3;"></div>
+
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
                 <div style="width: 100%; margin-bottom: 24px; position: relative; z-index: 2; overflow: hidden; border-top-left-radius: 28px; border-top-right-radius: 28px;">
-                    <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
+                    <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ADGS Logo" style="width: 100%; height: auto; display: block; object-fit: cover; transition: transform 0.5s ease;" id="brand-logo">
                 </div>
                 
-                <div style="padding: 0 20px;">
+                <div style="padding: 0 40px;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; transition: color 0.3s ease;">Sistem Təhlükəsizlik Təsdiqi</h2>
                     <p id="sec-desc" style="color: #64748b; font-size: 14px; margin-bottom: 28px; font-weight: 500; line-height: 1.5; transition: opacity 0.3s ease;">Sistemə daxil olmaq üçün təhlükəsizlik şifrənizi yazın</p>
                     
@@ -46,41 +48,69 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 </div>
             </div>
 
-            <div id="admin-panel" style="display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; background:#f1f5f9; z-index: 99999999; overflow-y: auto; padding: 40px 20px;">
-                <div style="max-width: 1200px; margin: 0 auto;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; background:white; padding:20px 30px; border-radius:16px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div id="admin-panel" style="display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; background:#f8fafc; z-index: 99999999; overflow-y: auto; padding: 40px 20px;">
+                <div style="max-width: 1300px; margin: 0 auto;">
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; background:white; padding:20px 30px; border-radius:16px; box-shadow:0 4px 10px -2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
                         <h1 style="margin:0; font-size:24px; color:#0f172a; font-weight:800; display:flex; align-items:center; gap:12px;">
                             <i class="fa-solid fa-shield-halved" style="color:#3b82f6;"></i> Təhlükəsizlik Auditi - Giriş Tarixçəsi
                         </h1>
-                        <button id="close-admin-btn" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px;"><i class="fa-solid fa-right-from-bracket"></i> Çıxış Et</button>
+                        <div style="display: flex; gap: 15px;">
+                            <button id="refresh-admin-btn" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:10px 20px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px; transition: 0.2s;"><i class="fa-solid fa-rotate-right"></i> Yenilə</button>
+                            <button id="close-admin-btn" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px; transition: 0.2s;"><i class="fa-solid fa-right-from-bracket"></i> Çıxış Et</button>
+                        </div>
                     </div>
-                    <div id="admin-logs-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
-                        <h3 style="grid-column: 1 / -1; text-align:center; color:#64748b; margin-top:50px;"><i class="fa-solid fa-spinner fa-spin"></i> Məlumatlar çəkilir...</h3>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                        
+                        <div style="background: transparent;">
+                            <h2 style="font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
+                                <i class="fa-solid fa-desktop" style="color: #10b981;"></i> Sistem Girişləri & Xətalar
+                            </h2>
+                            <div id="system-logs-container" style="display: flex; flex-direction: column; gap: 15px;">
+                                </div>
+                        </div>
+
+                        <div style="background: transparent;">
+                            <h2 style="font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
+                                <i class="fa-solid fa-user-tie" style="color: #4f46e5;"></i> Admin Girişləri
+                            </h2>
+                            <div id="admin-logs-container" style="display: flex; flex-direction: column; gap: 15px;">
+                                </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
             <style>
-                @keyframes cardPopIn { 0% { opacity: 0; transform: scale(0.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+                /* Yeni Animasiya: Daha modern bulanıqlıq və kayma */
+                @keyframes cardModernIn { 
+                    0% { opacity: 0; filter: blur(12px); transform: translateY(-30px) scale(0.95); } 
+                    100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } 
+                }
                 @keyframes cardShake { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(-10px); } 30%, 60%, 90% { transform: translateX(10px); } }
                 @keyframes successScale { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+                
                 #sec-password:focus { border-color: #3b82f6 !important; background: #ffffff !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16) !important; }
                 #sec-password.error-border { border-color: #ef4444 !important; background: #fef2f2 !important; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important; color: #b91c1c !important; }
                 #sec-password.success-border { border-color: #10b981 !important; background: #ecfdf5 !important; color: #047857 !important; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18) !important; }
                 #sec-submit:hover:not(:disabled) { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); box-shadow: 0 14px 26px -4px rgba(15, 23, 42, 0.4); transform: translateY(-2px); }
                 #sec-submit:hover:not(:disabled) i { transform: translateX(5px); }
+                #refresh-admin-btn:hover { background: #e2e8f0; color: #0f172a; }
+                #close-admin-btn:hover { background: #dc2626; }
                 .btn-loading { pointer-events: none; opacity: 0.85; }
                 .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4) !important; }
                 
-                /* Admin Card Styles */
+                /* Admin Card Styles (Yukarıdan aşağı doğru sıralama mantığı) */
                 .log-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display:flex; flex-direction:column; gap:12px; transition: 0.2s;}
                 .log-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); border-color:#cbd5e1;}
                 .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 5px;}
-                .log-time { font-size: 12px; font-weight: 700; color: #475569; display:flex; align-items:center; gap:6px;}
-                .log-status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px;}
-                .status-success { background: #dcfce7; color: #059669; }
-                .status-failed { background: #fee2e2; color: #dc2626; }
-                .status-admin { background: #e0e7ff; color: #4f46e5; }
+                .log-time { font-size: 13px; font-weight: 700; color: #475569; display:flex; align-items:center; gap:6px;}
+                .log-status { font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 20px;}
+                .status-success { background: #dcfce7; color: #059669; border: 1px solid #a7f3d0; }
+                .status-failed { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+                .status-admin { background: #e0e7ff; color: #4f46e5; border: 1px solid #c7d2fe; }
                 .log-detail { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #334155; font-weight: 500;}
                 .log-detail i { color: #94a3b8; width: 16px; text-align: center; }
             </style>
@@ -117,14 +147,11 @@ if (!document.documentElement.classList.contains('w-editor')) {
         input.addEventListener('keypress', function(e) { if (e.key === 'Enter') startVerification(); });
         btn.addEventListener('click', startVerification);
 
-        // --- IP VƏ CİHAZ MƏLUMATLARINI TOPLAYAN FUNKSİYA ---
         async function logAttempt(statusMsg) {
             try {
-                // Pulsuz IP xidmətindən data çəkirik
                 let ipRes = await fetch('https://ipapi.co/json/').catch(() => null);
                 let ipData = ipRes ? await ipRes.json() : {};
 
-                // Cihaz və Brauzer məlumatlarını Parse edirik
                 const ua = navigator.userAgent;
                 let browser = "Naməlum", os = "Naməlum", device = "Desktop";
                 if (/Mobi|Android/i.test(ua)) device = "Mobil Telefon";
@@ -151,15 +178,12 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     status: statusMsg
                 };
 
-                // Backend-ə POST sorğusu
                 await fetch(`${API_URL}/api/login-logs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(logData)
                 });
-            } catch (err) {
-                console.log("Log xətası: ", err); // Sistem işləməyə davam edəcək
-            }
+            } catch (err) { console.log("Log xətası: ", err); }
         }
 
         async function startVerification() {
@@ -172,7 +196,6 @@ if (!document.documentElement.classList.contains('w-editor')) {
             
             const enteredPass = input.value;
 
-            // Bazaya log göndərənə qədər azca gözləmə və yoxlama animasiyası
             setTimeout(async () => {
                 if (enteredPass === DOGRU_SIFRE) {
                     await logAttempt("Uğurlu Giriş (Sistem)");
@@ -180,7 +203,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 } 
                 else if (enteredPass === ADMIN_SIFRE) {
                     await logAttempt("Uğurlu Giriş (Admin)");
-                    openAdminPanel(); // Admin panelini aç
+                    fetchAndShowAdminLogs(); // Admin panelini aç
                 }
                 else {
                     await logAttempt("Xətalı Şifrə Cəhdi");
@@ -219,26 +242,26 @@ if (!document.documentElement.classList.contains('w-editor')) {
         }
 
         // ==========================================
-        // ADMIN PANELİ FUNKSİYALARI
+        // ADMIN PANELİ FUNKSİYALARI (YENİLƏNMİŞ İKİ SÜTUNLU DİZAYN)
         // ==========================================
-        async function openAdminPanel() {
+        async function fetchAndShowAdminLogs() {
             input.disabled = false; btn.classList.remove('btn-loading');
-            overlay.style.background = '#f1f5f9'; // Qaranlıq fonu ağart
+            overlay.style.background = '#f8fafc'; // Qaranlıq fonu ağart
             card.style.display = 'none'; // Şifrə kartını gizlət
             adminPanel.style.display = 'block'; // Admin paneli göstər
             
-            const grid = document.getElementById('admin-logs-grid');
+            const sysContainer = document.getElementById('system-logs-container');
+            const admContainer = document.getElementById('admin-logs-container');
+            
+            sysContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Yüklənir...</div>';
+            admContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Yüklənir...</div>';
             
             try {
                 const res = await fetch(`${API_URL}/api/login-logs`);
                 const logs = await res.json();
                 
-                grid.innerHTML = ''; // Yüklənir mesajını sil
-                
-                if(logs.length === 0) {
-                    grid.innerHTML = '<h3 style="grid-column:1/-1; text-align:center; color:#64748b; margin-top:50px;">Bazada heç bir giriş qeydi yoxdur.</h3>';
-                    return;
-                }
+                let sysHtml = '';
+                let admHtml = '';
 
                 logs.forEach(log => {
                     const dateObj = new Date(log.login_time);
@@ -246,10 +269,12 @@ if (!document.documentElement.classList.contains('w-editor')) {
                     
                     let statusClass = "status-failed";
                     let statusText = "Xətalı";
-                    if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
-                    if(log.status.includes('Admin')) { statusClass = 'status-admin'; statusText = 'Uğurlu (Admin)'; }
+                    let isAdminLog = false;
 
-                    grid.innerHTML += `
+                    if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
+                    if(log.status.includes('Admin')) { statusClass = 'status-admin'; statusText = 'Uğurlu (Admin)'; isAdminLog = true; }
+
+                    const cardHtml = `
                         <div class="log-card">
                             <div class="log-header">
                                 <div class="log-time"><i class="fa-regular fa-clock"></i> ${formattedDate}</div>
@@ -262,15 +287,33 @@ if (!document.documentElement.classList.contains('w-editor')) {
                             <div class="log-detail"><i class="fa-solid fa-mobile-screen"></i> <span><strong>Cihaz:</strong> ${log.device_type}</span></div>
                         </div>
                     `;
+
+                    // Sol və Sağ sütunlara paylama
+                    if (isAdminLog) {
+                        admHtml += cardHtml;
+                    } else {
+                        sysHtml += cardHtml;
+                    }
                 });
 
+                // Boş olma ehtimalı
+                sysContainer.innerHTML = sysHtml !== '' ? sysHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Sistem qeydi tapılmadı.</div>';
+                admContainer.innerHTML = admHtml !== '' ? admHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Admin qeydi tapılmadı.</div>';
+
             } catch(e) {
-                grid.innerHTML = `<h3 style="grid-column:1/-1; text-align:center; color:#ef4444; margin-top:50px;">Server xətası: ${e.message}</h3>`;
+                sysContainer.innerHTML = `<div style="text-align:center; color:#ef4444; padding: 20px;">Xəta: ${e.message}</div>`;
+                admContainer.innerHTML = '';
             }
         }
 
+        // Yeniləmə Düyməsi
+        document.getElementById('refresh-admin-btn').addEventListener('click', () => {
+            fetchAndShowAdminLogs();
+        });
+
+        // Çıxış Düyməsi
         document.getElementById('close-admin-btn').addEventListener('click', () => {
-            window.location.reload(); // Çıxış edəndə səhifəni tam yenilə ki, şifrə ekranı təzədən gəlsin
+            window.location.reload(); 
         });
 
         setTimeout(() => input.focus(), 150);
