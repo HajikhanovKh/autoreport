@@ -15,7 +15,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 
                 <div id="success-glow" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0) 70%); transform: translate(-50%, -50%) scale(0); border-radius: 50%; pointer-events: none; transition: transform 0.8s ease-out;"></div>
 
-                <img src="https://cdn.prod.website-files.com/69e52bc19e7bf83560ac1e72/6a7638375cc166d634cde87f_ADS.jpg" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
+                <img src="BURAYA_LOQO_LINKINI_YAZIN" alt="ASGS Logo" style="width: 220px; height: auto; margin: 0 auto 24px auto; display: block; position: relative; z-index: 2; transition: transform 0.5s ease;" id="brand-logo">
                 
                 <div style="position: relative; z-index: 2;">
                     <h2 id="sec-title" style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 800; transition: color 0.3s ease;">ADG Sisteminə Giriş</h2>
@@ -56,37 +56,25 @@ if (!document.documentElement.classList.contains('w-editor')) {
                             <h2 style="font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
                                 <i class="fa-solid fa-desktop" style="color: #10b981;"></i> Sistem Girişləri & Xətalar
                             </h2>
-                            <div id="system-logs-container" style="display: flex; flex-direction: column; gap: 15px;">
-                                </div>
+                            <div id="system-logs-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
                         </div>
 
                         <div style="background: transparent;">
                             <h2 style="font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
                                 <i class="fa-solid fa-user-tie" style="color: #4f46e5;"></i> Admin Girişləri
                             </h2>
-                            <div id="admin-logs-container" style="display: flex; flex-direction: column; gap: 15px;">
-                                </div>
+                            <div id="admin-logs-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
                         </div>
 
+                        <div id="admin-pagination-container" style="grid-column: 1 / -1; display: flex; justify-content: center; gap: 8px; margin-top: 10px; padding: 20px 0;"></div>
                     </div>
                 </div>
             </div>
 
             <style>
-                @keyframes cardModernIn { 
-                    0% { opacity: 0; filter: blur(12px); transform: translateY(-30px) scale(0.95); } 
-                    100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } 
-                }
-                @keyframes cardShake { 
-                    0%, 100% { transform: translateX(0); } 
-                    15%, 45%, 75% { transform: translateX(-10px); } 
-                    30%, 60%, 90% { transform: translateX(10px); } 
-                }
-                @keyframes successScale { 
-                    0% { transform: scale(1); } 
-                    50% { transform: scale(1.03); } 
-                    100% { transform: scale(1); } 
-                }
+                @keyframes cardModernIn { 0% { opacity: 0; filter: blur(12px); transform: translateY(-30px) scale(0.95); } 100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
+                @keyframes cardShake { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(-10px); } 30%, 60%, 90% { transform: translateX(10px); } }
+                @keyframes successScale { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
                 
                 #sec-password:focus { border-color: #0f172a !important; box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important; }
                 #sec-password.error-border { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
@@ -107,6 +95,11 @@ if (!document.documentElement.classList.contains('w-editor')) {
                 .status-admin { background: #e0e7ff; color: #4f46e5; border: 1px solid #c7d2fe; }
                 .log-detail { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #334155; font-weight: 500;}
                 .log-detail i { color: #94a3b8; width: 16px; text-align: center; }
+
+                /* Pagination Button Styles */
+                .page-btn { background: white; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; color: #475569; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+                .page-btn:hover { background: #f1f5f9; border-color: #94a3b8;}
+                .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);}
             </style>
         `;
         document.body.appendChild(overlay);
@@ -123,6 +116,11 @@ if (!document.documentElement.classList.contains('w-editor')) {
         const successGlow = document.getElementById('success-glow');
         const brandLogo = document.getElementById('brand-logo');
         const adminPanel = document.getElementById('admin-panel');
+
+        // Paginasiya üçün qlobal dəyişənlər
+        let allAdminLogs = [];
+        let currentAdminPage = 1;
+        const adminLogsPerPage = 30; // Hər səhifədə görünəcək maksimum log sayı
 
         toggleBtn.addEventListener('click', () => {
             if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#0f172a'; } 
@@ -229,7 +227,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
         }
 
         // ==========================================
-        // ADMIN PANELİ FUNKSİYALARI (YENİLƏNMİŞ İKİ SÜTUNLU DİZAYN)
+        // ADMIN PANELİ VƏ SƏHİFƏLƏMƏ MƏNTİQİ
         // ==========================================
         async function fetchAndShowAdminLogs() {
             input.disabled = false; btn.classList.remove('btn-loading');
@@ -240,57 +238,96 @@ if (!document.documentElement.classList.contains('w-editor')) {
             const sysContainer = document.getElementById('system-logs-container');
             const admContainer = document.getElementById('admin-logs-container');
             
-            sysContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Yüklənir...</div>';
-            admContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Yüklənir...</div>';
+            sysContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Məlumatlar Yüklənir...</div>';
+            admContainer.innerHTML = '<div style="text-align:center; color:#94a3b8; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Məlumatlar Yüklənir...</div>';
             
             try {
                 const res = await fetch(`${API_URL}/api/login-logs`);
-                const logs = await res.json();
-                
-                let sysHtml = '';
-                let admHtml = '';
-
-                logs.forEach(log => {
-                    const dateObj = new Date(log.login_time);
-                    const formattedDate = dateObj.toLocaleString('az-AZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
-                    
-                    let statusClass = "status-failed";
-                    let statusText = "Xətalı";
-                    let isAdminLog = false;
-
-                    if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
-                    if(log.status.includes('Admin')) { statusClass = 'status-admin'; statusText = 'Uğurlu (Admin)'; isAdminLog = true; }
-
-                    const cardHtml = `
-                        <div class="log-card">
-                            <div class="log-header">
-                                <div class="log-time"><i class="fa-regular fa-clock"></i> ${formattedDate}</div>
-                                <div class="log-status ${statusClass}">${statusText}</div>
-                            </div>
-                            <div class="log-detail"><i class="fa-solid fa-earth-americas"></i> <span><strong>IP:</strong> ${log.ip_address}</span></div>
-                            <div class="log-detail"><i class="fa-solid fa-location-dot"></i> <span><strong>Məkan:</strong> ${log.location}</span></div>
-                            <div class="log-detail"><i class="fa-solid fa-wifi"></i> <span><strong>Şəbəkə:</strong> ${log.isp}</span></div>
-                            <div class="log-detail"><i class="fa-solid fa-laptop-code"></i> <span><strong>Sistem:</strong> ${log.os_name} / ${log.browser_name}</span></div>
-                            <div class="log-detail"><i class="fa-solid fa-mobile-screen"></i> <span><strong>Cihaz:</strong> ${log.device_type}</span></div>
-                        </div>
-                    `;
-
-                    if (isAdminLog) {
-                        admHtml += cardHtml;
-                    } else {
-                        sysHtml += cardHtml;
-                    }
-                });
-
-                sysContainer.innerHTML = sysHtml !== '' ? sysHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Sistem qeydi tapılmadı.</div>';
-                admContainer.innerHTML = admHtml !== '' ? admHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Admin qeydi tapılmadı.</div>';
-
+                allAdminLogs = await res.json();
+                currentAdminPage = 1; // Yeniləndikdə 1-ci səhifəyə qayıdırıq
+                renderAdminLogs();
             } catch(e) {
                 sysContainer.innerHTML = `<div style="text-align:center; color:#ef4444; padding: 20px;">Xəta: ${e.message}</div>`;
                 admContainer.innerHTML = '';
             }
         }
 
+        // Loqları cari səhifəyə görə render edən funksiya
+        function renderAdminLogs() {
+            const sysContainer = document.getElementById('system-logs-container');
+            const admContainer = document.getElementById('admin-logs-container');
+            const pagContainer = document.getElementById('admin-pagination-container');
+
+            let sysHtml = '';
+            let admHtml = '';
+
+            // Səhifələmə hesablaması
+            const startIndex = (currentAdminPage - 1) * adminLogsPerPage;
+            const endIndex = startIndex + adminLogsPerPage;
+            const pageLogs = allAdminLogs.slice(startIndex, endIndex);
+
+            pageLogs.forEach(log => {
+                const dateObj = new Date(log.login_time);
+                const formattedDate = dateObj.toLocaleString('az-AZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                
+                let statusClass = "status-failed";
+                let statusText = "Xətalı";
+                let isAdminLog = false;
+
+                if(log.status.includes('Sistem')) { statusClass = 'status-success'; statusText = 'Uğurlu (Sistem)'; }
+                if(log.status.includes('Admin')) { statusClass = 'status-admin'; statusText = 'Uğurlu (Admin)'; isAdminLog = true; }
+
+                const cardHtml = `
+                    <div class="log-card">
+                        <div class="log-header">
+                            <div class="log-time"><i class="fa-regular fa-clock"></i> ${formattedDate}</div>
+                            <div class="log-status ${statusClass}">${statusText}</div>
+                        </div>
+                        <div class="log-detail"><i class="fa-solid fa-earth-americas"></i> <span><strong>IP:</strong> ${log.ip_address}</span></div>
+                        <div class="log-detail"><i class="fa-solid fa-location-dot"></i> <span><strong>Məkan:</strong> ${log.location}</span></div>
+                        <div class="log-detail"><i class="fa-solid fa-wifi"></i> <span><strong>Şəbəkə:</strong> ${log.isp}</span></div>
+                        <div class="log-detail"><i class="fa-solid fa-laptop-code"></i> <span><strong>Sistem:</strong> ${log.os_name} / ${log.browser_name}</span></div>
+                        <div class="log-detail"><i class="fa-solid fa-mobile-screen"></i> <span><strong>Cihaz:</strong> ${log.device_type}</span></div>
+                    </div>
+                `;
+
+                if (isAdminLog) {
+                    admHtml += cardHtml;
+                } else {
+                    sysHtml += cardHtml;
+                }
+            });
+
+            sysContainer.innerHTML = sysHtml !== '' ? sysHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Bu səhifədə Sistem qeydi tapılmadı.</div>';
+            admContainer.innerHTML = admHtml !== '' ? admHtml : '<div style="text-align:center; color:#94a3b8; padding: 20px;">Bu səhifədə Admin qeydi tapılmadı.</div>';
+
+            renderAdminPagination();
+        }
+
+        // Paginasiya düymələrini yaradan funksiya
+        function renderAdminPagination() {
+            const pagContainer = document.getElementById('admin-pagination-container');
+            pagContainer.innerHTML = '';
+            
+            const totalPages = Math.ceil(allAdminLogs.length / adminLogsPerPage);
+            
+            if (totalPages > 1) {
+                for(let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = `page-btn ${i === currentAdminPage ? 'active' : ''}`;
+                    btn.innerText = i;
+                    btn.onclick = () => {
+                        currentAdminPage = i;
+                        renderAdminLogs();
+                        // Düyməyə basdıqda paneli rəvan yuxarı sürüşdürür
+                        document.getElementById('admin-panel').scrollTo({top: 0, behavior: 'smooth'});
+                    };
+                    pagContainer.appendChild(btn);
+                }
+            }
+        }
+
+        // Düymələrin funksiyaları
         document.getElementById('refresh-admin-btn').addEventListener('click', () => {
             fetchAndShowAdminLogs();
         });
