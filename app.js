@@ -116,7 +116,7 @@ if (!document.documentElement.classList.contains('w-editor')) {
 
         let allAdminLogs = [];
         let currentAdminPage = 1;
-        const adminLogsPerPage = 30;
+        const adminLogsPerPage = 15;
 
         toggleBtn.addEventListener('click', () => {
             if (input.type === 'password') { input.type = 'text'; eyeIcon.className = 'fa-solid fa-eye-slash'; eyeIcon.style.color = '#0f172a'; } 
