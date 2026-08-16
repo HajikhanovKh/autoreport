@@ -847,25 +847,25 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function loadSigners() {
         fetch(SIGNER_API_URL).then(r => r.json()).then(data => {
-            if (data && data.length > 0) {
-                const s = data[0]; 
-                currentSignerId = s.id; 
-                let el1 = document.getElementById('dyn-sign-leader-person'); if(el1) el1.value = s.leaderperson || ''; 
-                let el2 = document.getElementById('dyn-sign-leader-name'); if(el2) el2.value = s.leadername || ''; // Gizli dəyər
-                let el3 = document.getElementById('dyn-sign-second-person'); if(el3) el3.value = s.secondperson || ''; 
-                let el4 = document.getElementById('dyn-sign-phone'); if(el4) el4.value = s.phone || '';
+            // Məlumat array deyil, birbaşa obyektdir
+            if (data && (data.id || data.leaderperson !== undefined)) {
+                currentSignerId = data.id || null; 
+                let el1 = document.getElementById('dyn-sign-leader-person'); if(el1) el1.value = data.leaderperson || ''; 
+                let el2 = document.getElementById('dyn-sign-leader-name'); if(el2) el2.value = data.leadername || ''; 
+                let el3 = document.getElementById('dyn-sign-second-person'); if(el3) el3.value = data.secondperson || ''; 
+                let el4 = document.getElementById('dyn-sign-phone'); if(el4) el4.value = data.phone || '';
             }
-        }).catch(err => console.error(err));
+        }).catch(err => console.error("Signer yükləmə xətası:", err));
     }
 
     function loadRaportAyarlar() {
         fetch(RAPORT_AYAR_API_URL).then(r => r.json()).then(data => {
-            if(data && data.length > 0) {
-                raportAyarlarData = data[0];
-                let r1 = document.getElementById('dyn-rap-reisi-vezifesi'); if(r1) r1.value = raportAyarlarData.idarereisivezifesi || '';
-                let r2 = document.getElementById('dyn-rap-reisi-adi'); if(r2) r2.value = raportAyarlarData.idarereisi || '';
-                let r3 = document.getElementById('dyn-rap-mesul-vezife'); if(r3) r3.value = raportAyarlarData.mesulsexsvezifesi || raportAyarlarData.mesulsexsvezife || '';
-                let r4 = document.getElementById('dyn-rap-mesul-adi'); if(r4) r4.value = raportAyarlarData.mesulsexs || '';
+            if(data && (data.id || data.idarereisi !== undefined)) {
+                raportAyarlarData = data;
+                let r1 = document.getElementById('dyn-rap-reisi-vezifesi'); if(r1) r1.value = data.idarereisivezifesi || '';
+                let r2 = document.getElementById('dyn-rap-reisi-adi'); if(r2) r2.value = data.idarereisi || '';
+                let r3 = document.getElementById('dyn-rap-mesul-vezife'); if(r3) r3.value = data.mesulsexsvezifesi || data.mesulsexsvezife || '';
+                let r4 = document.getElementById('dyn-rap-mesul-adi'); if(r4) r4.value = data.mesulsexs || '';
             }
         }).catch(e => console.error("Raport Ayar Xətası:", e));
     }
