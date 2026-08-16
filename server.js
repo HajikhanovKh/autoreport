@@ -550,12 +550,17 @@ app.post('/api/generate-cover', async (req, res) => {
 // ==========================================
 // RAPORT AYARLARI (GET, POST, PUT)
 // ==========================================
+// ==========================================
+// RAPORT AYARLARI (GET, POST, PUT)
+// ==========================================
+
 app.get('/api/raportayarlar', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        const [results] = await connection.execute('SELECT * FROM raportayarlar LIMIT 1');
-        res.json(results);
+        const [rows] = await connection.execute('SELECT * FROM raportayarlar ORDER BY id ASC LIMIT 1');
+        // Frontend çökməsin deyə məlumatı tək obyekt olaraq (və ya boş) qaytarırıq
+        res.json(rows.length > 0 ? rows[0] : { idarereisivezifesi: '', idarereisi: '', mesulsexsvezifesi: '', mesulsexs: '' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     } finally {
@@ -566,17 +571,32 @@ app.get('/api/raportayarlar', async (req, res) => {
 app.post('/api/raportayarlar', async (req, res) => {
     let connection;
     try {
-        const { idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs } = req.body;
+        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
+        // Hansı dəyər dolu gəlirsə onu götürürük
+        const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
+
         connection = await mysql.createConnection(dbConfig);
         
-        const [result] = await connection.execute(
-            'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?, ?)',
-            [idarereisivezifesi || '', idarereisi || '', mesulsexsvezifesi || '', mesulsexsvezife || '', mesulsexs || '']
-        );
-        res.json({ id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
+        // Bazada qeyd olub-olmadığını yoxlayırıq (Upsert məntiqi)
+        const [existing] = await connection.execute('SELECT id FROM raportayarlar ORDER BY id ASC LIMIT 1');
+        
+        if (existing.length > 0) {
+            const recordId = existing[0].id;
+            await connection.execute(
+                'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
+                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', recordId]
+            );
+            res.json({ success: true, id: recordId, message: "Raport ayarları uğurla yeniləndi" });
+        } else {
+            const [result] = await connection.execute(
+                'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexs) VALUES (?, ?, ?, ?)',
+                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '']
+            );
+            res.status(201).json({ success: true, id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
+        }
     } catch (error) {
         console.error("Raport ayarları əlavə edilərkən xəta:", error);
-        res.status(500).json({ error: "Baza xətası" });
+        res.status(500).json({ error: error.message });
     } finally {
         if (connection) await connection.end();
     }
@@ -586,23 +606,21 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
     let connection;
     try {
         const { id } = req.params;
-        // Hər iki ehtimalı (mesulsexsvezife və mesulsexsvezifesi) req.body-dən alırıq
         const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
-        
-        // Hansı dolu gəlibsə, onu götürürük
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
 
         connection = await mysql.createConnection(dbConfig);
         
+        // MySQL Cədvəl strukturuna tam uyğun UPDATE sorğusu
         await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
-            [idarereisivezifesi || '', idarereisi || '', finalVezife, finalVezife, mesulsexs || '', id]
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
+            [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', id]
         );
         
-        res.json({ message: "Raport ayarları uğurla yeniləndi" });
+        res.json({ success: true, message: "Raport ayarları uğurla yeniləndi" });
     } catch (error) {
         console.error("Raport ayarları yenilənərkən xəta:", error);
-        res.status(500).json({ error: "Baza xətası" });
+        res.status(500).json({ error: error.message });
     } finally {
         if (connection) await connection.end();
     }
