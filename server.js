@@ -70,7 +70,6 @@ async function initializeTables() {
             )
         `);
 
-        // Əsas əlavə olunan cədvəl (Yaddaşdakı xətanın səbəbi idi)
         await connection.execute(`
             CREATE TABLE IF NOT EXISTS raportayarlar (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,6 +103,20 @@ async function initializeTables() {
                 comp_adress TEXT,
                 pstatus INT,
                 data_info_date VARCHAR(50)
+            )
+        `);
+        
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS login_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(100),
+                location VARCHAR(255),
+                isp VARCHAR(255),
+                os_name VARCHAR(255),
+                browser_name VARCHAR(255),
+                device_type VARCHAR(255),
+                status VARCHAR(255),
+                login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
         
@@ -252,84 +265,47 @@ app.delete('/api/companies/:id', async (req, res) => {
 // ==========================================
 // İMZALAYAN ŞƏXSLƏR (mesulsexs) API-ləri
 // ==========================================
-
-// 1. Məsul şəxs məlumatını çəkmək
 app.get('/api/mesulsexs', async (req, res) => {
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
         const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
-
-        res.json(rows);
-
-    } catch (err) { res.status(500).json({ error: err.message }); } 
-
-    finally { if (connection) await connection.end(); }
-
+        res.json(rows.length > 0 ? rows[0] : { leaderperson: '', leadername: '', secondperson: '', phone: '' });
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    } finally { 
+        if (connection) await connection.end(); 
+    }
 });
-
-
 
 app.post('/api/mesulsexs', async (req, res) => {
-
     const { leaderperson, leadername, secondperson, phone } = req.body;
-
     let connection;
-
     try {
-
         connection = await mysql.createConnection(dbConfig);
-
-        const [result] = await connection.execute(
-
-            'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
-
-            [leaderperson || '', leadername || '', secondperson || '', phone || '']
-
-        );
-
-        res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
-
-    } catch (err) { res.status(500).json({ error: err.message }); } 
-
-    finally { if (connection) await connection.end(); }
-
+        const [existing] = await connection.execute('SELECT id FROM mesulsexs ORDER BY id ASC LIMIT 1');
+        
+        if (existing.length > 0) {
+            const recordId = existing[0].id;
+            await connection.execute(
+                'UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
+                [leaderperson || '', leadername || '', secondperson || '', phone || '', recordId]
+            );
+            res.json({ success: true, id: recordId, leaderperson, leadername, secondperson, phone });
+        } else {
+            const [result] = await connection.execute(
+                'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
+                [leaderperson || '', leadername || '', secondperson || '', phone || '']
+            );
+            res.status(201).json({ success: true, id: result.insertId, leaderperson, leadername, secondperson, phone });
+        }
+    } catch (err) { 
+        res.status(500).json({ error: err.message }); 
+    } finally { 
+        if (connection) await connection.end(); 
+    }
 });
 
-
-
-app.put('/api/mesulsexs/:id', async (req, res) => {
-
-    const { id } = req.params;
-
-    const { leaderperson, leadername, secondperson, phone } = req.body;
-
-    let connection;
-
-    try {
-
-        connection = await mysql.createConnection(dbConfig);
-
-        await connection.execute('UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
-
-            [leaderperson || '', leadername || '', secondperson || '', phone || '', id]
-
-        );
-
-        res.json({ id, leaderperson, leadername, secondperson, phone });
-
-    } catch (err) { res.status(500).json({ error: err.message }); } 
-
-    finally { if (connection) await connection.end(); }
-
-});
-
-
-// 3. Xüsusi ID ilə yeniləmək (PUT)
 app.put('/api/mesulsexs/:id', async (req, res) => {
     const { id } = req.params;
     const { leaderperson, leadername, secondperson, phone } = req.body;
@@ -347,6 +323,7 @@ app.put('/api/mesulsexs/:id', async (req, res) => {
         if (connection) await connection.end(); 
     }
 });
+
 // ==========================================
 // BİLDİRİŞLƏR (bildirisler) API-ləri
 // ==========================================
@@ -397,7 +374,6 @@ app.put('/api/bildirisler/:id', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        // Həm nömrəni, həm də tarixi yeniləmək üçün
         if (tarix_yazilma !== undefined) {
              await connection.execute('UPDATE bildirisler SET bildiris_nomresi = ?, tarix_yazilma = ? WHERE id = ?', [bildiris_nomresi, tarix_yazilma, req.params.id]);
         } else {
@@ -461,24 +437,22 @@ app.post('/api/generate-cover', async (req, res) => {
         const sablon_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/convertsablon.docx";
         const poct_url = "https://raw.githubusercontent.com/HajikhanovKh/autoreport/refs/heads/main/poctsiyahi.docx";
 
-        // Hər iki şablonu eyni anda çəkirik
         const [sablonRes, poctRes] = await Promise.all([
             axios.get(sablon_url, { responseType: 'arraybuffer' }),
-            axios.get(poct_url, { responseType: 'arraybuffer' }).catch(() => null) // Fayl tapılmazsa, server çökməsin
+            axios.get(poct_url, { responseType: 'arraybuffer' }).catch(() => null)
         ]);
 
         const sablonBuffer = sablonRes.data;
         const poctBuffer = poctRes ? poctRes.data : null;
 
         const zipOutput = new JSZip();
-        const poctFirms = []; // Poçt siyahısı cədvəli üçün array
+        const poctFirms = [];
 
         for (let i = 0; i < selectedFirms.length; i++) {
             const f = selectedFirms[i];
             const rawName = f.covercompany || f.covername || `Firma_${i+1}`;
             const safeName = rawName.replace(/[/\\?%*:|"<>\s]+/g, '_').substring(0, 30);
 
-            // Zərf məlumatı
             const data = {
                 covergo: coverData.go || "",
                 coveradres: coverData.adres || "",
@@ -488,21 +462,14 @@ app.post('/api/generate-cover', async (req, res) => {
                 index: f.index || ""
             };
 
-            // Poçt siyahısına bu firmanı tələblərə uyğun formatlayaraq əlavə edirik
-            // Poçt siyahısına bu firmanı tələblərə uyğun formatlayaraq əlavə edirik
             poctFirms.push({
                 sira: i + 1,
-                // App.js'den gelen temiz sahibi adını yazdırır
                 soyadiadi: f.soyadiadi || "", 
-                
-                // Fiziki şahıssa "fiziki şəxs", şirketse kendi adını ("AGROEL" MMC) yazdırır
                 firmasi: f.isFiziki ? "fiziki şəxs" : f.covercompany, 
-                
                 unvani: f.unvan || f.covercompanyadres || ""
             });
 
             try {
-                // Köhnə əməliyyat: Fərdi Zərflərin Hazırlanması
                 const docZip = new PizZip(sablonBuffer);
                 const doc = new Docxtemplater(docZip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; } });
                 doc.render(data);
@@ -513,9 +480,6 @@ app.post('/api/generate-cover', async (req, res) => {
             }
         }
 
-        // ==========================================
-        // YENİ: POÇT SİYAHISI SƏNƏDİNİN ƏLAVƏ EDİLMƏSİ
-        // ==========================================
         if (poctBuffer && poctFirms.length > 0) {
             try {
                 const poctZip = new PizZip(poctBuffer);
@@ -550,16 +514,11 @@ app.post('/api/generate-cover', async (req, res) => {
 // ==========================================
 // RAPORT AYARLARI (GET, POST, PUT)
 // ==========================================
-// ==========================================
-// RAPORT AYARLARI (GET, POST, PUT)
-// ==========================================
-
 app.get('/api/raportayarlar', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [rows] = await connection.execute('SELECT * FROM raportayarlar ORDER BY id ASC LIMIT 1');
-        // Frontend çökməsin deyə məlumatı tək obyekt olaraq (və ya boş) qaytarırıq
         res.json(rows.length > 0 ? rows[0] : { idarereisivezifesi: '', idarereisi: '', mesulsexsvezifesi: '', mesulsexs: '' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -572,12 +531,10 @@ app.post('/api/raportayarlar', async (req, res) => {
     let connection;
     try {
         const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
-        // Hansı dəyər dolu gəlirsə onu götürürük
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
 
         connection = await mysql.createConnection(dbConfig);
         
-        // Bazada qeyd olub-olmadığını yoxlayırıq (Upsert məntiqi)
         const [existing] = await connection.execute('SELECT id FROM raportayarlar ORDER BY id ASC LIMIT 1');
         
         if (existing.length > 0) {
@@ -611,7 +568,6 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
 
         connection = await mysql.createConnection(dbConfig);
         
-        // MySQL Cədvəl strukturuna tam uyğun UPDATE sorğusu
         await connection.execute(
             'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
             [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', id]
@@ -625,7 +581,7 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
         if (connection) await connection.end();
     }
 });
-// Raport məlumatını (nömrə, tarix və s.) yeniləmək
+
 app.put('/api/raportinfo/:id', async (req, res) => {
     let connection;
     try {
@@ -648,17 +604,12 @@ app.put('/api/raportinfo/:id', async (req, res) => {
     }
 });
 
-
-// Raport qeydini bazadan silmək
 app.delete('/api/raportinfo/:id', async (req, res) => {
     let connection;
     try {
         const { id } = req.params;
-        
         connection = await mysql.createConnection(dbConfig);
-        
         await connection.execute('DELETE FROM raportinfo WHERE id=?', [id]);
-        
         res.json({ message: "Raport qeydi uğurla silindi!" });
     } catch (error) {
         console.error("Raport silinərkən xəta:", error);
@@ -667,6 +618,7 @@ app.delete('/api/raportinfo/:id', async (req, res) => {
         if (connection) await connection.end();
     }
 });
+
 // ==========================================
 // RAPORT İNFO (Məlumatların bazaya yazılması və oxunması)
 // ==========================================
@@ -714,7 +666,6 @@ app.post('/api/generate-raports', async (req, res) => {
         }
 
         const zip = new JSZip();
-        // Şablon faylınızın adı raportsablon.docx olmalıdır. (Hərf böyüklüyünə diqqət)
         const templatePath = path.join(__dirname, 'raportsablon.docx'); 
         
         if (!fs.existsSync(templatePath)) {
@@ -730,7 +681,6 @@ app.post('/api/generate-raports', async (req, res) => {
                 linebreaks: true,
             });
 
-            // Frontend-dən nə gəlirsə birbaşa renderə atırıq ki undefined verməsin
             const renderData = {};
             for (const key in firm) {
                 renderData[key] = firm[key] ? firm[key] : ''; 
@@ -753,7 +703,6 @@ app.post('/api/generate-raports', async (req, res) => {
         });
         
         res.send(zipBuffer);
-
     } catch (error) {
         console.error("Raport ZIP yaradılarkən xəta:", error);
         res.status(500).json({ error: "Sənədlər yaradılarkən xəta baş verdi: " + error.message });
@@ -761,34 +710,29 @@ app.post('/api/generate-raports', async (req, res) => {
 });
 
 // ==========================================
-// TƏHLÜKƏSİZLİK: GİRİŞ LOQLARINI YAZMAQ (POST)
+// TƏHLÜKƏSİZLİK: GİRİŞ LOQLARINI YAZMAq (POST)
 // ==========================================
-// Yaddaşda IP bloklamalarını saxlamaq üçün massiv (Server yenilənəndə təmizlənir)
-const ipAttemptTracker = {}; // { ip: { count: 0, blockUntil: 0 } }
+const ipAttemptTracker = {};
 
 app.post('/api/login-logs', async (req, res) => {
     let connection;
     try {
-        // IP ünvanını birbaşa server səviyyəsində dəqiq oxuyuruq
         const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || "Naməlum IP";
         const cleanIp = clientIp.includes(',') ? clientIp.split(',')[0].trim() : clientIp;
 
         const { os_name, browser_name, device_type, status } = req.body;
         const now = Date.now();
 
-        // 1 Saatlıq Bloklama Yoxlaması
         if (ipAttemptTracker[cleanIp] && ipAttemptTracker[cleanIp].blockUntil > now) {
             return res.status(403).json({ error: "BLOCKED" });
         }
 
-        // Xətalı şifrə cəhdlərini sayırıq
         if (status && status.includes('Xətalı Şifrə')) {
             if (!ipAttemptTracker[cleanIp]) {
                 ipAttemptTracker[cleanIp] = { count: 0, blockUntil: 0 };
             }
             ipAttemptTracker[cleanIp].count += 1;
 
-            // 5 səhvindən sonra 1 saatlıq (3600000 ms) blok qoyuruq
             if (ipAttemptTracker[cleanIp].count >= 5) {
                 ipAttemptTracker[cleanIp].blockUntil = now + (60 * 60 * 1000); 
                 ipAttemptTracker[cleanIp].count = 0; 
@@ -801,7 +745,6 @@ app.post('/api/login-logs', async (req, res) => {
 
         connection = await mysql.createConnection(dbConfig);
         
-        // Avtomatik olaraq Azərbaycan məkanını və IP-ni bazaya yazırıq
         const query = `INSERT INTO login_logs (ip_address, location, isp, os_name, browser_name, device_type, status) VALUES (?, 'Azərbaycan', 'Yerli Provayder', ?, ?, ?, ?)`;
         await connection.execute(query, [cleanIp, os_name, browser_name, device_type, status]);
         
