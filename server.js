@@ -534,19 +534,20 @@ app.post('/api/raportayarlar', async (req, res) => {
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
 
         connection = await mysql.createConnection(dbConfig);
-        
         const [existing] = await connection.execute('SELECT id FROM raportayarlar ORDER BY id ASC LIMIT 1');
         
         if (existing.length > 0) {
             const recordId = existing[0].id;
+            // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
             await connection.execute(
-                'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
+                'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
                 [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', recordId]
             );
             res.json({ success: true, id: recordId, message: "Raport ayarları uğurla yeniləndi" });
         } else {
+            // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
             const [result] = await connection.execute(
-                'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezifesi, mesulsexs) VALUES (?, ?, ?, ?)',
+                'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?)',
                 [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '']
             );
             res.status(201).json({ success: true, id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
@@ -567,12 +568,11 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
 
         connection = await mysql.createConnection(dbConfig);
-        
+        // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
         await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezifesi=?, mesulsexs=? WHERE id=?',
+            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
             [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', id]
         );
-        
         res.json({ success: true, message: "Raport ayarları uğurla yeniləndi" });
     } catch (error) {
         console.error("Raport ayarları yenilənərkən xəta:", error);
