@@ -354,8 +354,31 @@ document.addEventListener("DOMContentLoaded", function() {
             100% { background-color: transparent; }
         }
         .highlight-row { animation: flashHighlight 3s ease-out; }
+        
+        /* --- YENİ ƏLAVƏ EDİLƏN DİZAYN (Axtarış və Düymə hissəsi üçün) --- */
+        #table-search-input {
+            flex: 1 !important; /* Xana boş yeri tam tutsun */
+            min-width: 200px !important; /* Çox kiçilməsin */
+        }
+        #refresh-db-btn, #data-count-badge {
+            white-space: nowrap !important; /* Yazılar alt-alta düşməsin */
+            flex-shrink: 0 !important; /* Düymələr sıxışmasın */
+        }
     `;
     document.head.appendChild(style);
+
+    // --- YENİ ƏLAVƏ EDİLƏN JS ƏMRİ (Elementləri tək sətirə yığır) ---
+    const searchInput = document.getElementById('table-search-input');
+    if (searchInput && searchInput.parentElement) {
+        // Axtarış xanasının ana qutusunu tapıb Flexbox ilə səliqəyə salırıq
+        const parentContainer = searchInput.parentElement;
+        parentContainer.style.display = 'flex';
+        parentContainer.style.alignItems = 'center';
+        parentContainer.style.justifyContent = 'space-between';
+        parentContainer.style.gap = '12px';
+        parentContainer.style.flexWrap = 'wrap'; // Ekran kiçiləndə səliqəli alt-alta düşsün
+        parentContainer.style.width = '100%';
+    }
 
     const actionBtns = document.querySelectorAll('.action-bar .btn');
     actionBtns.forEach(btn => {
