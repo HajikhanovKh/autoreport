@@ -255,51 +255,79 @@ app.delete('/api/companies/:id', async (req, res) => {
 
 // 1. Məsul şəxs məlumatını çəkmək
 app.get('/api/mesulsexs', async (req, res) => {
+
     let connection;
+
     try {
+
         connection = await mysql.createConnection(dbConfig);
+
         const [rows] = await connection.execute('SELECT * FROM mesulsexs ORDER BY id ASC LIMIT 1');
-        // Əgər baza boşdursa, boş obyekt qaytarırıq ki, frontend çökməsin
-        res.json(rows.length > 0 ? rows[0] : { leaderperson: '', leadername: '', secondperson: '', phone: '' });
-    } catch (err) { 
-        res.status(500).json({ error: err.message }); 
-    } finally { 
-        if (connection) await connection.end(); 
-    }
+
+        res.json(rows);
+
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+
+    finally { if (connection) await connection.end(); }
+
 });
 
-// 2. Məsul şəxs məlumatını əlavə etmək və ya yeniləmək (Upsert məntiqi)
+
+
 app.post('/api/mesulsexs', async (req, res) => {
+
     const { leaderperson, leadername, secondperson, phone } = req.body;
+
     let connection;
+
     try {
+
         connection = await mysql.createConnection(dbConfig);
-        
-        // Bazada artıq qeyd varmı yoxlayırıq
-        const [existing] = await connection.execute('SELECT id FROM mesulsexs ORDER BY id ASC LIMIT 1');
-        
-        if (existing.length > 0) {
-            // Əgər varsa, mövcud sətri yeniləyirik (UPDATE)
-            const recordId = existing[0].id;
-            await connection.execute(
-                'UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
-                [leaderperson || '', leadername || '', secondperson || '', phone || '', recordId]
-            );
-            res.json({ success: true, id: recordId, leaderperson, leadername, secondperson, phone });
-        } else {
-            // Yoxdursa, yeni sətir yaradırıq (INSERT)
-            const [result] = await connection.execute(
-                'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
-                [leaderperson || '', leadername || '', secondperson || '', phone || '']
-            );
-            res.status(201).json({ success: true, id: result.insertId, leaderperson, leadername, secondperson, phone });
-        }
-    } catch (err) { 
-        res.status(500).json({ error: err.message }); 
-    } finally { 
-        if (connection) await connection.end(); 
-    }
+
+        const [result] = await connection.execute(
+
+            'INSERT INTO mesulsexs (leaderperson, leadername, secondperson, phone) VALUES (?, ?, ?, ?)',
+
+            [leaderperson || '', leadername || '', secondperson || '', phone || '']
+
+        );
+
+        res.status(201).json({ id: result.insertId, leaderperson, leadername, secondperson, phone });
+
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+
+    finally { if (connection) await connection.end(); }
+
 });
+
+
+
+app.put('/api/mesulsexs/:id', async (req, res) => {
+
+    const { id } = req.params;
+
+    const { leaderperson, leadername, secondperson, phone } = req.body;
+
+    let connection;
+
+    try {
+
+        connection = await mysql.createConnection(dbConfig);
+
+        await connection.execute('UPDATE mesulsexs SET leaderperson = ?, leadername = ?, secondperson = ?, phone = ? WHERE id = ?',
+
+            [leaderperson || '', leadername || '', secondperson || '', phone || '', id]
+
+        );
+
+        res.json({ id, leaderperson, leadername, secondperson, phone });
+
+    } catch (err) { res.status(500).json({ error: err.message }); } 
+
+    finally { if (connection) await connection.end(); }
+
+});
+
 
 // 3. Xüsusi ID ilə yeniləmək (PUT)
 app.put('/api/mesulsexs/:id', async (req, res) => {
