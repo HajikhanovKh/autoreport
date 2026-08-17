@@ -1677,7 +1677,11 @@ document.addEventListener("DOMContentLoaded", function() {
             tr.querySelector('.btn-edit').addEventListener('click', (e) => { 
                 e.preventDefault(); 
                 fillFormWithData(company); 
-                document.querySelector('.modal-body').scrollTo({ top: 0, behavior: 'smooth' }); 
+                // Birbaşa VÖEN panelinin modalını hədəf alırıq
+                const modalBody = document.querySelector('#popup_1 .modal-body');
+                if(modalBody) {
+                    modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             });
             tr.querySelector('.btn-delete').addEventListener('click', (e) => { 
                 e.preventDefault(); 
