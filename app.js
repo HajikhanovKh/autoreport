@@ -2612,9 +2612,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // Mötərizə içindəki tarix və nömrənin tənzimlənməsi
             if (nVal && tVal) {
-                bildirisDetaylari.push(`${tVal}-cı il tarixli ${nVal}`);
+                bildirisDetaylari.push(`${tVal}-cı il tarixli ${nVal} nömrəli`);
             } else if (nVal) {
-                bildirisDetaylari.push(`tarixli ${nVal}`);
+                bildirisDetaylari.push(`tarixli ${nVal} nömrəli`);
             }
 
             if (bId && (nVal || tVal)) {
@@ -2633,7 +2633,6 @@ document.addEventListener("DOMContentLoaded", function() {
         let finalNomre = Array.from(new Set(nomreVals)).join(", ");
         let finalTarix = Array.from(new Set(tarixVals)).join(", ");
 
-        // Bildiriş qeydi üçün məntiq
         // Bildiriş qeydi üçün məntiq
         let bildirisqeydiVal = "";
         let bildirisnomreuzantiVal = "";
