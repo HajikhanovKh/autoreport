@@ -77,7 +77,8 @@ async function initializeTables() {
                 idarereisi VARCHAR(255),
                 mesulsexsvezifesi VARCHAR(255),
                 mesulsexsvezife VARCHAR(255),
-                mesulsexs VARCHAR(255)
+                mesulsexs VARCHAR(255),
+                mezenne VARCHAR(50) DEFAULT '1.7000'
             )
         `);
 
@@ -530,25 +531,24 @@ app.get('/api/raportayarlar', async (req, res) => {
 app.post('/api/raportayarlar', async (req, res) => {
     let connection;
     try {
-        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
+        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs, mezenne } = req.body;
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
+        const finalMezenne = mezenne || '1.7000'; // Əgər boş gələrsə standart 1.7 atırıq
 
         connection = await mysql.createConnection(dbConfig);
         const [existing] = await connection.execute('SELECT id FROM raportayarlar ORDER BY id ASC LIMIT 1');
         
         if (existing.length > 0) {
             const recordId = existing[0].id;
-            // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
             await connection.execute(
-                'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
-                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', recordId]
+                'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=?, mezenne=? WHERE id=?',
+                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', finalMezenne, recordId]
             );
             res.json({ success: true, id: recordId, message: "Raport ayarları uğurla yeniləndi" });
         } else {
-            // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
             const [result] = await connection.execute(
-                'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexs) VALUES (?, ?, ?, ?)',
-                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '']
+                'INSERT INTO raportayarlar (idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexs, mezenne) VALUES (?, ?, ?, ?, ?)',
+                [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', finalMezenne]
             );
             res.status(201).json({ success: true, id: result.insertId, message: "Raport ayarları uğurla əlavə edildi" });
         }
@@ -564,14 +564,24 @@ app.put('/api/raportayarlar/:id', async (req, res) => {
     let connection;
     try {
         const { id } = req.params;
-        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs } = req.body;
+        const { idarereisivezifesi, idarereisi, mesulsexsvezife, mesulsexsvezifesi, mesulsexs, mezenne } = req.body;
         const finalVezife = mesulsexsvezife || mesulsexsvezifesi || '';
 
+        // Mövcud məzənnəni saxla əgər boş göndərilibsə
+        let mezenneUpdateSql = "";
+        let queryParams = [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || ''];
+        
+        if(mezenne !== undefined) {
+            mezenneUpdateSql = ", mezenne=?";
+            queryParams.push(mezenne);
+        }
+        
+        queryParams.push(id);
+
         connection = await mysql.createConnection(dbConfig);
-        // Sütun adı olaraq bazada mövcud olan "mesulsexsvezife" istifadə edildi!
         await connection.execute(
-            'UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? WHERE id=?',
-            [idarereisivezifesi || '', idarereisi || '', finalVezife, mesulsexs || '', id]
+            `UPDATE raportayarlar SET idarereisivezifesi=?, idarereisi=?, mesulsexsvezife=?, mesulsexs=? ${mezenneUpdateSql} WHERE id=?`,
+            queryParams
         );
         res.json({ success: true, message: "Raport ayarları uğurla yeniləndi" });
     } catch (error) {
