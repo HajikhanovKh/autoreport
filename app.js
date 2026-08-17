@@ -866,8 +866,66 @@ document.addEventListener("DOMContentLoaded", function() {
                 let r2 = document.getElementById('dyn-rap-reisi-adi'); if(r2) r2.value = data.idarereisi || '';
                 let r3 = document.getElementById('dyn-rap-mesul-vezife'); if(r3) r3.value = data.mesulsexsvezifesi || data.mesulsexsvezife || '';
                 let r4 = document.getElementById('dyn-rap-mesul-adi'); if(r4) r4.value = data.mesulsexs || '';
+                
+                // Məzənnəni bazadan inputa yazdırırıq
+                let rateInput = document.getElementById("usd-rate-input");
+                if(rateInput && data.mezenne) {
+                    rateInput.value = parseFloat(data.mezenne).toFixed(4);
+                }
             }
         }).catch(e => console.error("Raport Ayar Xətası:", e));
+    }
+
+    // Məzənnəni saxla düyməsinin funksionallığı
+    const saveRateBtn = document.getElementById("save-rate-btn");
+    const rateInput = document.getElementById("usd-rate-input");
+
+    if (saveRateBtn && rateInput) {
+        saveRateBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const currentVal = rateInput.value;
+            
+            if (currentVal && parseFloat(currentVal) > 0) {
+                const originalHTML = saveRateBtn.innerHTML;
+                saveRateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...';
+                saveRateBtn.disabled = true;
+
+                // Raport Ayarları cədvəlini yeniləyirik (PUT yaxud POST)
+                let methodRaport = (raportAyarlarData && raportAyarlarData.id) ? 'PUT' : 'POST';
+                let urlRaport = (raportAyarlarData && raportAyarlarData.id) ? `${RAPORT_AYAR_API_URL}/${raportAyarlarData.id}` : RAPORT_AYAR_API_URL;
+                
+                // Mövcud məlumatları saxlayıb yalnız məzənnəni yeniləyirik
+                let payloadRaport = { ...raportAyarlarData, mezenne: currentVal };
+
+                fetch(urlRaport, {
+                    method: methodRaport,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadRaport)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        saveRateBtn.classList.add("saved");
+                        saveRateBtn.innerHTML = '<i class="fa-solid fa-check"></i> Saxlanıldı';
+                        // Backend-dən gələn ID-ni qeyd edirik ki, növbəti dəfə POST etməsin
+                        if (!raportAyarlarData.id && data.id) raportAyarlarData.id = data.id;
+                        raportAyarlarData.mezenne = currentVal;
+                        
+                        setTimeout(() => {
+                            saveRateBtn.classList.remove("saved");
+                            saveRateBtn.innerHTML = originalHTML;
+                            saveRateBtn.disabled = false;
+                        }, 2000);
+                    }
+                }).catch(err => {
+                    alert("Məzənnə saxlanarkən xəta: " + err.message);
+                    saveRateBtn.innerHTML = originalHTML;
+                    saveRateBtn.disabled = false;
+                });
+            } else {
+                alert("Düzgün məzənnə daxil edin!");
+            }
+        });
     }
 
     if (signerBtn && popupSigners) { 
